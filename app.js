@@ -4,6 +4,7 @@ const state = {
   persona: 'soly',
   emotion: 'idle',
   listening: false,
+  speaking: false,
   recognition: null,
   restartRecognition: false,
   ownerName: 'إسلام'
@@ -72,6 +73,8 @@ function speak(text) {
     setStatus('الصوت غير مدعوم في المتصفح ده', 'error');
     return;
   }
+  state.speaking = true;
+  try { state.recognition?.stop(); } catch (_) {}
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'ar-EG';
@@ -81,8 +84,17 @@ function speak(text) {
     setStatus(personas[state.persona].name + ' بيتكلم', 'speaking');
     animateCharacter('happy');
   };
-  utterance.onend = () => setStatus(state.listening ? 'سامعك، كمل كلامك' : 'مستنيك تبدأ', state.listening ? 'listening' : 'idle');
-  utterance.onerror = () => setStatus('حصلت مشكلة في تشغيل الصوت', 'error');
+  utterance.onend = () => {
+    state.speaking = false;
+    setStatus(state.listening ? 'سامعك، كمل كلامك' : 'مستنيك تبدأ', state.listening ? 'listening' : 'idle');
+    if (state.listening && state.recognition) {
+      window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 300);
+    }
+  };
+  utterance.onerror = () => {
+    state.speaking = false;
+    setStatus('حصلت مشكلة في تشغيل الصوت', 'error');
+  };
   window.speechSynthesis.speak(utterance);
 }
 
@@ -140,14 +152,11 @@ function startListening() {
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
-  let lastFinal = '';
-
   recognition.onresult = (event) => {
     let interim = '';
     for (let i = event.resultIndex; i < event.results.length; i += 1) {
       const transcript = event.results[i][0].transcript.trim();
-      if (event.results[i].isFinal && transcript && transcript !== lastFinal) {
-        lastFinal = transcript;
+      if (event.results[i].isFinal && transcript) {
         handleRecognizedText(transcript);
       } else if (!event.results[i].isFinal) {
         interim += transcript;
@@ -169,9 +178,10 @@ function startListening() {
   };
 
   recognition.onend = () => {
+    if (state.speaking) return;
     if (state.restartRecognition && state.listening) {
       window.setTimeout(() => {
-        if (!state.listening || !state.restartRecognition) return;
+        if (!state.listening || !state.restartRecognition || state.speaking) return;
         try { recognition.start(); } catch (_) {}
       }, 300);
     } else {
