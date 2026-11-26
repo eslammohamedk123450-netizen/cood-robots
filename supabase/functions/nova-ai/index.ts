@@ -62,7 +62,7 @@ function normalizeMessages(value: unknown): Array<{role:"system"|"user"|"assista
   for (let i = 0; i < value.length; i++) {
     const item = value[i];
     if (!item || typeof item !== "object" || !["system","user","assistant"].includes(item.role) || typeof item.content !== "string") return null;
-    if (item.content.length > 12000) return null;
+    if (item.content.length > 12000 || (item.role === "user" && !item.content.trim())) return null;
     total += item.content.length;
     if (total > 200000) return null;
     if (item.role === "system") {
@@ -271,6 +271,9 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Unknown action" }, 400, origin);
   } catch (error) {
     console.error("NOVA provider function error:", error instanceof Error ? error.message : "unknown");
-    return json({ error: error instanceof Error ? error.message : "Internal server error" }, 500, origin);
+    const message = error instanceof Error ? error.message : "Internal server error";
+    if (message === "Request body too large") return json({ error: message }, 413, origin);
+    if (error instanceof SyntaxError) return json({ error: "Invalid JSON request body" }, 400, origin);
+    return json({ error: "Internal server error" }, 500, origin);
   }
 });
