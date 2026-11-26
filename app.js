@@ -384,7 +384,7 @@ async function requestAIReply(text) {
   if (!state.messages.length) {
     state.messages.push({
       role: "system",
-      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. تحدث بالعربية المصرية الطبيعية الودودة، كن صريحًا ومختصرًا عند الحاجة، لا تدّع تنفيذ شيء لم تنفذه، واسأل للتوضيح عندما يلزم.\n\nملف المالك والذاكرة الدائمة:\n" + (state.profile || "اسم المالك إسلام، وهو صاحب NOVA ومطوّرها.")
+      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. تحدث بالعربية المصرية الطبيعية الودودة، كن صريحًا ومختصرًا عند الحاجة، لا تدّع تنفيذ شيء لم تنفذه، واسأل للتوضيح عندما يلزم. ملف المالك والذاكرة الدائمة: " + (state.profile || "اسم المالك إسلام، وهو صاحب NOVA ومطوّرها.")
     });
   }
   state.messages.push({ role: "user", content: text });
