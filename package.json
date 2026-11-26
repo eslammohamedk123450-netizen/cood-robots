@@ -1,0 +1,10 @@
+{
+  "name": "nova-desk-robot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check app.js && node --check nova-3d.js && node scripts/check.mjs",
+    "test": "npm run check"
+  }
+}
