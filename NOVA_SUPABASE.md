@@ -9,17 +9,24 @@
 - Never put the service-role key or any AI-provider key in the frontend, repository, browser storage, or logs.
 
 ## Authentication
-The V1 web app now creates a Supabase anonymous Auth session automatically on first use and persists it in the same browser. No email or password is requested. Anonymous Sign-Ins must be enabled once in Supabase Dashboard → Authentication → Providers. The current implementation reuses an existing session if present. Clearing browser data or switching browsers/devices creates a different anonymous user, so existing provider records will not automatically follow. Supabase documents this behavior at https://supabase.com/docs/guides/auth/auth-anonymous.
+NOVA V1 is restricted to one existing owner account:
+- Owner email: `eslammohamedk123450@gmail.com`
+- Owner Auth user ID: `f980820b-f59d-453c-9df8-2b9afc695c74`
+- The app presents a login gate and uses `signInWithPassword`; the Supabase JS client persists the session so the owner does not need to sign in every visit.
+- There is no sign-up UI and no active invite-code system. Any other email entered in the login form is shown an invitation-required message.
+- The `nova-ai` Edge Function independently verifies both the exact owner user ID and email. Any other authenticated account receives HTTP 403 and cannot use provider keys, model discovery, or chat.
+- RLS policies on NOVA provider keys, models, preferences and memories also require the exact owner identity.
+- The existing owner Auth account was found in Supabase. No anonymous Auth users or pre-existing NOVA API-key rows were present to migrate.
 
-This removes the login prompt; it does not prove that the visitor is Islam. Anyone who can access the public app URL may create an anonymous session. Before wider public sharing, add a device-pairing secret or a permanent owner authentication method. A future upgrade flow should link the anonymous identity to a permanent account without losing provider data.
+**Remaining dashboard action:** disable new user sign-ups in Supabase Authentication settings. This prevents creation of additional Auth accounts at the Auth service level. Even before that toggle is changed, the Edge Function and NOVA RLS policies deny non-owner access.
 
-The deployed `nova-ai` Edge Function has platform JWT verification disabled because it performs its own explicit `auth.getUser(token)` validation before any operation. Every provider/model operation is scoped to the verified `auth.uid()`.
+The deployed `nova-ai` Edge Function has platform JWT verification disabled because it performs its own explicit `auth.getUser(token)` validation before applying the owner allowlist.
 
 ## NOVA tables
 - `public.nova_api_keys`: provider label, base URL, active state and Vault secret reference. The raw API key is never stored in this table.
 - `public.nova_api_models`: discovered model IDs, display names and per-model enabled state, scoped to the owner and provider key.
 - `public.nova_ai_preferences`: future automatic/manual routing preference and optional selected model.
-All three tables have RLS enabled. Provider/model metadata is owner-readable; privileged writes are performed by the authenticated Edge Function using its server-side service role.
+All four NOVA tables have RLS enabled and owner-only policies. Provider/model metadata is owner-readable; privileged writes are performed by the authenticated Edge Function using its server-side service role. The `nova_memories` table is prepared for long-term memories and is not yet connected to the chat memory engine.
 
 ## Secret handling
 - `public.nova_store_api_secret(text,text)` writes provider credentials using `vault.create_secret`.
@@ -30,7 +37,7 @@ All three tables have RLS enabled. Provider/model metadata is owner-readable; pr
 - Do not add a service-role key to GitHub or the browser.
 
 ## Edge Function: `nova-ai`
-Deployed in the existing project (active deployment version 5; source committed at `supabase/functions/nova-ai/index.ts`). Applied SQL migrations are committed under `supabase/migrations/`. It validates the caller's bearer token with Supabase Auth and supports:
+Deployed in the existing project (active deployment version 6; source committed at `supabase/functions/nova-ai/index.ts`). Applied SQL migrations are committed under `supabase/migrations/`. It validates the caller's bearer token with Supabase Auth and supports:
 - `list`: list only the signed-in owner's provider metadata and models.
 - `add_provider`: validate an HTTPS provider base URL, store the key in Vault, and save its metadata.
 - `sync_models`: call the provider's `/models` endpoint and upsert model IDs while preserving existing enable/disable choices.
@@ -46,7 +53,7 @@ The dropdown supplies default base URLs, but users can edit them. The frontend a
 
 ## Frontend
 - Supabase URL and publishable key are in `app.js`.
-- Supabase anonymous Auth session persistence is handled by the official client SDK; no manual sign-in screen is required for V1.
+- Supabase email/password session persistence is handled by the official client SDK; the owner signs in once per browser profile.
 - Provider selector presets: Gemini, OpenRouter, OpenAI, Anthropic and custom.
 - Provider API keys are not stored in LocalStorage/sessionStorage.
 - The UI supports multiple provider records, refreshing discovered models, and per-model enable/disable controls.
@@ -57,11 +64,13 @@ The dropdown supplies default base URLs, but users can edit them. The frontend a
 
 ## Not yet verified
 - Enable Anonymous Sign-Ins once in Supabase Dashboard → Authentication → Providers.
-- Automatic anonymous session creation in the deployed GitHub Pages site.
+- Owner login and persistent session restoration in the deployed GitHub Pages site.
+- Disable public sign-ups in Supabase Auth settings.
 - Saving a real provider key into Vault and confirming no key is returned to the browser.
 - Provider model discovery and model toggles with a real provider.
 - End-to-end chat and automatic fallback with real provider responses.
 - Android Chrome WebGL performance and speech-recognition behavior.
+- Memory table created but memory retrieval/writing not yet wired into the chat.
 - Persistent conversation and long-term memory.
 - Provider-key deletion/rotation and associated Vault secret cleanup.
 
