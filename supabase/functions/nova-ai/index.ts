@@ -128,6 +128,22 @@ function escapeXml(value: string): string {
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;",
   }[char]!));
 }
+async function requestSonexSpeech(apiKey: string, text: string, voiceId: string): Promise<{data:string; mimeType:string; voice:string}> {
+  const response = await fetch("https://api.sonexlabs.com/v1/speech", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json", Accept: "audio/mpeg" },
+    body: JSON.stringify({ text, voice_id: voiceId || undefined, language: "auto", speed: 1.0, output_format: "mp3", sample_rate: 24000 }),
+    signal: AbortSignal.timeout(60000), redirect: "error",
+  });
+  if (!response.ok) {
+    const detail = (await response.text().catch(() => "")).slice(0, 240);
+    throw new Error("Sonex Labs رفض طلب الصوت (HTTP " + response.status + "). " + detail);
+  }
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.length < 128) throw new Error("Sonex Labs رجّع ملف صوت فارغًا أو غير صالح.");
+  return { data: encodeBase64Audio(bytes), mimeType: "audio/mpeg", voice: voiceId || "default" };
+}
+
 async function requestAzureSpeech(region: string, apiKey: string, text: string, persona: string): Promise<{data:string; mimeType:string; voice:string}> {
   const safeRegion = region.trim().toLowerCase();
   if (!/^[a-z0-9-]{2,40}$/.test(safeRegion)) throw new Error("Microsoft Speech region is invalid.");
@@ -396,20 +412,20 @@ Deno.serve(async (req: Request) => {
       const { data, error } = await admin.from("nova_speech_settings")
         .select("region,secret_id,updated_at").eq("user_id", userId).maybeSingle();
       if (error) throw error;
-      return json({ configured: Boolean(data?.secret_id), region: data?.region ?? "", voice_male: "ar-EG-ShakirNeural", voice_female: "ar-EG-SalmaNeural", updated_at: data?.updated_at ?? null }, 200, origin);
+      return json({ configured: Boolean(data?.secret_id), provider: "sonexlabs", updated_at: data?.updated_at ?? null }, 200, origin);
     }
 
     if (action === "speech_save") {
       const apiKey = typeof body?.api_key === "string" ? body.api_key.trim() : "";
-      const region = cleanString(body?.region, 40).toLowerCase();
-      if (apiKey.length < 12 || apiKey.length > 4096 || !/^[a-z0-9-]{2,40}$/.test(region)) {
-        return json({ error: "اكتب مفتاح Microsoft Speech صحيحًا ومنطقة المورد (Region) كما تظهر في Azure." }, 400, origin);
+      if (!/^vsk_[A-Za-z0-9_-]{8,}$/.test(apiKey) || apiKey.length > 4096) {
+        return json({ error: "مفتاح Sonex Labs غير صالح. تأكد أنه يبدأ بـ vsk_." }, 400, origin);
       }
+      const region = "sonex";
       const { data: previous, error: previousError } = await admin.from("nova_speech_settings")
         .select("secret_id").eq("user_id", userId).maybeSingle();
       if (previousError) throw previousError;
       const { data: secretId, error: secretError } = await admin.rpc("nova_store_api_secret", {
-        p_name: "NOVA Microsoft Speech Egyptian Voice",
+        p_name: "NOVA Sonex Labs Speech Voice",
         p_secret: apiKey,
       });
       if (secretError || !secretId) throw new Error("تعذر حفظ مفتاح Microsoft Speech في Vault.");
@@ -424,7 +440,7 @@ Deno.serve(async (req: Request) => {
         const { error: cleanupError } = await admin.rpc("nova_delete_api_secret", { p_secret_id: previous.secret_id });
         if (cleanupError) console.error("Previous speech credential cleanup failed.");
       }
-      return json({ saved: true, configured: true, region, voice_male: "ar-EG-ShakirNeural", voice_female: "ar-EG-SalmaNeural" }, 200, origin);
+      return json({ saved: true, configured: true, provider: "sonexlabs" }, 200, origin);
     }
 
     if (action === "list") {
@@ -502,20 +518,41 @@ Deno.serve(async (req: Request) => {
       return json({ model: data }, 200, origin);
     }
 
+    if (action === "speech_voices") {
+      const { data: settings, error: settingsError } = await admin.from("nova_speech_settings")
+        .select("secret_id").eq("user_id", userId).maybeSingle();
+      if (settingsError) throw settingsError;
+      if (!settings?.secret_id) return json({ error: "احفظ مفتاح Sonex Labs أولًا." }, 409, origin);
+      const { data: apiKey, error: keyError } = await admin.rpc("nova_read_api_secret", { p_secret_id: settings.secret_id });
+      if (keyError || typeof apiKey !== "string" || !apiKey) throw new Error("Sonex credential unavailable");
+      const response = await fetch("https://api.sonexlabs.com/v1/voices", {
+        headers: { Authorization: "Bearer " + apiKey, Accept: "application/json" },
+        signal: AbortSignal.timeout(20000), redirect: "error",
+      });
+      if (!response.ok) throw new Error("تعذر جلب أصوات Sonex Labs (HTTP " + response.status + ").");
+      const voices = await response.json();
+      if (!Array.isArray(voices)) throw new Error("قائمة الأصوات من Sonex Labs غير صالحة.");
+      return json({ voices: voices.slice(0, 300).map((v: any) => ({
+        id: cleanString(v?.id, 100), name: cleanString(v?.name, 100),
+        gender: cleanString(v?.gender, 20).toLowerCase(), language: cleanString(v?.language, 60),
+        languages: Array.isArray(v?.languages) ? v.languages.slice(0, 20).map((x: any) => cleanString(x, 60)) : [],
+        type: cleanString(v?.type, 30),
+      })).filter((v: any) => v.id) }, 200, origin);
+    }
+
     if (action === "tts") {
       const text = typeof body?.text === "string" ? body.text.trim() : "";
       const persona = body?.persona === "soleen" ? "soleen" : body?.persona === "soly" ? "soly" : "";
+      const voiceId = cleanString(body?.voice_id, 100);
       if (!text || text.length > 2600 || !persona) return json({ error: "نص الصوت أو الشخصية غير صالح." }, 400, origin);
       const { data: settings, error: settingsError } = await admin.from("nova_speech_settings")
-        .select("region,secret_id").eq("user_id", userId).maybeSingle();
+        .select("secret_id").eq("user_id", userId).maybeSingle();
       if (settingsError) throw settingsError;
-      if (!settings?.secret_id || !settings?.region) {
-        return json({ error: "الصوت المصري الثابت غير مُعدّ بعد. أضف مفتاح Microsoft Speech من إعدادات الصوت مرة واحدة." }, 409, origin);
-      }
+      if (!settings?.secret_id) return json({ error: "احفظ مفتاح Sonex Labs من إعدادات الصوت أولًا." }, 409, origin);
       const { data: apiKey, error: keyError } = await admin.rpc("nova_read_api_secret", { p_secret_id: settings.secret_id });
-      if (keyError || typeof apiKey !== "string" || !apiKey) throw new Error("Microsoft Speech credential unavailable");
-      const audio = await requestAzureSpeech(settings.region, apiKey, text, persona);
-      return json({ audio: audio.data, mime_type: audio.mimeType, voice: audio.voice, engine: "microsoft-azure-speech" }, 200, origin);
+      if (keyError || typeof apiKey !== "string" || !apiKey) throw new Error("Sonex Labs credential unavailable");
+      const audio = await requestSonexSpeech(apiKey, text, voiceId);
+      return json({ audio: audio.data, mime_type: audio.mimeType, voice: audio.voice, engine: "sonexlabs-panini" }, 200, origin);
     }
 
     if (action === "chat") {
