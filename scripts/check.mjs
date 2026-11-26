@@ -21,7 +21,9 @@ assert.equal(html.includes("\\n"), false, "HTML must not contain literal escaped
 assert.equal(app.includes("\\n"), false, "app.js must not contain literal escaped newline artifacts");
 assert.match(app, /signInWithPassword/, "Owner login must use password authentication");
 assert.match(app, /OWNER_EMAIL = "eslammohamedk123450@gmail.com"/, "Only the designated owner email may sign in");
-assert.match(app, /resetPasswordForEmail\(OWNER_EMAIL, \{ redirectTo \}\)/, "Owner password recovery must send a redirect link");
+assert.match(app, /resetPasswordForEmail\(email, \{ redirectTo \}\)/, "Owner password recovery must send a redirect link");
+assert.match(app, /const email = \$\("recoveryEmail"\)\.value\.trim\(\)\.toLowerCase\(\)/, "Recovery must validate the email entered by the owner");
+assert.match(html, /id="recoveryEmail"/, "Recovery screen must ask for the account email");
 assert.match(app, /event === "PASSWORD_RECOVERY"/, "Password reset must handle the verified recovery link");
 assert.match(app, /updateUser\(\{ password \}\)/, "Password reset must update the existing account password");
 assert.doesNotMatch(app, /signInAnonymously|signUp\(/, "Public anonymous or sign-up flow must not return");
