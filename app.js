@@ -64,6 +64,28 @@ function addConversationLine(text, speaker) {
   log.scrollTop = log.scrollHeight;
 }
 let currentSpeechUrl = null;
+function pcmToWav(pcmBytes, sampleRate = 24000) {
+  const header = new ArrayBuffer(44);
+  const view = new DataView(header);
+  const write = (offset, value) => {
+    for (let i = 0; i < value.length; i++) view.setUint8(offset + i, value.charCodeAt(i));
+  };
+  const dataSize = pcmBytes.byteLength;
+  write(0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  write(8, "WAVE");
+  write(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  write(36, "data");
+  view.setUint32(40, dataSize, true);
+  return new Blob([header, pcmBytes], { type: "audio/wav" });
+}
 function cleanSpeechText(value) {
   return String(value || "")
     .replace(/```[\s\S]*?```/g, " تم عرض كود في الرسالة. ")
@@ -88,7 +110,12 @@ async function speak(text) {
     const binary = atob(result.audio);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    const blob = new Blob([bytes], { type: result.mime_type || "audio/wav" });
+    const sourceMime = String(result.mime_type || "audio/L16;codec=pcm;rate=24000").toLowerCase();
+    const rateMatch = sourceMime.match(/rate=(\d+)/);
+    const sampleRate = rateMatch ? Number(rateMatch[1]) : 24000;
+    const blob = /audio\/(l16|pcm|raw)/i.test(sourceMime)
+      ? pcmToWav(bytes, sampleRate)
+      : new Blob([bytes], { type: sourceMime });
     currentSpeechUrl = URL.createObjectURL(blob);
     const audio = new Audio(currentSpeechUrl);
     state.audio = audio;
