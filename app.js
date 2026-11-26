@@ -2,7 +2,7 @@ const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soly", emotion: "idle", listening: false, speaking: false,
   recognition: null, restartRecognition: false, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
-  messages: [], session: null, providers: [], models: []
+  messages: [], session: null, providers: [], models: [], audio: null
 };
 const personas = {
   soly: { name: "سولي", description: "صاحبك الأزرق 💙", color: "#69a0ff", accent: "#2760c7", intro: "سولي معاك" },
@@ -63,33 +63,62 @@ function addConversationLine(text, speaker) {
   log.append(line);
   log.scrollTop = log.scrollHeight;
 }
-function speak(text) {
-  if (!("speechSynthesis" in window)) {
-    setStatus("الصوت غير مدعوم في المتصفح ده", "error");
-    return;
-  }
+let currentSpeechUrl = null;
+function cleanSpeechText(value) {
+  return String(value || "")
+    .replace(/```[\\s\\S]*?```/g, " تم عرض كود في الرسالة. ")
+    .replace(/https?:\\/\\/\\S+/g, " الرابط موجود في الرسالة. ")
+    .replace(/[*_#>\\x60]/g, "")
+    .replace(/\\s+/g, " ")
+    .trim()
+    .slice(0, 2600);
+}
+async function speak(text) {
+  const spokenText = cleanSpeechText(text);
+  if (!spokenText) return;
+  const persona = state.persona;
   state.speaking = true;
   try { state.recognition?.stop(); } catch (_) {}
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "ar-EG";
-  utterance.rate = 0.96;
-  utterance.pitch = state.persona === "soleen" ? 1.08 : 0.98;
-  utterance.onstart = () => {
-    setStatus(personas[state.persona].name + " بيتكلم", "speaking");
-    animateCharacter("happy");
-  };
-  utterance.onend = () => {
+  if (state.audio) { state.audio.pause(); state.audio = null; }
+  if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
+  setStatus(personas[persona].name + " بيجهز صوته...", "thinking");
+  try {
+    const result = await invokeNova("tts", { text: spokenText, persona });
+    if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش ملف الصوت.");
+    const binary = atob(result.audio);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: result.mime_type || "audio/wav" });
+    currentSpeechUrl = URL.createObjectURL(blob);
+    const audio = new Audio(currentSpeechUrl);
+    state.audio = audio;
+    audio.onplay = () => {
+      setStatus(personas[persona].name + " بيتكلم", "speaking");
+      animateCharacter("happy");
+    };
+    audio.onended = () => {
+      state.speaking = false;
+      state.audio = null;
+      if (currentSpeechUrl) URL.revokeObjectURL(currentSpeechUrl);
+      currentSpeechUrl = null;
+      setStatus(state.listening ? "سامعك، كمل كلامك" : "مستنيك تبدأ", state.listening ? "listening" : "idle");
+      if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
+    };
+    audio.onerror = () => {
+      state.speaking = false;
+      state.audio = null;
+      setStatus("حصلت مشكلة في تشغيل الصوت الطبيعي", "error");
+      if (currentSpeechUrl) URL.revokeObjectURL(currentSpeechUrl);
+      currentSpeechUrl = null;
+      if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
+    };
+    await audio.play();
+  } catch (error) {
     state.speaking = false;
-    setStatus(state.listening ? "سامعك، كمل كلامك" : "مستنيك تبدأ", state.listening ? "listening" : "idle");
-    if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 300);
-  };
-  utterance.onerror = () => {
-    state.speaking = false;
-    setStatus("حصلت مشكلة في تشغيل الصوت", "error");
-    if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 300);
-  };
-  window.speechSynthesis.speak(utterance);
+    setStatus("الصوت الطبيعي مش متاح حاليًا", "error");
+    showToast(error.message || "أضف مفتاح Gemini من إعدادات API لتشغيل الصوت الطبيعي.");
+    if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
+  }
 }
 function showToast(message) {
   const toast = $("toast");
@@ -300,7 +329,9 @@ function stopListening() {
   $("micButton").setAttribute("aria-label", "ابدأ المحادثة الصوتية");
   $("voiceHint").textContent = "اضغط على الميكروفون عشان تبدأ محادثة صوتية";
   try { state.recognition?.stop(); } catch (_) {}
-  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  if (state.audio) { state.audio.pause(); state.audio = null; }
+  if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
+  state.speaking = false;
   setStatus("أنا موجود، لما تحب نتكلم", "idle");
 }
 function startListening() {
