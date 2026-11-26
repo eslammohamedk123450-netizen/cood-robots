@@ -219,10 +219,16 @@ function renderProviders() {
     const title = document.createElement("span");
     title.className = "provider-card-title";
     title.textContent = provider.label;
+    const status = document.createElement("span");
+    status.className = "badge " + (provider.is_active ? "provider-active" : "provider-inactive");
+    status.textContent = provider.is_active ? "مفعّل" : "متوقف";
     const count = document.createElement("span");
     count.className = "badge";
-    count.textContent = enabledCount + " / " + models.length + " نموذج مفعّل";
-    head.append(title, count);
+    count.textContent = enabledCount + " / " + models.length + " نموذج";
+    const badges = document.createElement("div");
+    badges.className = "provider-badges";
+    badges.append(status, count);
+    head.append(title, badges);
     const meta = document.createElement("div");
     meta.className = "provider-card-meta";
     meta.textContent = provider.provider + " · " + provider.base_url;
@@ -239,6 +245,37 @@ function renderProviders() {
       } catch (error) { setFeedback("settingsFeedback", error.message, true); }
       finally { sync.disabled = false; sync.textContent = "تحديث النماذج"; }
     });
+    const providerToggle = document.createElement("button");
+    providerToggle.type = "button";
+    providerToggle.textContent = provider.is_active ? "إيقاف المفتاح وكل نماذجه" : "تفعيل المفتاح وكل نماذجه";
+    providerToggle.addEventListener("click", async () => {
+      providerToggle.disabled = true;
+      try {
+        await invokeNova("toggle_provider", { provider_id: provider.id, enabled: !provider.is_active });
+        await loadProviders();
+        setFeedback("settingsFeedback", provider.is_active
+          ? "تم إيقاف المفتاح. كل النماذج التابعة له توقفت عن الاستخدام."
+          : "تم تفعيل المفتاح. النماذج المفعّلة التابعة له أصبحت متاحة.");
+      } catch (error) { setFeedback("settingsFeedback", error.message, true); }
+      finally { providerToggle.disabled = false; }
+    });
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "danger-button";
+    remove.textContent = "حذف المفتاح";
+    remove.addEventListener("click", async () => {
+      if (!window.confirm("حذف المفتاح نهائيًا؟ سيتم حذف جميع نماذجه وحذف السر من Vault، ولا يمكن التراجع.")) return;
+      remove.disabled = true;
+      try {
+        await invokeNova("delete_provider", { provider_id: provider.id });
+        await loadProviders();
+        setFeedback("settingsFeedback", "تم حذف المفتاح وجميع نماذجه من NOVA وVault.");
+      } catch (error) {
+        setFeedback("settingsFeedback", error.message, true);
+        remove.disabled = false;
+      }
+    });
+    actions.append(providerToggle, remove);
     const show = document.createElement("button");
     show.type = "button"; show.textContent = "النماذج (" + models.length + ")";
     const list = document.createElement("div");
@@ -251,6 +288,7 @@ function renderProviders() {
       const toggle = document.createElement("input");
       toggle.type = "checkbox";
       toggle.checked = model.enabled === true;
+      toggle.disabled = provider.is_active !== true;
       toggle.setAttribute("aria-label", "تفعيل النموذج " + model.model_id);
       toggle.addEventListener("change", async () => {
         toggle.disabled = true;
@@ -267,6 +305,7 @@ function renderProviders() {
       });
       row.append(label, toggle); list.append(row);
     });
+    sync.disabled = provider.is_active !== true;
     actions.append(sync, show);
     card.append(head, meta, actions, list);
     container.append(card);
