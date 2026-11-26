@@ -43,6 +43,7 @@
     else $("ownerPin").focus();
   }
   function openApp(token) {
+    ["nova.owner.pin.hash.v1", "nova.owner.pin.salt.v1", "nova.owner.pin.attempts.v1", "nova.owner.pin.lockUntil.v1"].forEach((key) => localStorage.removeItem(key));
     localStorage.setItem(SESSION_KEY, token);
     $("authGate").hidden = true;
     if ($("connectionLabel")) $("connectionLabel").textContent = "متصل بخادم NOVA";
