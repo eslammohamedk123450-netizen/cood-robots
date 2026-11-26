@@ -27,6 +27,8 @@ assert.match(edge, /OWNER_USER_ID/, "Edge Function must enforce the owner allowl
 assert.match(edge, /readJsonBody\(req\)/, "Edge Function must enforce a bounded request body");
 assert.match(edge, /normalizeMessages\(body\?\.messages\)/, "Chat messages must be validated and normalized");
 assert.match(edge, /expectedHost && h !== expectedHost/, "Official provider types must be pinned to their official host");
+assert.match(edge, /nova_consume_rate_limit/, "Server-side rate limiting must be enforced");
+assert.match(edge, /actionLimits/, "Each API action must have an explicit request limit");
 assert.doesNotMatch(edge, /SUPABASE_SERVICE_ROLE_KEY\s*=\s*["'][^"']+["']/, "Service-role secrets must not be hard-coded");
 assert.match(workflow, /needs: check/, "Pages deployment must depend on the quality check job");
 assert.match(workflow, /npm test/, "CI must run repository tests");
