@@ -5,12 +5,12 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_t5xrzZNN6Uj9zhhBLUYQVg_mj7qPjQL
 const OWNER_USER_ID = "f980820b-f59d-453c-9df8-2b9afc695c74";
 const OWNER_EMAIL = "eslammohamedk123450@gmail.com";
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
 });
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soly", emotion: "idle", listening: false, speaking: false,
-  recognition: null, restartRecognition: false, ownerName: "إسلام",
+  recognition: null, restartRecognition: false, passwordRecovery: false, ownerName: "إسلام",
   messages: [], session: null, providers: [], models: []
 };
 const personas = {
@@ -271,6 +271,7 @@ async function acceptOwnerSession(session) {
     return false;
   }
   state.session = session;
+  if (state.passwordRecovery) { showPasswordResetForm(); return true; }
   hideAuthGate();
   $("connectionLabel").textContent = "متصل بحساب المالك";
   setFeedback("authFeedback", "مسجل الدخول باسم " + (session.user.email || "حساب المالك"));
@@ -319,46 +320,50 @@ async function signInOwner(event) {
     button.disabled = false; button.textContent = "تسجيل الدخول";
   }
 }
-function showRecoveryCodeFields() {
-  $("recoveryCodeLabel").hidden = false;
+function showPasswordResetForm() {
+  $("authGate").hidden = false;
+  $("ownerLoginForm").hidden = true;
+  $("passwordRecoveryForm").hidden = false;
+  $("sendRecoveryCodeButton").hidden = true;
   $("newPasswordLabel").hidden = false;
   $("confirmPasswordLabel").hidden = false;
   $("resetPasswordButton").hidden = false;
-  $("recoveryCode").required = true;
   $("newPassword").required = true;
   $("confirmNewPassword").required = true;
+  $("newPassword").focus();
 }
 function openPasswordRecovery() {
   $("ownerLoginForm").hidden = true;
   $("passwordRecoveryForm").hidden = false;
-  setFeedback("recoveryFeedback", "هنرسل الكود إلى البريد الشخصي المصرّح به فقط.");
+  $("sendRecoveryCodeButton").hidden = false;
+  $("newPasswordLabel").hidden = true;
+  $("confirmPasswordLabel").hidden = true;
+  $("resetPasswordButton").hidden = true;
+  $("newPassword").required = false;
+  $("confirmNewPassword").required = false;
+  setFeedback("recoveryFeedback", "هنرسل رابط استعادة إلى بريد المالك المسجّل فقط. افتح الرابط من نفس المتصفح لاختيار كلمة مرور جديدة.");
 }
-async function sendRecoveryCode() {
+async function sendRecoveryLink() {
   const button = $("sendRecoveryCodeButton");
   button.disabled = true;
-  button.textContent = "جاري إرسال الكود...";
+  button.textContent = "جاري إرسال الرابط...";
   setFeedback("recoveryFeedback", "");
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(OWNER_EMAIL);
+    const redirectTo = window.location.origin + window.location.pathname;
+    const { error } = await supabase.auth.resetPasswordForEmail(OWNER_EMAIL, { redirectTo });
     if (error) throw error;
-    showRecoveryCodeFields();
-    setFeedback("recoveryFeedback", "لو إعدادات البريد مفعّلة، هيوصلك كود الاستعادة. راجع الوارد والرسائل غير المرغوب فيها.");
+    setFeedback("recoveryFeedback", "لو إعدادات البريد مفعّلة، هيوصلك رابط استعادة. افتحه من نفس المتصفح، ثم اكتب كلمة المرور الجديدة. راجع الوارد والرسائل غير المرغوب فيها.");
   } catch (error) {
-    setFeedback("recoveryFeedback", error.message || "تعذر إرسال كود الاستعادة.", true);
+    setFeedback("recoveryFeedback", error.message || "تعذر إرسال رابط الاستعادة.", true);
   } finally {
     button.disabled = false;
-    button.textContent = "إعادة إرسال كود الاستعادة";
+    button.textContent = "إعادة إرسال رابط الاستعادة";
   }
 }
 async function resetOwnerPassword(event) {
   event.preventDefault();
-  const token = $("recoveryCode").value.trim();
   const password = $("newPassword").value;
   const confirmation = $("confirmNewPassword").value;
-  if (!/^\d{6}$/.test(token)) {
-    setFeedback("recoveryFeedback", "اكتب كود الاستعادة المكوّن من 6 أرقام.", true);
-    return;
-  }
   if (password.length < 8) {
     setFeedback("recoveryFeedback", "كلمة المرور لازم تكون 8 أحرف على الأقل.", true);
     return;
@@ -369,28 +374,30 @@ async function resetOwnerPassword(event) {
   }
   const button = $("resetPasswordButton");
   button.disabled = true;
-  button.textContent = "جاري التحقق وتحديث كلمة المرور...";
+  button.textContent = "جاري تحديث كلمة المرور...";
   try {
-    const { data, error } = await supabase.auth.verifyOtp({ email: OWNER_EMAIL, token, type: "recovery" });
-    if (error) throw error;
+    const { data, error: userError } = await supabase.auth.getUser();
+    if (userError) throw userError;
     if (!data.user || data.user.id !== OWNER_USER_ID || data.user.email?.toLowerCase() !== OWNER_EMAIL) {
       await supabase.auth.signOut();
-      throw new Error("هذا البريد غير مرتبط بحساب المالك المصرّح به.");
+      throw new Error("رابط الاستعادة غير صالح لهذا الحساب. اطلب رابطًا جديدًا.");
     }
     const { error: updateError } = await supabase.auth.updateUser({ password });
     if (updateError) throw updateError;
+    state.passwordRecovery = false;
     await supabase.auth.signOut();
     $("passwordRecoveryForm").reset();
     $("passwordRecoveryForm").hidden = true;
+    $("sendRecoveryCodeButton").hidden = false;
     $("ownerLoginForm").hidden = false;
     $("ownerLoginPassword").value = "";
     setFeedback("authGateFeedback", "تم تغيير كلمة المرور بنجاح. سجّل الدخول بكلمة المرور الجديدة.");
     showToast("تم تحديث كلمة المرور بنجاح");
   } catch (error) {
-    setFeedback("recoveryFeedback", error.message || "الكود غير صحيح أو انتهت صلاحيته.", true);
+    setFeedback("recoveryFeedback", error.message || "تعذر تحديث كلمة المرور. اطلب رابط استعادة جديدًا.", true);
   } finally {
     button.disabled = false;
-    button.textContent = "تأكيد الكود وتغيير كلمة المرور";
+    button.textContent = "تعيين كلمة المرور الجديدة";
   }
 }
 async function signOutOwner() {
@@ -520,16 +527,29 @@ $("settingsDialog").addEventListener("click", (event) => { if (event.target === 
 
 $("ownerLoginForm").addEventListener("submit", signInOwner);
 $("forgotPasswordButton").addEventListener("click", openPasswordRecovery);
-$("sendRecoveryCodeButton").addEventListener("click", () => void sendRecoveryCode());
+$("sendRecoveryCodeButton").addEventListener("click", () => void sendRecoveryLink());
 $("passwordRecoveryForm").addEventListener("submit", resetOwnerPassword);
 $("backToLoginButton").addEventListener("click", () => {
   $("passwordRecoveryForm").hidden = true;
   $("ownerLoginForm").hidden = false;
   $("passwordRecoveryForm").reset();
+  state.passwordRecovery = false;
+  void supabase.auth.signOut();
   setFeedback("recoveryFeedback", "");
 });
 $("ownerSignOutButton").addEventListener("click", () => void signOutOwner());
-supabase.auth.onAuthStateChange((_event, session) => {
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === "PASSWORD_RECOVERY" && session) {
+    if (session.user?.id !== OWNER_USER_ID || session.user.email?.toLowerCase() !== OWNER_EMAIL) {
+      void supabase.auth.signOut();
+      showAuthGate("رابط الاستعادة غير مصرح لهذا الحساب.", true);
+      return;
+    }
+    state.passwordRecovery = true;
+    showPasswordResetForm();
+    setFeedback("recoveryFeedback", "تم التحقق من رابط الاستعادة. اختار كلمة المرور الجديدة.");
+    return;
+  }
   if (!session) {
     state.session = null; state.providers = []; state.models = [];
     $("connectionLabel").textContent = "بانتظار تسجيل الدخول";
