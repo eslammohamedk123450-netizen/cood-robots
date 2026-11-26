@@ -13,24 +13,30 @@ Legend: [x] implemented or deployed; [ ] not yet implemented or not yet verified
 
 ## Supabase connection and authentication
 - [x] Configure the public Supabase project URL and publishable key in the client; no service-role key is exposed.
-- [x] Replace the mandatory email/password screen with an automatic persistent Supabase anonymous device session.
-- [x] Remove the sign-in/sign-out controls from the normal V1 settings screen.
-- [ ] Enable Anonymous Sign-Ins once in Supabase Authentication → Providers (dashboard action still required).
+- [x] Replace anonymous auto-login with a persistent email/password login for the one existing owner account.
+- [x] Add a full-screen owner login gate and a sign-out control in settings.
+- [x] Reject non-owner email addresses in the login UI with an invitation-required message; no invite codes are active.
+- [x] Enforce the exact owner user ID and email again inside the Edge Function.
+- [ ] Disable new user sign-ups in Supabase Auth settings (dashboard toggle still required).
 - [x] Create NOVA-owned provider/model/preference tables with RLS enabled.
-- [x] Add owner-scoped SELECT policies for provider and model metadata.
+- [x] Add owner-only RLS policies for provider keys, models, preferences and the memory table.
+- [x] Create the owner-scoped `nova_memories` table for future persistent memory.
 - [x] Add Vault-backed secret storage/retrieval SQL functions callable only by service_role.
-- [x] Deploy `nova-ai` Edge Function (active version 5); it verifies the bearer session with Supabase Auth.
+- [x] Deploy `nova-ai` Edge Function (active version 6); it verifies the bearer session with Supabase Auth.
 - [x] Commit the deployed Edge Function source and the applied SQL migration history under `supabase/`.
 - [x] Add multiple provider-key records, server-side model discovery, per-model enable/disable, and automatic fallback across enabled models.
 - [x] Add provider dropdown presets for Gemini, OpenRouter, OpenAI, Claude/Anthropic and custom OpenAI-compatible endpoints.
 - [x] Add native Gemini and Anthropic model-list and chat adapters.
 - [x] Auto-discover models immediately after saving a new provider key.
 - [x] Connect voice/text chat requests to the authenticated `nova-ai` endpoint.
-- [ ] Enable anonymous sign-ins in Supabase and test automatic session creation in the deployed app.
+- [ ] Test owner login and persistent session restoration in the deployed app.
+- [ ] Disable Supabase sign-ups and verify a different email cannot create an account.
 - [ ] Test the complete add Gemini key → auto-discover models → chat flow with a real key.
 - [ ] Test real Gemini, OpenRouter, OpenAI and Anthropic keys where available; confirm model fallback with intentionally invalid/disabled models.
-- [ ] Decide whether to add a device-pairing secret before exposing the public GitHub Pages URL beyond the owner's private use.
-- [ ] Persist conversations and owner memory in the database; current chat history is in page memory only.
+- [x] Enforce a single owner account at the Edge Function even if someone creates a separate Auth identity.
+- [x] Create the owner-only persistent memory table with RLS.
+- [ ] Connect the memory engine and UI to `nova_memories`; memory creation/retrieval is not yet wired into chat.
+- [ ] Persist conversations and chat messages under the owner account; current chat history is still in page memory only.
 - [ ] Add safe provider-key deletion/rotation and Vault secret cleanup.
 - [ ] Add manual preferred-model selection and model-specific capability filters.
 - [ ] Enable Supabase leaked-password protection in Auth settings.
