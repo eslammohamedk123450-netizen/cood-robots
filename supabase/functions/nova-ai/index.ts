@@ -98,6 +98,31 @@ async function providerModels(provider: ProviderType, baseUrl: string, apiKey: s
     return { id, name: cleanString(m?.displayName ?? m?.name ?? m?.id, 200) };
   }).filter((m: any) => m.id).slice(0, 500);
 }
+function decodeBase64Audio(value: string): Uint8Array {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+function encodeBase64Audio(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(binary);
+}
+function isWav(bytes: Uint8Array): boolean {
+  return bytes.length > 44 && String.fromCharCode(...bytes.subarray(0, 4)) === "RIFF" && String.fromCharCode(...bytes.subarray(8, 12)) === "WAVE";
+}
+function pcm16Mono24kToWav(pcm: Uint8Array): Uint8Array {
+  if (!pcm.length || pcm.length % 2 !== 0) throw new Error("Gemini returned invalid PCM audio data.");
+  const header = new ArrayBuffer(44);
+  const view = new DataView(header);
+  const write = (offset: number, value: string) => { for (let i = 0; i < value.length; i++) view.setUint8(offset + i, value.charCodeAt(i)); };
+  write(0, "RIFF"); view.setUint32(4, 36 + pcm.length, true); write(8, "WAVE");
+  write(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true); view.setUint32(24, 24000, true); view.setUint32(28, 48000, true);
+  view.setUint16(32, 2, true); view.setUint16(34, 16, true); write(36, "data"); view.setUint32(40, pcm.length, true);
+  const wav = new Uint8Array(44 + pcm.length); wav.set(new Uint8Array(header)); wav.set(pcm, 44); return wav;
+}
 async function requestGeminiSpeech(baseUrl: string, apiKey: string, text: string, persona: string): Promise<{data:string; mimeType:string}> {
   const voiceName = persona === "soleen" ? "Callirrhoe" : "Achird";
   const style = persona === "soleen"
@@ -121,7 +146,14 @@ async function requestGeminiSpeech(baseUrl: string, apiKey: string, text: string
   }
   const audioPart = result?.candidates?.[0]?.content?.parts?.find((part: any) => part?.inlineData?.data);
   if (!audioPart?.inlineData?.data) throw new Error("Gemini TTS لم يرجع ملفًا صوتيًا.");
-  return { data: audioPart.inlineData.data, mimeType: cleanString(audioPart.inlineData.mimeType, 120) || "audio/L16;codec=pcm;rate=24000" };
+  const raw = decodeBase64Audio(audioPart.inlineData.data);
+  const providerMime = cleanString(audioPart.inlineData.mimeType, 120).toLowerCase();
+  if (isWav(raw)) return { data: encodeBase64Audio(raw), mimeType: "audio/wav" };
+  if (providerMime.includes("pcm") || providerMime.includes("l16") || providerMime === "") {
+    const wav = pcm16Mono24kToWav(raw);
+    return { data: encodeBase64Audio(wav), mimeType: "audio/wav" };
+  }
+  throw new Error("Gemini returned an unsupported audio format: " + providerMime.slice(0, 80));
 }
 async function requestProviderChat(provider: ProviderType, baseUrl: string, apiKey: string, modelId: string, messages: any[]): Promise<string> {
   const systemText = messages.filter((m) => m?.role === "system" && typeof m.content === "string").map((m) => m.content).join("\n");
