@@ -136,7 +136,8 @@ function applyProviderDefaults() {
   const preset = providerDefaults[$("providerType").value] || providerDefaults.custom;
   $("providerBaseUrl").value = preset.url;
   $("providerBaseUrl").dataset.userEdited = "";
-  if (!$("providerLabel").value.trim()) $("providerLabel").placeholder = preset.label + " الشخصي";\n  $("customProviderWarning").hidden = $("providerType").value !== "custom";
+  if (!$("providerLabel").value.trim()) $("providerLabel").placeholder = preset.label + " الشخصي";
+  $("customProviderWarning").hidden = $("providerType").value !== "custom";
 }
 async function loadProviders() {
   if (!state.session) {
