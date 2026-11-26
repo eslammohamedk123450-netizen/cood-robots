@@ -302,8 +302,12 @@ async function initializeOwnerSession() {
 }
 async function signInOwner(event) {
   event.preventDefault();
-  const email = OWNER_EMAIL;
+  const email = $("ownerLoginEmail").value.trim().toLowerCase();
   const password = $("ownerLoginPassword").value;
+  if (email !== OWNER_EMAIL) {
+    setFeedback("authGateFeedback", "هذا البريد غير مصرح له بالدخول.", true);
+    return;
+  }
   const button = $("ownerLoginButton");
   button.disabled = true; button.textContent = "جاري التحقق...";
   try {
@@ -341,7 +345,7 @@ function openPasswordRecovery() {
   $("resetPasswordButton").hidden = true;
   $("newPassword").required = false;
   $("confirmNewPassword").required = false;
-  setFeedback("recoveryFeedback", "هنرسل رابط استعادة إلى بريد المالك المسجّل فقط. افتح الرابط من نفس المتصفح لاختيار كلمة مرور جديدة.");
+  setFeedback("recoveryFeedback", "اكتب بريد الحساب المصرّح به. هنرسل له رابط تأكيد، وبعد فتحه هتقدر تعيّن كلمة مرور جديدة.");
 }
 async function sendRecoveryLink() {
   const button = $("sendRecoveryCodeButton");
@@ -349,10 +353,12 @@ async function sendRecoveryLink() {
   button.textContent = "جاري إرسال الرابط...";
   setFeedback("recoveryFeedback", "");
   try {
+    const email = $("recoveryEmail").value.trim().toLowerCase();
+    if (email !== OWNER_EMAIL) throw new Error("هذا البريد غير مصرح له باستعادة كلمة المرور.");
     const redirectTo = window.location.origin + window.location.pathname;
-    const { error } = await supabase.auth.resetPasswordForEmail(OWNER_EMAIL, { redirectTo });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     if (error) throw error;
-    setFeedback("recoveryFeedback", "لو إعدادات البريد مفعّلة، هيوصلك رابط استعادة. افتحه من نفس المتصفح، ثم اكتب كلمة المرور الجديدة. راجع الوارد والرسائل غير المرغوب فيها.");
+    setFeedback("recoveryFeedback", "لو إعدادات البريد مفعّلة، هيوصلك رابط تأكيد. افتحه من نفس المتصفح؛ بعد التحقق هتظهر شاشة إنشاء كلمة المرور الجديدة. راجع الوارد والرسائل غير المرغوب فيها.");
   } catch (error) {
     setFeedback("recoveryFeedback", error.message || "تعذر إرسال رابط الاستعادة.", true);
   } finally {
