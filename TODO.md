@@ -13,20 +13,28 @@ Legend: [x] implemented or deployed; [ ] not yet implemented or not yet verified
 
 ## Supabase connection and authentication
 - [x] Configure the public Supabase project URL and publishable key in the client; no service-role key is exposed.
-- [x] Add owner email/password sign-in through Supabase Auth.
+- [x] Replace the mandatory email/password screen with an automatic persistent Supabase anonymous device session.
+- [x] Remove the sign-in/sign-out controls from the normal V1 settings screen.
+- [ ] Enable Anonymous Sign-Ins once in Supabase Authentication → Providers (dashboard action still required).
 - [x] Create NOVA-owned provider/model/preference tables with RLS enabled.
 - [x] Add owner-scoped SELECT policies for provider and model metadata.
 - [x] Add Vault-backed secret storage/retrieval SQL functions callable only by service_role.
 - [x] Deploy `nova-ai` Edge Function (active version 3); it verifies the bearer session with Supabase Auth.
 - [x] Commit the deployed Edge Function source and the applied SQL migration history under `supabase/`.
 - [x] Add multiple provider-key records, server-side model discovery, per-model enable/disable, and automatic fallback across enabled models.
+- [x] Add provider dropdown presets for Gemini, OpenRouter, OpenAI, Claude/Anthropic and custom OpenAI-compatible endpoints.
+- [x] Add native Gemini and Anthropic model-list and chat adapters.
+- [x] Auto-discover models immediately after saving a new provider key.
 - [x] Connect voice/text chat requests to the authenticated `nova-ai` endpoint.
-- [ ] Sign in with the owner account in the live app and test the complete add-key → sync-models → enable-model → chat flow.
-- [ ] Test a real provider key and confirm successful model fallback with intentionally invalid/disabled models.
+- [ ] Enable anonymous sign-ins in Supabase and test automatic session creation in the deployed app.
+- [ ] Test the complete add Gemini key → auto-discover models → chat flow with a real key.
+- [ ] Test real Gemini, OpenRouter, OpenAI and Anthropic keys where available; confirm model fallback with intentionally invalid/disabled models.
+- [ ] Decide whether to add a device-pairing secret before exposing the public GitHub Pages URL beyond the owner's private use.
 - [ ] Persist conversations and owner memory in the database; current chat history is in page memory only.
 - [ ] Add safe provider-key deletion/rotation and Vault secret cleanup.
 - [ ] Add manual preferred-model selection and model-specific capability filters.
 - [ ] Enable Supabase leaked-password protection in Auth settings.
+- [ ] Add a future account-linking flow to convert the anonymous device session into a permanent owner account without losing provider keys.
 
 ## Supabase cleanup and preservation
 - [x] Inventory current public tables, row counts, RLS policies, Edge Functions, Storage bucket/object count, Auth user, migrations and Vault extension.
