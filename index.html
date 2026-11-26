@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=global-pin-20261126">
+  <link rel="stylesheet" href="style.css?v=fixed-egyptian-voice-v24">
 </head>
 <body>
   <div class="auth-gate" id="authGate">
@@ -155,6 +155,19 @@
         <p class="settings-feedback" id="memoryFeedback" role="status">جاري تحميل الذاكرة المحفوظة...</p>
       </section>
       <section class="settings-section">
+        <h3>الصوت المصري الثابت لسولي</h3>
+        <p class="security-note">الصوت مستقل عن نموذج المحادثة. سولي تستخدم صوتًا مصريًا رجاليًا ثابتًا، وسولين تستخدم صوتًا مصريًا نسائيًا، مهما غيّرت DeepSeek أو أي نموذج آخر. مفتاح الصوت يُحفظ في الخادم داخل Vault ولا يظهر مرة أخرى.</p>
+        <label class="field-label">منطقة Microsoft Speech (Region)
+          <input id="speechRegion" type="text" maxlength="40" value="eastus" placeholder="مثال: eastus" dir="ltr" autocomplete="off">
+        </label>
+        <label class="field-label">مفتاح Microsoft Speech
+          <input id="speechApiKey" type="password" maxlength="4096" autocomplete="new-password" placeholder="الصق مفتاح Speech Resource هنا" dir="ltr">
+        </label>
+        <button type="button" class="save-button enabled-button" id="saveSpeechSettings">حفظ الصوت الثابت</button>
+        <p class="settings-feedback" id="speechFeedback" role="status">جاري تحميل إعدادات الصوت...</p>
+        <p class="security-note">الأصوات: ShakirNeural (رجالي) وSalmaNeural (نسائي). الخطة المجانية F0 من Microsoft تتضمن حصة TTS عصبي شهرية، حسب شروط وحدود الخدمة.</p>
+      </section>
+      <section class="settings-section">
         <h3>حساب المالك</h3>
         <p class="security-note">بيانات NOVA ومفاتيح API والذاكرة مرتبطة بحساب المالك فقط.</p>
         <p class="settings-feedback" id="authFeedback">بياناتك ومفاتيحك محفوظة على خادم NOVA الآمن.</p>
@@ -186,6 +199,6 @@
 
   <div class="toast" id="toast" role="status"></div>
   <script src="pin.js?v=persistent-owner-session-v23"></script>
-  <script type="module" src="app.js?v=owner-memory-session-v23"></script>
+  <script type="module" src="app.js?v=fixed-egyptian-voice-v24"></script>
 </body>
 </html>
