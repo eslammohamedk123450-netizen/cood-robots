@@ -103,7 +103,7 @@ async function requestGeminiSpeech(baseUrl: string, apiKey: string, text: string
   const style = persona === "soleen"
     ? "Speak in natural everyday Egyptian Arabic (Masri, Egypt). You are a warm, friendly young Egyptian woman talking naturally to a close friend. Use an authentic Egyptian accent, relaxed conversational rhythm, expressive but subtle intonation, human-like phrasing, gentle breaths, and natural pauses. Avoid Modern Standard Arabic, robotic reading, announcer delivery, or exaggerated acting."
     : "Speak in natural everyday Egyptian Arabic (Masri, Egypt). You are a warm, friendly young Egyptian man talking naturally to a close friend. Use an authentic Egyptian accent, relaxed conversational rhythm, expressive but subtle intonation, human-like phrasing, gentle breaths, and natural pauses. Avoid Modern Standard Arabic, robotic reading, announcer delivery, or exaggerated acting.";
-  const endpoint = baseUrl.replace(/\\/+$/, "") + "/models/gemini-3.8-flash-tts:generateContent";
+  const endpoint = baseUrl.replace(/\/+$/, "") + "/models/gemini-3.8-flash-tts:generateContent";
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json", Accept: "application/json" },
