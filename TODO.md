@@ -1,18 +1,23 @@
-# NOVA Desk Robot — TODO
+# NOVA V1 — Current TODO
 
-- [x] استخدام صورة المستودع كمرجع بصري للشخصيتين مع الحفاظ على اسمي سولي وسولين.
-- [x] توفير وجه تفاعلي يتبدل بين عادي، استماع، تفكير، كلام، وسعيد.
-- [x] توفير تبديل الشخصية بين سولي وسولين مع اختلاف اللون والشكل العام.
-- [x] توفير مركز أوامر نصي وأوامر سريعة وتنفيذ تجريبي داخل المتصفح.
-- [x] إضافة نطق الردود عبر SpeechSynthesis عندما يدعمه المتصفح.
-- [x] إضافة زر ميكروفون عبر SpeechRecognition مع بديل الكتابة عند عدم الدعم.
-- [x] إضافة تجربة كاميرا بإذن المستخدم، وحالة واضحة بأن التشغيل محلي.
-- [x] إضافة صفحة هوية ووصول توضّح المالك والضيف والمسار المستقبلي للصلاحيات.
-- [x] إضافة صفحة إعدادات تجهز حقول Supabase وAI endpoint بدون حفظ أسرار في Git.
-- [x] إضافة خريطة طريق من وجه وتفاعل إلى جسم وحركة.
-- [x] تجهيز النشر الثابت عبر GitHub Pages.
-- [ ] ربط Supabase Auth وRLS وجداول المستخدمين والأشخاص الموثوقين.
-- [ ] إنشاء Edge Function لاستدعاء مزود الذكاء الاصطناعي مع مفتاح سري خارج الواجهة.
-- [ ] إضافة التعرف الفعلي على الوجه بعد اختيار سياسة الخصوصية ومصدر النماذج.
-- [ ] ربط الأوامر بجهاز Raspberry Pi أو ESP32 عبر قناة آمنة.
-- [ ] تصميم BOM واختيار الشاشة والميكروفون والسيرفو ومصدر الطاقة.
+## Current UI foundation
+- [x] Replace the command dashboard with a character-first meeting screen.
+- [x] Remove camera, face-recognition, owner-verification demos, guest controls, and unnecessary quick commands from the UI.
+- [x] Make voice the primary interaction and text an optional side path.
+- [x] Add an optional conversation transcript panel.
+- [x] Preserve Soly (blue), Soleen (pink), and NOVA's dark/gold visual identity.
+- [x] Prepare a dedicated 3D character mount point.
+- [x] Make it explicit that the current character art is a temporary fallback, not a completed 3D model.
+- [x] Disable provider-key saving until a secure server-side Vault endpoint exists.
+- [ ] Test the updated interface on Android Chrome and desktop browsers.
+- [ ] Integrate an original/licensed full-body GLB/GLTF model and a 3D renderer.
+- [ ] Add real Egyptian Arabic STT and natural TTS, then test latency and interruptions.
+- [ ] Connect a real AI conversation endpoint with clear clarification behavior.
+- [ ] Implement persistent owner memory and memory management.
+- [ ] Implement the authenticated Vault-backed provider-key settings endpoint.
+
+## Strict operating rules
+- Work only in the existing main branch and one existing repository copy.
+- Never create branches, forks, clones, mirrors, worktrees, or duplicate repositories without Islam's prior explicit permission.
+- Never delegate work to another agent on another branch/copy.
+- Never destructively clean Supabase until its inventory is shown and Islam explicitly confirms the destructive scope.
