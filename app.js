@@ -10,7 +10,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soly", emotion: "idle", listening: false, speaking: false,
-  recognition: null, restartRecognition: false, passwordRecovery: false, ownerName: "إسلام",
+  recognition: null, restartRecognition: false, passwordRecovery: new URLSearchParams(window.location.hash.slice(1)).get("type") === "recovery", ownerName: "إسلام",
   messages: [], session: null, providers: [], models: []
 };
 const personas = {
@@ -329,6 +329,7 @@ function showPasswordResetForm() {
   $("ownerLoginForm").hidden = true;
   $("passwordRecoveryForm").hidden = false;
   $("sendRecoveryCodeButton").hidden = true;
+  $("recoveryEmailLabel").hidden = true;
   $("newPasswordLabel").hidden = false;
   $("confirmPasswordLabel").hidden = false;
   $("resetPasswordButton").hidden = false;
@@ -340,6 +341,7 @@ function openPasswordRecovery() {
   $("ownerLoginForm").hidden = true;
   $("passwordRecoveryForm").hidden = false;
   $("sendRecoveryCodeButton").hidden = false;
+  $("recoveryEmailLabel").hidden = false;
   $("newPasswordLabel").hidden = true;
   $("confirmPasswordLabel").hidden = true;
   $("resetPasswordButton").hidden = true;
@@ -395,6 +397,7 @@ async function resetOwnerPassword(event) {
     $("passwordRecoveryForm").reset();
     $("passwordRecoveryForm").hidden = true;
     $("sendRecoveryCodeButton").hidden = false;
+    $("recoveryEmailLabel").hidden = false;
     $("ownerLoginForm").hidden = false;
     $("ownerLoginPassword").value = "";
     setFeedback("authGateFeedback", "تم تغيير كلمة المرور بنجاح. سجّل الدخول بكلمة المرور الجديدة.");
@@ -537,6 +540,7 @@ $("sendRecoveryCodeButton").addEventListener("click", () => void sendRecoveryLin
 $("passwordRecoveryForm").addEventListener("submit", resetOwnerPassword);
 $("backToLoginButton").addEventListener("click", () => {
   $("passwordRecoveryForm").hidden = true;
+  $("recoveryEmailLabel").hidden = false;
   $("ownerLoginForm").hidden = false;
   $("passwordRecoveryForm").reset();
   state.passwordRecovery = false;
