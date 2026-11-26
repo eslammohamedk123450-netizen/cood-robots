@@ -155,6 +155,17 @@
         <p class="settings-feedback" id="memoryFeedback" role="status">جاري تحميل الذاكرة المحفوظة...</p>
       </section>
       <section class="settings-section">
+        <h3>محرك إخراج الصوت</h3>
+        <p class="security-note">اختار طريقة النطق. صوت Google يعمل مباشرة من محرك النطق المثبّت على جهازك، بدون MP3 أو طلب للسيرفر. وضع السيرفر يظل متاحًا للمقارنة.</p>
+        <label class="field-label">مصدر الصوت
+          <select id="speechEngine" dir="rtl">
+            <option value="device">Google / صوت الجهاز (تجربة)</option>
+            <option value="server">صوت السيرفر الحالي (للمقارنة)</option>
+          </select>
+        </label>
+        <p class="settings-feedback" id="speechEngineFeedback" role="status">صوت الجهاز يعتمد على محرك TTS والأصوات المثبّتة في أندرويد.</p>
+      </section>
+      <section class="settings-section">
         <h3>الصوت المصري الثابت لسولي</h3>
         <p class="security-note">الصوت مستقل عن نموذج المحادثة. سولي تستخدم صوتًا مصريًا رجاليًا ثابتًا، وسولين تستخدم صوتًا مصريًا نسائيًا، مهما غيّرت DeepSeek أو أي نموذج آخر. مفتاح الصوت يُحفظ في الخادم داخل Vault ولا يظهر مرة أخرى.</p>
         <label class="field-label">منطقة Microsoft Speech (Region)
