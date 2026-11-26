@@ -2,7 +2,7 @@ const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soly", emotion: "idle", listening: false, speaking: false,
   recognition: null, restartRecognition: false, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
-  messages: [], session: null, providers: [], models: [], audio: null
+  messages: [], session: null, providers: [], models: [], audio: null, profile: ""
 };
 const personas = {
   soly: { name: "سولي", description: "صاحبك الأزرق 💙", color: "#69a0ff", accent: "#2760c7", intro: "سولي معاك" },
@@ -356,12 +356,35 @@ async function addProvider() {
   } catch (error) { setFeedback("settingsFeedback", error.message, true); }
   finally { button.disabled = false; button.textContent = "حفظ المفتاح واكتشاف النماذج"; }
 }
+async function loadOwnerMemory() {
+  if (!state.session) return;
+  try {
+    const result = await invokeNova("profile_get");
+    state.profile = result.profile || "";
+    if ($("ownerMemory")) $("ownerMemory").value = state.profile;
+    if ($("memoryFeedback")) $("memoryFeedback").textContent = "تم تحميل الذاكرة المحفوظة.";
+  } catch (error) {
+    if ($("memoryFeedback")) $("memoryFeedback").textContent = "تعذر تحميل الذاكرة: " + error.message;
+  }
+}
+async function saveOwnerMemory() {
+  const button = $("saveOwnerMemory");
+  const profile = $("ownerMemory")?.value.trim() || "";
+  if (!profile) { setFeedback("memoryFeedback", "اكتب معلومات الذاكرة أولًا.", true); return; }
+  button.disabled = true;
+  try {
+    const result = await invokeNova("profile_save", { profile });
+    state.profile = result.profile;
+    setFeedback("memoryFeedback", "تم حفظ ذاكرة NOVA بنجاح.");
+  } catch (error) { setFeedback("memoryFeedback", error.message, true); }
+  finally { button.disabled = false; }
+}
 async function requestAIReply(text) {
   if (!state.session) return "أنا جاهز معاك يا إسلام ❤️ واجهة NOVA مفتوحة حاليًا في الوضع المحلي. تشغيل ردود الذكاء الاصطناعي وحفظ البيانات السحابي هيتفعل لما نربط الخدمات لاحقًا.";
   if (!state.messages.length) {
     state.messages.push({
       role: "system",
-      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. تحدث بالعربية المصرية الطبيعية الودودة، كن صريحًا ومختصرًا عند الحاجة، لا تدّع تنفيذ شيء لم تنفذه، واسأل للتوضيح عندما يلزم. اسم المالك إسلام."
+      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. تحدث بالعربية المصرية الطبيعية الودودة، كن صريحًا ومختصرًا عند الحاجة، لا تدّع تنفيذ شيء لم تنفذه، واسأل للتوضيح عندما يلزم.\n\nملف المالك والذاكرة الدائمة:\n" + (state.profile || "اسم المالك إسلام، وهو صاحب NOVA ومطوّرها.")
     });
   }
   state.messages.push({ role: "user", content: text });
@@ -477,6 +500,7 @@ $("ownerName").addEventListener("change", (event) => {
   $("greeting").textContent = "أهلاً يا " + state.ownerName + "، نورتني.";
 });
 $("addProviderButton").addEventListener("click", () => void addProvider());
+$("saveOwnerMemory")?.addEventListener("click", () => void saveOwnerMemory());
 $("providerType").addEventListener("change", applyProviderDefaults);
 $("providerBaseUrl").addEventListener("input", () => { $("providerBaseUrl").dataset.userEdited = "true"; });
 $("settingsDialog").addEventListener("click", (event) => { if (event.target === $("settingsDialog")) closeSettings(); });
@@ -487,6 +511,7 @@ window.addEventListener("nova:authenticated", (event) => {
   $("connectionLabel").textContent = "متصل بخادم NOVA";
   setFeedback("authFeedback", "تم التحقق من كود المالك والاتصال بالخادم.");
   void loadProviders();
+  void loadOwnerMemory();
 });
 applyProviderDefaults();
 import("./nova-3d.js").then(({ initNOVACharacter3D }) => {
