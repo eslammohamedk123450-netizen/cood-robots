@@ -357,26 +357,30 @@ function openPasswordRecovery() {
 }
 async function sendRecoveryCode() {
   const button = $("sendRecoveryCodeButton");
+  const email = $("recoveryEmail").value.trim().toLowerCase();
+  if (email !== OWNER_EMAIL) {
+    setFeedback("recoveryFeedback", "هذا البريد غير مصرح له باستعادة كلمة المرور.", true);
+    return;
+  }
+  state.recoveryEmail = email;
+  // Reveal the code field BEFORE the network request so the UI never appears stuck or missing.
+  $("recoveryCodeLabel").hidden = false;
+  $("verifyRecoveryCodeButton").hidden = false;
+  $("recoveryCode").focus();
   button.disabled = true;
   button.textContent = "جاري إرسال الكود...";
-  setFeedback("recoveryFeedback", "");
+  setFeedback("recoveryFeedback", "ظهر مكان الكود. جاري طلب رسالة استعادة على بريدك...");
   try {
-    const email = $("recoveryEmail").value.trim().toLowerCase();
-    if (email !== OWNER_EMAIL) throw new Error("هذا البريد غير مصرح له باستعادة كلمة المرور.");
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: "https://eslammohamedk123450-netizen.github.io/cood-robots/"
+    });
     if (error) throw error;
-    state.recoveryEmail = email;
-    $("recoveryEmailLabel").hidden = true;
-    $("sendRecoveryCodeButton").hidden = true;
-    $("recoveryCodeLabel").hidden = false;
-    $("verifyRecoveryCodeButton").hidden = false;
-    $("recoveryCode").focus();
-    setFeedback("recoveryFeedback", "افتح رسالة Supabase في Gmail وانسخ كود التحقق المكوّن من 6 أرقام، ثم اكتبه هنا. لو الرسالة فيها رابط فقط، لازم تعديل قالب Reset Password في Supabase ليعرض {{ .Token }}.");
+    setFeedback("recoveryFeedback", "تم طلب رسالة الاستعادة. افتح Gmail واستخدم رمز الـ6 أرقام في الخانة الظاهرة. لو الرسالة فيها رابط بدل كود، قالب Reset Password في Supabase محتاج يعرض {{ .Token }} بدل رابط التأكيد.");
   } catch (error) {
-    setFeedback("recoveryFeedback", error.message || "تعذر إرسال كود الاستعادة.", true);
+    setFeedback("recoveryFeedback", error.message || "تعذر إرسال كود الاستعادة. الخانة ما زالت ظاهرة؛ جرّب مرة أخرى.", true);
   } finally {
     button.disabled = false;
-    button.textContent = "إرسال كود التحقق";
+    button.textContent = "إعادة إرسال كود التحقق";
   }
 }
 async function verifyRecoveryCode() {
