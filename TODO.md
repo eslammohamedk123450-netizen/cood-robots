@@ -41,6 +41,8 @@ Legend: [x] implemented or deployed; [ ] not yet implemented or not yet verified
 - [ ] Add safe provider-key deletion/rotation and Vault secret cleanup.
 - [ ] Add manual preferred-model selection and model-specific capability filters.
 - [ ] Enable Supabase leaked-password protection in Auth settings.
+- [ ] Disable anonymous sign-ins as well as public sign-ups.
+- [ ] Enroll owner TOTP MFA and consider AAL2 enforcement for sensitive actions.
 
 
 ## Supabase cleanup and preservation
