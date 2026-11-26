@@ -118,7 +118,22 @@ async function speak(text) {
       showToast("المتصفح رفض ملف الصوت WAV (خطأ تشغيل " + code + ").");
     }, { once: true });
     state.audio = { pause: () => { audio.pause(); finish(); } };
-    await audio.play();
+    try {
+      await audio.play();
+    } catch (playError) {
+      if (playError?.name !== "NotSupportedError") throw playError;
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) throw playError;
+      if (!speechAudioContext) speechAudioContext = new AudioContextClass();
+      if (speechAudioContext.state === "suspended") await speechAudioContext.resume();
+      const audioBuffer = await speechAudioContext.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+      const source = speechAudioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(speechAudioContext.destination);
+      source.onended = finish;
+      state.audio = { pause: () => { try { source.stop(); } catch (_) {} finish(); } };
+      source.start(0);
+    }
     setStatus(personas[persona].name + " بيتكلم", "speaking");
     animateCharacter("happy");
   } catch (error) {
