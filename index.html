@@ -156,7 +156,7 @@
       </section>
       <section class="settings-section">
         <h3>محرك إخراج الصوت</h3>
-        <p class="security-note">اختار طريقة النطق. صوت Google يعمل مباشرة من محرك النطق المثبّت على جهازك، بدون MP3 أو طلب للسيرفر. وضع السيرفر يظل متاحًا للمقارنة.</p>
+        <p class="security-note">اختار طريقة النطق. صوت Google يعمل من محرك الجهاز، أو Sonex Labs عبر Supabase لتوليد الصوت السحابي.</p>
         <label class="field-label">مصدر الصوت
           <select id="speechEngine" dir="rtl">
             <option value="device">Google / صوت الجهاز (تجربة)</option>
@@ -166,17 +166,21 @@
         <p class="settings-feedback" id="speechEngineFeedback" role="status">صوت الجهاز يعتمد على محرك TTS والأصوات المثبّتة في أندرويد.</p>
       </section>
       <section class="settings-section">
-        <h3>الصوت المصري الثابت لسولي</h3>
-        <p class="security-note">الصوت مستقل عن نموذج المحادثة. سولي تستخدم صوتًا مصريًا رجاليًا ثابتًا، وسولين تستخدم صوتًا مصريًا نسائيًا، مهما غيّرت DeepSeek أو أي نموذج آخر. مفتاح الصوت يُحفظ في الخادم داخل Vault ولا يظهر مرة أخرى.</p>
-        <label class="field-label">منطقة Microsoft Speech (Region)
-          <input id="speechRegion" type="text" maxlength="40" value="eastus" placeholder="مثال: eastus" dir="ltr" autocomplete="off">
+        <h3>صوت Sonex Labs الثابت</h3>
+        <p class="security-note">أضف مفتاح Sonex Labs مرة واحدة. المفتاح يتحفظ في Supabase Vault ولا يظهر داخل التطبيق أو ملف APK. بعد الحفظ، حمّل قائمة الأصوات واختار صوتًا لسولي وصوتًا لسولين.</p>
+        <label class="field-label">مفتاح Sonex Labs API
+          <input id="speechApiKey" type="password" maxlength="4096" autocomplete="new-password" placeholder="المفتاح يبدأ بـ vsk_" dir="ltr">
         </label>
-        <label class="field-label">مفتاح Microsoft Speech
-          <input id="speechApiKey" type="password" maxlength="4096" autocomplete="new-password" placeholder="الصق مفتاح Speech Resource هنا" dir="ltr">
+        <button type="button" class="save-button enabled-button" id="saveSpeechSettings">حفظ مفتاح Sonex Labs بأمان</button>
+        <label class="field-label">صوت سولي (رجالي)
+          <select id="speechMaleVoice" dir="rtl"><option value="">احفظ المفتاح وحمّل الأصوات أولًا</option></select>
         </label>
-        <button type="button" class="save-button enabled-button" id="saveSpeechSettings">حفظ الصوت الثابت</button>
-        <p class="settings-feedback" id="speechFeedback" role="status">جاري تحميل إعدادات الصوت...</p>
-        <p class="security-note">الأصوات: ShakirNeural (رجالي) وSalmaNeural (نسائي). الخطة المجانية F0 من Microsoft تتضمن حصة TTS عصبي شهرية، حسب شروط وحدود الخدمة.</p>
+        <label class="field-label">صوت سولين (نسائي)
+          <select id="speechFemaleVoice" dir="rtl"><option value="">احفظ المفتاح وحمّل الأصوات أولًا</option></select>
+        </label>
+        <button type="button" class="save-button" id="reloadSpeechVoices">تحديث قائمة الأصوات</button>
+        <p class="settings-feedback" id="speechFeedback" role="status">لم يتم إعداد مفتاح Sonex Labs بعد.</p>
+        <p class="security-note">اختيار الصوت يُحفظ على الجهاز. جودة اللهجة المصرية تعتمد على الصوت المتاح الذي تختاره من قائمة Sonex.</p>
       </section>
       <section class="settings-section">
         <h3>حساب المالك</h3>
