@@ -30,7 +30,7 @@ All three tables have RLS enabled. Provider/model metadata is owner-readable; pr
 - Do not add a service-role key to GitHub or the browser.
 
 ## Edge Function: `nova-ai`
-Deployed in the existing project (active deployment version 3; source committed at `supabase/functions/nova-ai/index.ts`). Applied SQL migrations are committed under `supabase/migrations/`. It validates the caller's bearer token with Supabase Auth and supports:
+Deployed in the existing project (active deployment version 5; source committed at `supabase/functions/nova-ai/index.ts`). Applied SQL migrations are committed under `supabase/migrations/`. It validates the caller's bearer token with Supabase Auth and supports:
 - `list`: list only the signed-in owner's provider metadata and models.
 - `add_provider`: validate an HTTPS provider base URL, store the key in Vault, and save its metadata.
 - `sync_models`: call the provider's `/models` endpoint and upsert model IDs while preserving existing enable/disable choices.
