@@ -131,7 +131,7 @@ body[data-mood="happy"] .mouth{height:13px}
 .model-list{display:grid;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
 .model-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:#dce3ef}
 .model-row span{direction:ltr;text-align:left;overflow-wrap:anywhere}
-.model-row button.disabled-model{color:#ffb4a8;border-color:#75443f}
+.model-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--persona);flex:0 0 auto;cursor:pointer}
 .empty-provider-list{font-size:10px;color:var(--muted);text-align:center;padding:12px}
 
 .character-3d-mount canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:3}
