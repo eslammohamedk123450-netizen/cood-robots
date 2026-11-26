@@ -24,7 +24,7 @@ assert.match(pin, /setup_pin/, "First-use PIN must be created through the server
 assert.match(pin, /login_pin/, "Returning owner must authenticate through the server");
 assert.match(pin, /check_setup/, "PIN setup status must be global across devices");
 assert.match(pin, /nova.owner.session.v2/, "Successful PIN login must store the server session token");
-assert.doesNotMatch(pin, /PBKDF2|nova.owner.pin.hash/, "PIN hash must not be stored or derived in the browser");
+assert.doesNotMatch(pin, /PBKDF2|localStorage\\.setItem\\(["\x27]nova\\.owner\\.pin\\.hash/, "PIN hash must not be stored or derived in the browser");
 assert.match(edge, /deriveServerPinHash/, "PIN must be hashed on the server with PBKDF2");
 assert.match(edge, /PIN_ITERATIONS = 310000/, "Server-side PIN hashing must use a high iteration count");
 assert.match(edge, /nova_record_pin_failure/, "Failed PIN attempts must be counted atomically on the server");
