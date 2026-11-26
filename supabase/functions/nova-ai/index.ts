@@ -98,7 +98,7 @@ async function providerModels(provider: ProviderType, baseUrl: string, apiKey: s
     return { id, name: cleanString(m?.displayName ?? m?.name ?? m?.id, 200) };
   }).filter((m: any) => m.id).slice(0, 500);
 }
-async function requestGeminiSpeech(baseUrl: string, apiKey: string, text: string, persona: string): Promise<string> {
+async function requestGeminiSpeech(baseUrl: string, apiKey: string, text: string, persona: string): Promise<{data:string; mimeType:string}> {
   const voiceName = persona === "soleen" ? "Callirrhoe" : "Achird";
   const style = persona === "soleen"
     ? "Speak in natural everyday Egyptian Arabic (Masri, Egypt). You are a warm, friendly young Egyptian woman talking naturally to a close friend. Use an authentic Egyptian accent, relaxed conversational rhythm, expressive but subtle intonation, human-like phrasing, gentle breaths, and natural pauses. Avoid Modern Standard Arabic, robotic reading, announcer delivery, or exaggerated acting."
@@ -121,7 +121,7 @@ async function requestGeminiSpeech(baseUrl: string, apiKey: string, text: string
   }
   const audioPart = result?.candidates?.[0]?.content?.parts?.find((part: any) => part?.inlineData?.data);
   if (!audioPart?.inlineData?.data) throw new Error("Gemini TTS لم يرجع ملفًا صوتيًا.");
-  return audioPart.inlineData.data;
+  return { data: audioPart.inlineData.data, mimeType: cleanString(audioPart.inlineData.mimeType, 120) || "audio/L16;codec=pcm;rate=24000" };
 }
 async function requestProviderChat(provider: ProviderType, baseUrl: string, apiKey: string, modelId: string, messages: any[]): Promise<string> {
   const systemText = messages.filter((m) => m?.role === "system" && typeof m.content === "string").map((m) => m.content).join("\n");
@@ -393,7 +393,7 @@ Deno.serve(async (req: Request) => {
       const { data: apiKey, error: keyError } = await admin.rpc("nova_read_api_secret", { p_secret_id: provider.secret_id });
       if (keyError || typeof apiKey !== "string" || !apiKey) throw new Error("Gemini API credential unavailable");
       const audio = await requestGeminiSpeech(provider.base_url, apiKey, text, persona);
-      return json({ audio, mime_type: "audio/wav", voice: persona === "soleen" ? "Callirrhoe" : "Achird", engine: "gemini-3.8-flash-tts" }, 200, origin);
+      return json({ audio: audio.data, mime_type: audio.mimeType, voice: persona === "soleen" ? "Callirrhoe" : "Achird", engine: "gemini-3.8-flash-tts" }, 200, origin);
     }
 
     if (action === "chat") {
