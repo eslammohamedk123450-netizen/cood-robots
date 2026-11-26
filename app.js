@@ -1,12 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-
-const SUPABASE_URL = "https://razvryvazmqvvqkzetuo.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_t5xrzZNN6Uj9zhhBLUYQVg_mj7qPjQL";
-const OWNER_USER_ID = "f980820b-f59d-453c-9df8-2b9afc695c74";
 const OWNER_EMAIL = "eslammohamedk123450@gmail.com";
-const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-});
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soly", emotion: "idle", listening: false, speaking: false,
