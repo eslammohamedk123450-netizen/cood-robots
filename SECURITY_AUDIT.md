@@ -63,8 +63,9 @@ This is **not** a guarantee of zero bugs or a formal penetration test. Live brow
 
 ## Manual actions for the owner
 
-- [ ] Supabase Dashboard → Authentication → Sign-up settings: disable new user sign-ups.
+- [ ] Supabase Dashboard → Authentication → Sign-up settings: disable new user sign-ups and anonymous sign-ins.
 - [ ] Supabase Dashboard → Authentication → Password Security: enable leaked-password protection if available.
+- [ ] Enroll a TOTP MFA factor for the owner account; consider enforcing AAL2 for sensitive actions after confirming the login UX.
 - [ ] Sign in to the deployed app and test with the existing owner account.
 - [ ] Add a real provider key inside NOVA and test model discovery/chat; never paste the key into GitHub or this conversation.
 - [ ] Test on Android Chrome and desktop, including microphone, speech output, WebGL and browser console.
