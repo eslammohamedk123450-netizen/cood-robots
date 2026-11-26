@@ -30,6 +30,12 @@ assert.match(edge, /PIN_ITERATIONS = 310000/, "Server-side PIN hashing must use 
 assert.match(edge, /nova_record_pin_failure/, "Failed PIN attempts must be counted atomically on the server");
 assert.match(edge, /10 دقائق/, "Six failed PIN attempts must trigger a ten-minute lockout");
 assert.match(edge, /nova_owner_sessions/, "PIN login must issue a server-validated session");
+assert.match(edge, /action === "tts"/, "Server must expose authenticated neural TTS");
+assert.match(edge, /gemini-3.8-flash-tts/, "Speech must use Gemini neural TTS");
+assert.match(edge, /languageCode: "ar-EG"/, "Speech must target Egyptian Arabic");
+assert.match(edge, /voiceName = persona === "soleen" \? "Callirrhoe" : "Achird"/, "Blue and pink personas must use distinct gendered voices");
+assert.match(app, /invokeNova\("tts"/, "Client must request generated speech from the server");
+assert.doesNotMatch(app, /speechSynthesis|SpeechSynthesisUtterance/, "Client must not use robotic browser speech");
 assert.match(app, /nova:authenticated/, "The app must receive the authenticated server session");
 assert.match(html, /id="pinSetupForm"/, "First-use PIN setup form must exist");
 assert.match(html, /id="pinLoginForm"/, "Returning owner PIN form must exist");
