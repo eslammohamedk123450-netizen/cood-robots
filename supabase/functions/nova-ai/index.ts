@@ -239,7 +239,7 @@ Deno.serve(async (req: Request) => {
       if (keyError || typeof apiKey !== "string" || !apiKey) throw new Error("Vault credential unavailable");
       const models = await providerModels(provider.provider as ProviderType, provider.base_url, apiKey);
       if (!models.length) return json({ error: "لم يرجع المزود أي نماذج" }, 422, origin);
-      const rows = models.map((m) => ({ user_id: userId, api_key_id: provider.id, model_id: m.id, display_name: m.name }));
+      const rows = models.map((m) => ({ user_id: userId, api_key_id: provider.id, model_id: m.id, display_name: m.name, enabled: false }));
       const { error: upsertError } = await admin.from("nova_api_models").upsert(rows, { onConflict: "api_key_id,model_id", ignoreDuplicates: true });
       if (upsertError) throw upsertError;
       await admin.from("nova_api_models").update({ last_checked_at: new Date().toISOString() }).eq("api_key_id", provider.id).eq("user_id", userId);
