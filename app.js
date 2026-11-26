@@ -509,10 +509,10 @@ function startListening() {
     }
   };
   recognition.onend = () => {
-    if (state.speaking) return;
+    if (state.speaking || state.processing) return;
     if (state.restartRecognition && state.listening) {
       window.setTimeout(() => {
-        if (!state.listening || !state.restartRecognition || state.speaking) return;
+        if (!state.listening || !state.restartRecognition || state.speaking || state.processing) return;
         try { recognition.start(); } catch (_) {}
       }, 300);
     } else {
