@@ -27,19 +27,82 @@ function safeBaseUrl(value: unknown): string | null {
 function cleanString(v: unknown, max = 120): string {
   return typeof v === "string" ? v.trim().slice(0, max) : "";
 }
-async function providerModels(baseUrl: string, apiKey: string): Promise<Array<{id:string; name:string}>> {
+type ProviderType = "gemini" | "openrouter" | "openai" | "anthropic" | "custom";
+const providerTypes = new Set<ProviderType>(["gemini", "openrouter", "openai", "anthropic", "custom"]);
+function providerHeaders(provider: ProviderType, apiKey: string): Record<string,string> {
+  if (provider === "gemini") return { "x-goog-api-key": apiKey, Accept: "application/json" };
+  if (provider === "anthropic") return { "x-api-key": apiKey, "anthropic-version": "2023-06-01", Accept: "application/json" };
+  return { Authorization: "Bearer " + apiKey, Accept: "application/json" };
+}
+async function providerModels(provider: ProviderType, baseUrl: string, apiKey: string): Promise<Array<{id:string; name:string}>> {
   const response = await fetch(baseUrl + "/models", {
-    headers: { Authorization: "Bearer " + apiKey, Accept: "application/json" },
+    headers: providerHeaders(provider, apiKey),
     signal: AbortSignal.timeout(15000),
     redirect: "error",
   });
   if (!response.ok) throw new Error("Provider models endpoint returned HTTP " + response.status);
   const body = await response.json();
   const rows = Array.isArray(body?.data) ? body.data : Array.isArray(body?.models) ? body.models : [];
-  return rows.map((m: any) => ({
-    id: cleanString(m?.id ?? m?.name, 200),
-    name: cleanString(m?.name ?? m?.id, 200),
-  })).filter((m: any) => m.id).slice(0, 500);
+  return rows.map((m: any) => {
+    const rawId = cleanString(m?.id ?? m?.name, 200);
+    const id = provider === "gemini" ? rawId.replace(/^models\//, "") : rawId;
+    return { id, name: cleanString(m?.displayName ?? m?.name ?? m?.id, 200) };
+  }).filter((m: any) => m.id).slice(0, 500);
+}
+async function requestProviderChat(provider: ProviderType, baseUrl: string, apiKey: string, modelId: string, messages: any[]): Promise<string> {
+  const systemText = messages.filter((m) => m?.role === "system" && typeof m.content === "string").map((m) => m.content).join("\n");
+  const dialogue = messages.filter((m) => (m?.role === "user" || m?.role === "assistant") && typeof m.content === "string");
+  if (provider === "gemini") {
+    const contents = dialogue.map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content.slice(0, 12000) }],
+    }));
+    const payload: any = { contents, generationConfig: { temperature: 0.75, maxOutputTokens: 2048 } };
+    if (systemText) payload.systemInstruction = { parts: [{ text: systemText.slice(0, 8000) }] };
+    const response = await fetch(baseUrl + "/models/" + encodeURIComponent(modelId.replace(/^models\//, "")) + ":generateContent", {
+      method: "POST",
+      headers: { ...providerHeaders(provider, apiKey), "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(45000),
+      redirect: "error",
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    const reply = result?.candidates?.[0]?.content?.parts?.map((part: any) => part.text || "").join("").trim();
+    if (!reply) throw new Error("empty response");
+    return reply;
+  }
+  if (provider === "anthropic") {
+    const response = await fetch(baseUrl + "/messages", {
+      method: "POST",
+      headers: { ...providerHeaders(provider, apiKey), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: modelId,
+        max_tokens: 2048,
+        ...(systemText ? { system: systemText.slice(0, 8000) } : {}),
+        messages: dialogue.map((m) => ({ role: m.role, content: m.content.slice(0, 12000) })),
+      }),
+      signal: AbortSignal.timeout(45000),
+      redirect: "error",
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    const reply = Array.isArray(result?.content) ? result.content.map((part: any) => part.text || "").join("").trim() : "";
+    if (!reply) throw new Error("empty response");
+    return reply;
+  }
+  const response = await fetch(baseUrl + "/chat/completions", {
+    method: "POST",
+    headers: { ...providerHeaders(provider, apiKey), "Content-Type": "application/json" },
+    body: JSON.stringify({ model: modelId, messages, stream: false }),
+    signal: AbortSignal.timeout(45000),
+    redirect: "error",
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error("HTTP " + response.status);
+  const reply = result?.choices?.[0]?.message?.content;
+  if (typeof reply !== "string" || !reply.trim()) throw new Error("empty response");
+  return reply.trim();
 }
 
 Deno.serve(async (req: Request) => {
@@ -75,7 +138,8 @@ Deno.serve(async (req: Request) => {
 
     if (action === "add_provider") {
       const label = cleanString(body?.label, 80);
-      const provider = cleanString(body?.provider, 50) || "openai-compatible";
+      const provider = cleanString(body?.provider, 50) || "custom";
+      if (!providerTypes.has(provider as ProviderType)) return json({ error: "مزود الخدمة غير مدعوم" }, 400, origin);
       const baseUrl = safeBaseUrl(body?.base_url);
       const apiKey = typeof body?.api_key === "string" ? body.api_key.trim() : "";
       if (!label || !baseUrl || apiKey.length < 8 || apiKey.length > 4096) return json({ error: "راجع الاسم والرابط ومفتاح API" }, 400, origin);
@@ -91,11 +155,11 @@ Deno.serve(async (req: Request) => {
     if (action === "sync_models") {
       const providerId = cleanString(body?.provider_id, 80);
       const { data: provider, error } = await admin.from("nova_api_keys")
-        .select("id,base_url,secret_id").eq("id", providerId).eq("user_id", userId).maybeSingle();
+        .select("id,provider,base_url,secret_id").eq("id", providerId).eq("user_id", userId).maybeSingle();
       if (error || !provider) return json({ error: "المفتاح غير موجود" }, 404, origin);
       const { data: apiKey, error: keyError } = await admin.rpc("nova_read_api_secret", { p_secret_id: provider.secret_id });
       if (keyError || typeof apiKey !== "string" || !apiKey) throw new Error("Vault credential unavailable");
-      const models = await providerModels(provider.base_url, apiKey);
+      const models = await providerModels(provider.provider as ProviderType, provider.base_url, apiKey);
       if (!models.length) return json({ error: "لم يرجع المزود أي نماذج" }, 422, origin);
       const rows = models.map((m) => ({ user_id: userId, api_key_id: provider.id, model_id: m.id, display_name: m.name }));
       const { error: upsertError } = await admin.from("nova_api_models").upsert(rows, { onConflict: "api_key_id,model_id", ignoreDuplicates: true });
@@ -126,7 +190,7 @@ Deno.serve(async (req: Request) => {
       if (!models?.length) return json({ error: "مفيش نماذج مفعّلة. أضف مفتاح API وفعّل نموذجًا واحدًا على الأقل." }, 409, origin);
       const providerIds = [...new Set(models.map((model: any) => model.api_key_id))];
       const { data: providers, error: providerError } = await admin.from("nova_api_keys")
-        .select("id,base_url,secret_id,is_active").eq("user_id", userId).eq("is_active", true).in("id", providerIds);
+        .select("id,provider,base_url,secret_id,is_active").eq("user_id", userId).eq("is_active", true).in("id", providerIds);
       if (providerError) throw providerError;
       const providerMap = new Map((providers ?? []).map((provider: any) => [provider.id, provider]));
       const failures: string[] = [];
@@ -136,19 +200,14 @@ Deno.serve(async (req: Request) => {
         const { data: apiKey, error: keyError } = await admin.rpc("nova_read_api_secret", { p_secret_id: provider.secret_id });
         if (keyError || typeof apiKey !== "string" || !apiKey) { failures.push(model.model_id + ": vault unavailable"); continue; }
         try {
-          const response = await fetch(provider.base_url + "/chat/completions", {
-            method: "POST",
-            headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json", Accept: "application/json" },
-            body: JSON.stringify({ model: model.model_id, messages, stream: false }),
-            signal: AbortSignal.timeout(45000),
-            redirect: "error",
-          });
-          const result = await response.json().catch(() => ({}));
-          if (!response.ok) { failures.push(model.model_id + ": HTTP " + response.status); continue; }
-          const reply = result?.choices?.[0]?.message?.content;
-          if (typeof reply === "string" && reply.trim()) return json({ reply: reply.trim(), model: model.model_id }, 200, origin);
+          const providerType = provider.provider as ProviderType;
+          if (!providerTypes.has(providerType)) { failures.push(model.model_id + ": unsupported provider"); continue; }
+          const reply = await requestProviderChat(providerType, provider.base_url, apiKey, model.model_id, messages);
+          if (reply) return json({ reply, model: model.model_id, provider: providerType }, 200, origin);
           failures.push(model.model_id + ": empty response");
-        } catch { failures.push(model.model_id + ": request failed"); }
+        } catch (error) {
+          failures.push(model.model_id + ": " + (error instanceof Error ? error.message : "request failed"));
+        }
       }
       return json({ error: "كل النماذج المفعّلة فشلت في الرد. راجع المفاتيح أو حالة النماذج.", failures: failures.slice(0, 8) }, 502, origin);
     }
