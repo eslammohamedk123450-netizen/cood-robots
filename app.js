@@ -2,6 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const SUPABASE_URL = "https://razvryvazmqvvqkzetuo.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_t5xrzZNN6Uj9zhhBLUYQVg_mj7qPjQL";
+const OWNER_EMAIL = "eslammohamedk123450@gmail.com";
+const OWNER_USER_ID = "f980820b-f59d-453c-9df8-2b9afc695c74";
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
 });
@@ -249,29 +251,84 @@ async function addProvider() {
   } catch (error) { setFeedback("settingsFeedback", error.message, true); }
   finally { button.disabled = false; button.textContent = "حفظ المفتاح واكتشاف النماذج"; }
 }
-async function initializeDeviceSession() {
-  setFeedback("authFeedback", "جاري تجهيز جلستك الخاصة على الجهاز...");
-  try {
-    const { data: current, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) throw sessionError;
-    let session = current.session;
-    if (!session) {
-      const { data, error } = await supabase.auth.signInAnonymously();
-      if (error) throw error;
-      session = data.session;
-    }
-    state.session = session;
-    $("connectionLabel").textContent = "جلسة الجهاز جاهزة";
-    setFeedback("authFeedback", "اتصال تلقائي جاهز — مش محتاج تسجّل دخول.");
-    await loadProviders();
-  } catch (error) {
+function showAuthGate(message = "سجّل الدخول بحساب المالك عشان تفتح NOVA.", isError = false) {
+  $("authGate").hidden = false;
+  $("ownerLoginPassword").value = "";
+  setFeedback("authGateFeedback", message, isError);
+}
+function hideAuthGate() {
+  $("authGate").hidden = true;
+  $("ownerLoginPassword").value = "";
+}
+async function acceptOwnerSession(session) {
+  if (!session?.user || session.user.id !== OWNER_USER_ID || session.user.email?.toLowerCase() !== OWNER_EMAIL) {
+    await supabase.auth.signOut();
     state.session = null;
-    $("connectionLabel").textContent = "محتاج تفعيل الاتصال";
-    const message = /anonymous|disabled|signups not allowed/i.test(error.message || "")
-      ? "لازم تفعيل Anonymous Sign-Ins مرة واحدة من Supabase: Authentication → Providers → Anonymous Sign-Ins."
-      : "تعذر تجهيز الجلسة التلقائية: " + (error.message || "خطأ غير معروف");
-    setFeedback("authFeedback", message, true);
+    state.providers = []; state.models = [];
+    showAuthGate("الحساب ده مش مصرح له بالدخول. يتطلب كود دعوة، ولا توجد دعوات مفعّلة حاليًا.", true);
+    $("connectionLabel").textContent = "الدخول غير مصرح";
+    return false;
   }
+  state.session = session;
+  hideAuthGate();
+  $("connectionLabel").textContent = "متصل بحساب المالك";
+  setFeedback("authFeedback", "مسجل الدخول باسم " + OWNER_EMAIL);
+  await loadProviders();
+  return true;
+}
+async function initializeOwnerSession() {
+  setFeedback("authFeedback", "جاري التحقق من جلسة حساب المالك...");
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    if (data.session) {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user || userData.user.id !== OWNER_USER_ID || userData.user.email?.toLowerCase() !== OWNER_EMAIL) {
+        await supabase.auth.signOut();
+        showAuthGate("الحساب المحفوظ غير مصرح له. سجّل الدخول بحساب المالك.", true);
+        return;
+      }
+      await acceptOwnerSession(data.session);
+    } else {
+      showAuthGate();
+      $("connectionLabel").textContent = "بانتظار تسجيل الدخول";
+      setFeedback("authFeedback", "سجّل الدخول بحساب المالك للوصول إلى مفاتيحك وبياناتك.");
+    }
+  } catch (error) {
+    showAuthGate("تعذر استعادة الجلسة: " + (error.message || "خطأ غير معروف"), true);
+  }
+}
+async function signInOwner(event) {
+  event.preventDefault();
+  const email = $("ownerLoginEmail").value.trim().toLowerCase();
+  const password = $("ownerLoginPassword").value;
+  if (email !== OWNER_EMAIL) {
+    setFeedback("authGateFeedback", "يتطلب كود دعوة. لا توجد أكواد دعوة مفعّلة حاليًا، والدخول متاح لحساب المالك فقط.", true);
+    return;
+  }
+  const button = $("ownerLoginButton");
+  button.disabled = true; button.textContent = "جاري التحقق...";
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    const ok = await acceptOwnerSession(data.session);
+    if (ok) {
+      $("ownerLoginPassword").value = "";
+      showToast("أهلًا بيك يا إسلام ❤️");
+    }
+  } catch (error) {
+    setFeedback("authGateFeedback", "تعذر تسجيل الدخول. راجع البريد وكلمة المرور.", true);
+  } finally {
+    button.disabled = false; button.textContent = "تسجيل الدخول";
+  }
+}
+async function signOutOwner() {
+  const { error } = await supabase.auth.signOut();
+  if (error) { showToast("تعذر تسجيل الخروج"); return; }
+  state.session = null; state.providers = []; state.models = []; state.messages = [];
+  renderProviders();
+  $("connectionLabel").textContent = "تم تسجيل الخروج";
+  showAuthGate("تم تسجيل الخروج. سجّل الدخول بحساب المالك للمتابعة.");
 }
 async function requestAIReply(text) {
   if (!state.session) return "أنا سامعك يا " + state.ownerName + ". لسه الاتصال التلقائي بيتجهز. افتح الإعدادات وشوف حالة الاتصال، وبعدها أضف مفتاح API.";
@@ -390,19 +447,27 @@ $("providerType").addEventListener("change", applyProviderDefaults);
 $("providerBaseUrl").addEventListener("input", () => { $("providerBaseUrl").dataset.userEdited = "true"; });
 $("settingsDialog").addEventListener("click", (event) => { if (event.target === $("settingsDialog")) closeSettings(); });
 
+$("ownerLoginForm").addEventListener("submit", signInOwner);
+$("ownerSignOutButton").addEventListener("click", () => void signOutOwner());
 supabase.auth.onAuthStateChange((_event, session) => {
-  state.session = session;
-  if (session) {
-    $("connectionLabel").textContent = "جلسة الجهاز جاهزة";
-    setFeedback("authFeedback", "اتصال تلقائي جاهز — مش محتاج تسجّل دخول.");
+  if (!session) {
+    state.session = null; state.providers = []; state.models = [];
+    $("connectionLabel").textContent = "بانتظار تسجيل الدخول";
+    if (!$("authGate").hidden) return;
+    showAuthGate("انتهت الجلسة. سجّل الدخول مرة أخرى.");
+    renderProviders();
+    return;
+  }
+  if (session.user?.id === OWNER_USER_ID && session.user?.email?.toLowerCase() === OWNER_EMAIL) {
+    state.session = session;
+    $("connectionLabel").textContent = "متصل بحساب المالك";
+    setFeedback("authFeedback", "مسجل الدخول باسم " + OWNER_EMAIL);
     void loadProviders();
   } else {
-    state.providers = []; state.models = [];
-    $("connectionLabel").textContent = "جاري الاتصال";
-    $("providerList").innerHTML = '<p class="empty-provider-list">جاري تجهيز الجلسة التلقائية...</p>';
+    void supabase.auth.signOut();
   }
 });
-void initializeDeviceSession();
+void initializeOwnerSession();
 applyProviderDefaults();
 import("./nova-3d.js").then(({ initNOVACharacter3D }) => {
   character3D = initNOVACharacter3D();
