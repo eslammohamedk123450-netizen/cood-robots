@@ -140,7 +140,7 @@ function applyProviderDefaults() {
 }
 async function loadProviders() {
   if (!state.session) {
-    $("providerList").innerHTML = '<p class="empty-provider-list">جاري تجهيز الجلسة التلقائية...</p>';
+    $("providerList").textContent = "سجّل الدخول بحساب المالك لعرض مفاتيحك.";
     return;
   }
   try {
@@ -331,7 +331,7 @@ async function signOutOwner() {
   showAuthGate("تم تسجيل الخروج. سجّل الدخول بحساب المالك للمتابعة.");
 }
 async function requestAIReply(text) {
-  if (!state.session) return "أنا سامعك يا " + state.ownerName + ". لسه الاتصال التلقائي بيتجهز. افتح الإعدادات وشوف حالة الاتصال، وبعدها أضف مفتاح API.";
+  if (!state.session) return "سجّل الدخول بحساب المالك عشان نقدر نكمل المحادثة.";
   if (!state.messages.length) {
     state.messages.push({
       role: "system",
@@ -477,4 +477,4 @@ import("./nova-3d.js").then(({ initNOVACharacter3D }) => {
 });
 setPersona("soly");
 setStatus("سولي معاك", "idle");
-window.nova = { setPersona, startListening, stopListening, animateCharacter, supabase };
+
