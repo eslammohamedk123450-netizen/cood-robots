@@ -10,7 +10,6 @@
 
 ## Authentication
 NOVA V1 is restricted to one existing owner account:
-- Owner email: `eslammohamedk123450@gmail.com`
 - Owner Auth user ID: `f980820b-f59d-453c-9df8-2b9afc695c74`
 - The app presents a login gate and uses `signInWithPassword`; the Supabase JS client persists the session so the owner does not need to sign in every visit.
 - There is no sign-up UI and no active invite-code system. Any other email entered in the login form is shown an invitation-required message.
