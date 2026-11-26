@@ -154,3 +154,9 @@ body[data-mood="happy"] .mouth{height:13px}
 .owner-login-form input:focus{border-color:var(--gold)}
 .owner-login-form button:disabled{opacity:.6;cursor:wait}
 .invite-note{margin-top:18px;padding-top:13px;border-top:1px solid var(--line);font-size:10px!important}
+
+.auth-text-button{border:1px solid rgba(212,175,55,.35);border-radius:9px;padding:10px 12px;background:rgba(212,175,55,.07);color:#e8cf83;font-size:11px;cursor:pointer}
+.auth-text-button:hover{background:rgba(212,175,55,.13)}
+.recovery-form{margin-top:14px}
+.recovery-intro{margin:0;color:#aab3c2;font-size:11px;line-height:1.9}
+.auth-card [hidden]{display:none!important}
