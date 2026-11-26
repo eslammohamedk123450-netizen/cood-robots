@@ -34,13 +34,13 @@ assert.match(edge, /action === "tts"/, "Server must expose authenticated neural 
 assert.match(edge, /requestAzureSpeech/, "Speech must use an independent Azure neural TTS engine");
 assert.match(edge, /ar-EG-ShakirNeural/, "Blue persona must use a fixed Egyptian male neural voice");
 assert.match(edge, /ar-EG-SalmaNeural/, "Pink persona must use a fixed Egyptian female neural voice");
-assert.doesNotMatch(edge, /requestGeminiSpeech|gemini-3\\.8-flash-tts/, "Speech must not depend on Gemini");
+assert.doesNotMatch(edge, /requestGeminiSpeech|gemini-3\.8-flash-tts/, "Speech must not depend on Gemini");
 assert.match(edge, /action === "speech_get"/, "Speech settings must be readable through the owner session");
 assert.match(edge, /action === "speech_save"/, "Speech API keys must be saved through the secure server");
 assert.match(edge, /nova_speech_settings/, "Fixed voice configuration must be stored server-side");
 assert.match(app, /loadSpeechSettings/, "Client must load fixed voice settings");
 assert.match(app, /saveSpeechSettings/, "Client must save fixed voice settings");
-assert.match(app, /state\\.processing/, "Voice turns must be serialized to prevent overlapping conversations");
+assert.match(app, /state\.processing/, "Voice turns must be serialized to prevent overlapping conversations");
 assert.match(html, /id="speechApiKey"/, "The UI must provide a secure speech key entry");
 assert.match(html, /id="speechRegion"/, "The UI must provide the speech resource region");
 assert.match(app, /invokeNova\("tts"/, "Client must request generated speech from the server");
