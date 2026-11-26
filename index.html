@@ -20,7 +20,7 @@
       <p>سجّل الدخول بحساب المالك عشان تفتح NOVA. الجلسة هتفضل محفوظة على جهازك.</p>
       <form id="ownerLoginForm" class="owner-login-form">
         <label class="field-label">البريد الإلكتروني
-          <input id="ownerLoginEmail" type="email" value="eslammohamedk123450@gmail.com" autocomplete="username" readonly required dir="ltr">
+          <input id="ownerLoginEmail" type="email" value="eslammohamedk123450@gmail.com" autocomplete="username" required dir="ltr">
         </label>
         <label class="field-label">كلمة المرور
           <input id="ownerLoginPassword" type="password" autocomplete="current-password" placeholder="كلمة مرور حسابك" required dir="ltr">
@@ -30,8 +30,11 @@
         <p class="settings-feedback" id="authGateFeedback" role="status">الدخول متاح للبريد الشخصي المصرّح به فقط.</p>
       </form>
       <form id="passwordRecoveryForm" class="owner-login-form recovery-form" hidden>
-        <p class="recovery-intro">هنبعت رابط استعادة إلى بريد المالك المسجّل. افتح الرابط من نفس المتصفح، وبعدها اختار كلمة مرور جديدة.</p>
-        <button type="button" class="auth-text-button" id="sendRecoveryCodeButton">إرسال رابط استعادة إلى بريدي</button>
+        <p class="recovery-intro">اكتب بريد حسابك. هنبعت لك رابط تأكيد؛ افتحه للانتقال إلى صفحة تعيين كلمة المرور الجديدة.</p>
+        <label class="field-label" id="recoveryEmailLabel">البريد الإلكتروني
+          <input id="recoveryEmail" type="email" value="eslammohamedk123450@gmail.com" autocomplete="email" placeholder="name@example.com" required dir="ltr">
+        </label>
+        <button type="button" class="auth-text-button" id="sendRecoveryCodeButton">إرسال رابط التأكيد</button>
         <label class="field-label" id="newPasswordLabel" hidden>كلمة المرور الجديدة
           <input id="newPassword" type="password" autocomplete="new-password" minlength="8" placeholder="8 أحرف على الأقل" dir="ltr">
         </label>
