@@ -109,13 +109,7 @@ async function requestGeminiSpeech(baseUrl: string, apiKey: string, text: string
     headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text, speechMetadata: { style } }] }],
-      generationConfig: {
-        responseModalities: ["AUDIO"],
-        speechConfig: {
-          languageCode: "ar-EG",
-          voiceConfig: { prebuiltVoiceConfig: { voiceName } },
-        },
-      },
+      generationConfig: { responseModalities: ["AUDIO"], speechConfig: { languageCode: "ar-EG", voiceConfig: { prebuiltVoiceConfig: { voiceName } } } },
     }),
     signal: AbortSignal.timeout(60000),
     redirect: "error",
@@ -129,7 +123,6 @@ async function requestGeminiSpeech(baseUrl: string, apiKey: string, text: string
   if (!audioPart?.inlineData?.data) throw new Error("Gemini TTS لم يرجع ملفًا صوتيًا.");
   return audioPart.inlineData.data;
 }
-
 async function requestProviderChat(provider: ProviderType, baseUrl: string, apiKey: string, modelId: string, messages: any[]): Promise<string> {
   const systemText = messages.filter((m) => m?.role === "system" && typeof m.content === "string").map((m) => m.content).join("\n");
   const dialogue = messages.filter((m) => (m?.role === "user" || m?.role === "assistant") && typeof m.content === "string");
