@@ -9,6 +9,7 @@ const personas = {
   soleen: { name: "سولين", description: "صاحبتك الوردية 💗", color: "#f58bc4", accent: "#b62aa5", intro: "سولين معاكي" }
 };
 let character3D = null;
+let speechAudioContext = null;
 
 function setStatus(label, mood = "idle") {
   state.emotion = mood;
@@ -101,49 +102,54 @@ async function speak(text) {
   const persona = state.persona;
   state.speaking = true;
   try { state.recognition?.stop(); } catch (_) {}
-  if (state.audio) { state.audio.pause(); state.audio = null; }
+  if (state.audio) { try { state.audio.pause(); } catch (_) {} state.audio = null; }
   if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
   setStatus(personas[persona].name + " بيجهز صوته...", "thinking");
   try {
     const result = await invokeNova("tts", { text: spokenText, persona });
-    if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش ملف الصوت.");
-    const binary = atob(result.audio);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
     const sourceMime = String(result.mime_type || "audio/L16;codec=pcm;rate=24000").toLowerCase();
-    const rateMatch = sourceMime.match(/rate=(\d+)/);
+    if (!/audio\\/(l16|pcm|raw)/i.test(sourceMime)) {
+      throw new Error("صيغة الصوت غير متوقعة: " + sourceMime);
+    }
+    const rateMatch = sourceMime.match(/rate=(\\d+)/);
     const sampleRate = rateMatch ? Number(rateMatch[1]) : 24000;
-    const blob = /audio\/(l16|pcm|raw)/i.test(sourceMime)
-      ? pcmToWav(bytes, sampleRate)
-      : new Blob([bytes], { type: sourceMime });
-    currentSpeechUrl = URL.createObjectURL(blob);
-    const audio = new Audio(currentSpeechUrl);
-    state.audio = audio;
-    audio.onplay = () => {
-      setStatus(personas[persona].name + " بيتكلم", "speaking");
-      animateCharacter("happy");
-    };
-    audio.onended = () => {
+    const binary = atob(result.audio);
+    const byteLength = binary.length - (binary.length % 2);
+    if (byteLength < 2) throw new Error("ملف الصوت فارغ أو تالف.");
+    const bytes = new Uint8Array(byteLength);
+    for (let i = 0; i < byteLength; i++) bytes[i] = binary.charCodeAt(i);
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) throw new Error("المتصفح لا يدعم تشغيل الصوت المتقدم.");
+    if (!speechAudioContext || speechAudioContext.state === "closed") speechAudioContext = new AudioContextClass();
+    if (speechAudioContext.state === "suspended") await speechAudioContext.resume();
+    const samples = new Float32Array(byteLength / 2);
+    const view = new DataView(bytes.buffer);
+    for (let i = 0; i < samples.length; i++) samples[i] = view.getInt16(i * 2, true) / 32768;
+    const buffer = speechAudioContext.createBuffer(1, samples.length, sampleRate);
+    buffer.copyToChannel(samples, 0);
+    const source = speechAudioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(speechAudioContext.destination);
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
       state.speaking = false;
       state.audio = null;
-      if (currentSpeechUrl) URL.revokeObjectURL(currentSpeechUrl);
-      currentSpeechUrl = null;
       setStatus(state.listening ? "سامعك، كمل كلامك" : "مستنيك تبدأ", state.listening ? "listening" : "idle");
       if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
     };
-    audio.onerror = () => {
-      state.speaking = false;
-      state.audio = null;
-      setStatus("حصلت مشكلة في تشغيل الصوت الطبيعي", "error");
-      if (currentSpeechUrl) URL.revokeObjectURL(currentSpeechUrl);
-      currentSpeechUrl = null;
-      if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
-    };
-    await audio.play();
+    state.audio = { pause: () => { try { source.stop(); } catch (_) {} finish(); } };
+    source.onended = finish;
+    source.start(0);
+    setStatus(personas[persona].name + " بيتكلم", "speaking");
+    animateCharacter("happy");
   } catch (error) {
     state.speaking = false;
-    setStatus("الصوت الطبيعي مش متاح حاليًا", "error");
-    showToast(error.message || "أضف مفتاح Gemini من إعدادات API لتشغيل الصوت الطبيعي.");
+    state.audio = null;
+    setStatus("حصلت مشكلة في تشغيل الصوت الطبيعي", "error");
+    showToast(error.message || "تعذر تشغيل الصوت الطبيعي.");
     if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
   }
 }
@@ -362,6 +368,11 @@ function stopListening() {
   setStatus("أنا موجود، لما تحب نتكلم", "idle");
 }
 function startListening() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (AudioContextClass && !speechAudioContext) {
+    try { speechAudioContext = new AudioContextClass(); } catch (_) {}
+  }
+  if (speechAudioContext?.state === "suspended") void speechAudioContext.resume().catch(() => {});
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!Recognition) {
     $("liveTranscript").textContent = "المتصفح ده مش بيدعم التعرف على الكلام. جرّب Chrome أو استخدم الكتابة.";
