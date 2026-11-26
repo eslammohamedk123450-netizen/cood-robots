@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="NOVA Desk Robot — واجهة تجريبية لروبوت مكتبي تفاعلي">
+  <title>NOVA Desk Robot</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#console" aria-label="NOVA Desk Robot">
+        <span class="brand-mark"><i></i><i></i><i></i></span>
+        <span><b>NOVA</b><small>DESK ROBOT OS</small></span>
+      </a>
+      <nav class="main-nav" aria-label="التنقل الرئيسي">
+        <button class="nav-link active" data-view="console">لوحة التحكم</button>
+        <button class="nav-link" data-view="identity">الهوية والوصول</button>
+        <button class="nav-link" data-view="settings">الإعدادات</button>
+      </nav>
+      <div class="top-actions">
+        <span class="live-pill"><span></span> وضع التجربة</span>
+        <button class="icon-btn" id="helpBtn" aria-label="معلومات عن النموذج الأولي">?</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="view active" id="view-console">
+        <div class="hero-copy">
+          <div>
+            <p class="eyebrow"><span class="eyebrow-line"></span> PROTOTYPE 01 / DESK COMPANION</p>
+            <h1>خلّي الروبوت <em>يسمعك</em><br>ويتحرك معاك.</h1>
+            <p class="hero-note">تجربة أولية لوجه الروبوت، الأوامر، والصوت قبل بناء الهيكل الحقيقي.</p>
+          </div>
+          <div class="system-status"><span class="status-dot"></span><div><b id="systemStatus">جاهز للتجربة</b><small>المعالجة تتم داخل المتصفح الآن</small></div></div>
+        </div>
+
+        <div class="console-grid">
+          <section class="robot-card panel">
+            <div class="panel-head"><div><span class="panel-kicker">ACTIVE PERSONA</span><h2 id="personaTitle">سولي</h2></div><div class="signal-bars"><i></i><i></i><i></i><i></i></div></div>
+            <div class="robot-stage" id="robotStage">
+              <div class="stage-grid"></div><div class="orb orb-one"></div><div class="orb orb-two"></div>
+              <div class="robot-shadow"></div>
+              <div class="robot-body">
+                <div class="antenna"><span></span></div>
+                <div class="ear ear-r"></div><div class="ear ear-l"></div>
+                <div class="robot-head" id="robotHead">
+                  <div class="hair" id="hair"></div><div class="bow" id="bow"></div>
+                  <div class="brow brow-r" id="browR"></div><div class="brow brow-l" id="browL"></div>
+                  <div class="eye eye-r"><span id="pupilR"></span></div><div class="eye eye-l"><span id="pupilL"></span></div>
+                  <div class="cheek cheek-r"></div><div class="cheek cheek-l"></div><div class="mouth" id="mouth"></div>
+                </div>
+                <div class="neck"></div><div class="robot-torso"><span class="torso-light"></span><span class="torso-line"></span></div>
+                <div class="arm arm-r" id="armR"><span></span></div><div class="arm arm-l" id="armL"><span></span></div>
+              </div>
+              <div class="stage-caption"><span class="wave-icon">⌁</span><span id="stageCaption">سولي جاهز يسمعك</span><span class="caption-line"></span></div>
+            </div>
+            <div class="persona-switcher"><button class="persona-choice selected" data-persona="soly"><span class="mini-face blue">●</span><span><b>سولي</b><small>النسخة الزرقاء</small></span><span class="check">✓</span></button><button class="persona-choice" data-persona="soleen"><span class="mini-face pink">●</span><span><b>سولين</b><small>النسخة الوردية</small></span><span class="check">✓</span></button></div>
+            <div class="emotion-row"><button data-emotion="neutral">عادي</button><button data-emotion="listening">بيسمع</button><button data-emotion="thinking">بيفكر</button><button data-emotion="speaking">بيتكلم</button><button data-emotion="happy">سعيد</button></div>
+          </section>
+
+          <section class="command-column">
+            <div class="chat-panel panel">
+              <div class="panel-head"><div><span class="panel-kicker">COMMAND CENTER</span><h2>اتكلم مع روبوتك</h2></div><button class="clear-btn" id="clearChat">مسح المحادثة</button></div>
+              <div class="chat-log" id="chatLog" aria-live="polite">
+                <div class="message robot-message"><div class="message-avatar blue-avatar">S</div><div><span class="message-meta">سولي · الآن</span><p>أهلاً! أنا جاهز أجرب معاك. اكتب أمر أو اضغط على الميكروفون.</p></div></div>
+                <div class="command-result hidden" id="commandResult"><span class="result-icon">✓</span><div><b id="resultTitle">تم التنفيذ</b><small id="resultText">الأمر اتنفذ في وضع المحاكاة</small></div></div>
+              </div>
+              <div class="quick-actions"><button data-command="صحيني يا سولي"><span>◉</span> صحيني</button><button data-command="خلي تعبيرك سعيد"><span>✦</span> ابتسم</button><button data-command="اعمل حركة ترحيب"><span>↗</span> رحّب</button><button data-command="اقرأ حالتك"><span>⌁</span> الحالة</button></div>
+              <form class="command-form" id="commandForm"><button type="button" class="mic-btn" id="micBtn" aria-label="التحدث بالميكروفون"><span>◉</span></button><input id="commandInput" autocomplete="off" placeholder="اكتب أمراً… مثل: اعمل حركة ترحيب" aria-label="الأمر"><button type="submit" class="send-btn">إرسال <span>↗</span></button></form>
+              <div class="input-hint"><span class="keyboard-key">Enter</span> للإرسال <span class="hint-separator">·</span> <span id="micStatus">الميكروفون متوقف</span></div>
+            </div>
+
+            <div class="status-row"><div class="mini-status panel"><span class="status-icon cyan">⌁</span><div><small>الصوت</small><b id="voiceStatus">جاهز</b></div><span class="tiny-dot"></span></div><div class="mini-status panel"><span class="status-icon orange">◌</span><div><small>الكاميرا</small><b id="cameraStatus">غير مفعلة</b></div><span class="tiny-dot muted"></span></div><div class="mini-status panel"><span class="status-icon purple">◇</span><div><small>الهوية</small><b id="identityStatus">سولي · مالك</b></div><span class="tiny-dot"></span></div></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-identity">
+        <div class="page-heading"><p class="eyebrow"><span class="eyebrow-line"></span> TRUST & ACCESS</p><h1>مين مسموح له<br><em>يكلم الروبوت؟</em></h1><p>في النسخة الأولى نستخدم ملفات محلية للتجربة. بعد ربط Supabase يمكن حفظ المستخدمين والصلاحيات بأمان.</p></div>
+        <div class="identity-grid"><div class="panel identity-card"><div class="panel-head"><div><span class="panel-kicker">ACTIVE OWNER</span><h2>أنت · المالك</h2></div><span class="verified-badge">✓ موثّق تجريبيًا</span></div><div class="owner-line"><div class="owner-avatar">A</div><div><b>Andrewwest</b><small>صلاحية كاملة · أوامر وتحكم</small></div><button class="ghost-btn" id="ownerDemo">تجربة التحقق</button></div><div class="permission-list"><div><span>التعرف على الوجه</span><b class="pending">جاهز للربط</b></div><div><span>كلمة التنبيه</span><b>“يا روبوت”</b></div><div><span>الأوامر المسموحة</span><b>كل الأوامر</b></div></div></div><div class="panel camera-card"><div class="panel-head"><div><span class="panel-kicker">FACE CHECK</span><h2>تجربة الكاميرا</h2></div><span class="camera-led" id="cameraLed"></span></div><div class="camera-preview"><video id="cameraVideo" autoplay muted playsinline></video><div class="camera-placeholder" id="cameraPlaceholder"><span class="scan-frame"></span><b>الكاميرا متوقفة</b><small>التشغيل يحتاج إذنك من المتصفح</small></div><div class="scan-label" id="scanLabel">FACE SCAN / READY</div></div><div class="camera-actions"><button class="primary-btn" id="cameraBtn">تشغيل الكاميرا</button><button class="ghost-btn" id="enrollBtn" disabled>حفظ كوجه موثوق</button></div><p class="privacy-note">لا يتم رفع الصورة في وضع التجربة. يتم استخدام الكاميرا محليًا فقط عند موافقتك.</p></div></div>
+        <div class="panel allowed-card"><div class="panel-head"><div><span class="panel-kicker">ALLOWED PEOPLE</span><h2>الأشخاص المسموح لهم</h2></div><button class="ghost-btn" id="addPerson">+ إضافة شخص</button></div><div class="people-list" id="peopleList"><div class="person-row"><div class="person-avatar blue-avatar">A</div><div><b>Andrewwest</b><small>المالك · كل الصلاحيات</small></div><span class="person-state">نشط</span><button class="row-menu">⋮</button></div><div class="person-row"><div class="person-avatar pink-avatar">م</div><div><b>مستخدم تجريبي</b><small>ضيف · أوامر أساسية</small></div><span class="person-state guest">ضيف</span><button class="row-menu">⋮</button></div></div></div>
+      </section>
+
+      <section class="view" id="view-settings">
+        <div class="page-heading"><p class="eyebrow"><span class="eyebrow-line"></span> SYSTEM CONFIG</p><h1>جهّز العقل<br><em>قبل الجسم.</em></h1><p>الإعدادات مصممة لتنتقل من وضع التجربة إلى روبوت حقيقي بدون إعادة بناء الواجهة.</p></div>
+        <div class="settings-grid"><div class="panel settings-card"><div class="panel-head"><div><span class="panel-kicker">CONNECTIONS</span><h2>اتصالات النظام</h2></div><span class="connection-state"><i></i> محلي</span></div><label class="setting-field"><span>Supabase URL</span><input placeholder="https://your-project.supabase.co" id="supabaseUrl"></label><label class="setting-field"><span>Public anon key <small>مفتاح عام فقط</small></span><input type="password" placeholder="أضف المفتاح العام بعد إنشاء المشروع" id="supabaseKey"></label><label class="setting-field"><span>AI endpoint <small>يُستدعى من Edge Function</small></span><input placeholder="/functions/v1/robot-chat" id="aiEndpoint"></label><button class="primary-btn wide" id="saveSettings">حفظ الإعدادات المحلية</button><p class="settings-note" id="settingsNote">لم يتم حفظ أي مفاتيح بعد.</p></div><div class="panel roadmap-card"><div class="panel-head"><div><span class="panel-kicker">BUILD ROADMAP</span><h2>الطريق إلى الروبوت الحقيقي</h2></div></div><div class="roadmap"><div class="roadmap-step done"><span>01</span><div><b>وجه وتفاعل</b><small>هذه النسخة — صوت وأوامر ومشاعر</small></div></div><div class="roadmap-step active"><span>02</span><div><b>ذاكرة وهوية</b><small>Supabase + ملفات المستخدمين والصلاحيات</small></div></div><div class="roadmap-step"><span>03</span><div><b>جسم مكتبي</b><small>ESP32 أو Raspberry Pi + شاشة + Servo</small></div></div><div class="roadmap-step"><span>04</span><div><b>حركة وتفاعل</b><small>حساسات، عجلات، صوت، وأوامر آمنة</small></div></div></div></div></div>
+      </section>
+    </main>
+    <footer><span>NOVA / Prototype 01</span><span>واجهة تجريبية قابلة للترقية إلى روبوت فعلي</span><a href="https://github.com/eslammohamedk123450-netizen/cood-robots" target="_blank" rel="noreferrer">المستودع على GitHub ↗</a></footer>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <dialog id="helpDialog"><button class="dialog-close" id="closeHelp">×</button><span class="panel-kicker">ABOUT PROTOTYPE 01</span><h2>نسخة الاختبار الأولى</h2><p>الواجهة تحاكي عقل الروبوت قبل تركيب المكونات. جرب الشخصية، التعبيرات، الأوامر الصوتية، والكاميرا. الذكاء الاصطناعي والهوية الدائمة يضافان من خلال Supabase Edge Functions حتى لا تظهر المفاتيح السرية داخل GitHub Pages.</p><button class="primary-btn" id="dialogOk">تمام</button></dialog>
+  <script src="app.js"></script>
+</body>
+</html>
