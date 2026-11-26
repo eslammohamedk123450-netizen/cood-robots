@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soly", emotion: "idle", listening: false, speaking: false,
-  recognition: null, restartRecognition: false, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
+  recognition: null, restartRecognition: false, processing: false, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
   messages: [], session: null, providers: [], models: [], audio: null, profile: ""
 };
 const personas = {
@@ -379,14 +379,52 @@ async function saveOwnerMemory() {
   } catch (error) { setFeedback("memoryFeedback", error.message, true); }
   finally { button.disabled = false; }
 }
+async function loadSpeechSettings() {
+  if (!state.session) return;
+  try {
+    const result = await invokeNova("speech_get");
+    if ($("speechRegion") && result.region) $("speechRegion").value = result.region;
+    setFeedback("speechFeedback", result.configured
+      ? "الصوت المصري الثابت متصل: " + (result.voice_male || "ShakirNeural") + " / " + (result.voice_female || "SalmaNeural")
+      : "أضف مفتاح Microsoft Speech مرة واحدة لتفعيل صوت سولي الثابت.");
+  } catch (error) {
+    setFeedback("speechFeedback", "تعذر قراءة إعدادات الصوت: " + error.message, true);
+  }
+}
+async function saveSpeechSettings() {
+  const button = $("saveSpeechSettings");
+  const api_key = $("speechApiKey")?.value.trim() || "";
+  const region = $("speechRegion")?.value.trim() || "";
+  if (!api_key || !region) {
+    setFeedback("speechFeedback", "اكتب مفتاح Microsoft Speech والمنطقة (Region).", true);
+    return;
+  }
+  button.disabled = true;
+  button.textContent = "جاري حفظ إعدادات الصوت...";
+  try {
+    await invokeNova("speech_save", { api_key, region });
+    $("speechApiKey").value = "";
+    await loadSpeechSettings();
+    setFeedback("speechFeedback", "اتحفظ الصوت المصري الثابت بأمان. سولي هتستخدم نفس الصوت مع أي نموذج محادثة.");
+  } catch (error) {
+    setFeedback("speechFeedback", error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "حفظ الصوت الثابت";
+  }
+}
 async function requestAIReply(text) {
   if (!state.session) return "أنا جاهز معاك يا إسلام ❤️ واجهة NOVA مفتوحة حاليًا في الوضع المحلي. تشغيل ردود الذكاء الاصطناعي وحفظ البيانات السحابي هيتفعل لما نربط الخدمات لاحقًا.";
   if (!state.messages.length) {
     state.messages.push({
       role: "system",
-      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. تحدث بالعربية المصرية الطبيعية الودودة، كن صريحًا ومختصرًا عند الحاجة، لا تدّع تنفيذ شيء لم تنفذه، واسأل للتوضيح عندما يلزم. ملف المالك والذاكرة الدائمة: " + (state.profile || "اسم المالك إسلام، وهو صاحب NOVA ومطوّرها.")
+      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. تحدث بالمصرية اليومية الطبيعية كأنك شخص مصري بيتكلم مع صاحبه، وليس بالفصحى أو بأسلوب مترجم. استخدم تعبيرات مصرية تلقائية بدون مبالغة، واجعل الرد مناسبًا للنطق الصوتي: جمل واضحة وسلسة، لا تقرأ رموزًا أو تنسيقات أو روابط حرفيًا. كن ودودًا، حافظ على سياق الحوار، كن صريحًا ولا تدّع تنفيذ شيء لم تنفذه، واسأل للتوضيح عند الحاجة. ملف المالك والذاكرة الدائمة: " + (state.profile || "اسم المالك إسلام، وهو صاحب NOVA ومطوّرها.")
     });
   }
+  const now = new Date();
+  const currentDateTime = new Intl.DateTimeFormat("ar-EG", { dateStyle: "full", timeStyle: "short" }).format(now);
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "التوقيت المحلي للجهاز";
+  state.messages[0].content = state.messages[0].content.split("\\n\\n[الوقت المحلي الحالي:")[0] + "\\n\\n[الوقت المحلي الحالي: " + currentDateTime + " | المنطقة الزمنية: " + timezone + "]. استخدم هذه المعلومة عند السؤال عن الوقت أو التاريخ أو غدًا، ولا تخمّن.";
   state.messages.push({ role: "user", content: text });
   state.messages = [state.messages[0], ...state.messages.slice(1).slice(-23)];
   try {
@@ -401,18 +439,24 @@ async function requestAIReply(text) {
 }
 async function handleRecognizedText(text) {
   const clean = text.trim();
-  if (!clean) return;
-  $("liveTranscript").textContent = "أنت قلت: “" + clean + "”";
-  addConversationLine(clean, "owner");
-  setStatus("بفكر في كلامك...", "thinking");
-  animateCharacter("thinking");
-  const reply = await requestAIReply(clean);
-  addConversationLine(reply, "nova");
-  $("liveTranscript").textContent = reply;
-  speak(reply);
+  if (!clean || state.processing || !state.listening) return;
+  state.processing = true;
+  try {
+    try { state.recognition?.stop(); } catch (_) {}
+    $("liveTranscript").textContent = "أنت قلت: “" + clean + "”";
+    addConversationLine(clean, "owner");
+    setStatus("بفكر في كلامك...", "thinking");
+    animateCharacter("thinking");
+    const reply = await requestAIReply(clean);
+    addConversationLine(reply, "nova");
+    $("liveTranscript").textContent = reply;
+    await speak(reply);
+  } finally {
+    state.processing = false;
+  }
 }
 function stopListening() {
-  state.listening = false; state.restartRecognition = false;
+  state.listening = false; state.restartRecognition = false; state.processing = false;
   $("micButton").classList.remove("active");
   $("micButton").setAttribute("aria-pressed", "false");
   $("micButton").setAttribute("aria-label", "ابدأ المحادثة الصوتية");
@@ -436,7 +480,7 @@ function startListening() {
     showToast("التعرف الصوتي غير متاح في المتصفح الحالي"); return;
   }
   if (state.listening) return;
-  state.listening = true; state.restartRecognition = true;
+  state.listening = true; state.restartRecognition = true; state.processing = false;
   $("micButton").classList.add("active");
   $("micButton").setAttribute("aria-pressed", "true");
   $("micButton").setAttribute("aria-label", "إيقاف المحادثة الصوتية");
@@ -500,7 +544,7 @@ $("ownerName").addEventListener("change", (event) => {
   $("greeting").textContent = "أهلاً يا " + state.ownerName + "، نورتني.";
 });
 $("addProviderButton").addEventListener("click", () => void addProvider());
-$("saveOwnerMemory")?.addEventListener("click", () => void saveOwnerMemory());
+$("saveOwnerMemory")?.addEventListener("click", () => void saveOwnerMemory());\n$("saveSpeechSettings")?.addEventListener("click", () => void saveSpeechSettings());
 $("providerType").addEventListener("change", applyProviderDefaults);
 $("providerBaseUrl").addEventListener("input", () => { $("providerBaseUrl").dataset.userEdited = "true"; });
 $("settingsDialog").addEventListener("click", (event) => { if (event.target === $("settingsDialog")) closeSettings(); });
@@ -511,7 +555,7 @@ window.addEventListener("nova:authenticated", (event) => {
   $("connectionLabel").textContent = "متصل بخادم NOVA";
   setFeedback("authFeedback", "تم التحقق من كود المالك والاتصال بالخادم.");
   void loadProviders();
-  void loadOwnerMemory();
+  void loadOwnerMemory();\n  void loadSpeechSettings();
 });
 applyProviderDefaults();
 import("./nova-3d.js").then(({ initNOVACharacter3D }) => {
