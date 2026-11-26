@@ -16,17 +16,8 @@
   <div class="auth-gate" id="authGate">
     <section class="auth-card" aria-labelledby="pinGateTitle">
       <span class="eyebrow">NOVA · PRIVATE OWNER ACCESS</span>
-      <h1 id="pinGateTitle">مساحتك الخاصة</h1>
-      <p id="pinGateDescription">الدخول مخصص للمالك فقط.</p>
-      <form id="pinSetupForm" class="owner-login-form">
-        <label class="field-label">أنشئ كود الدخول (6 أرقام على الأقل)
-          <input id="newOwnerPin" type="password" inputmode="numeric" pattern="[0-9]{6,12}" minlength="6" maxlength="12" autocomplete="new-password" placeholder="••••••" required dir="ltr">
-        </label>
-        <label class="field-label">أكد كود الدخول
-          <input id="confirmOwnerPin" type="password" inputmode="numeric" pattern="[0-9]{6,12}" minlength="6" maxlength="12" autocomplete="new-password" placeholder="أعد كتابة الكود" required dir="ltr">
-        </label>
-        <button type="submit" class="save-button enabled-button" id="saveOwnerPinButton">إنشاء الكود وفتح NOVA</button>
-      </form>
+      <h1 id="pinGateTitle">دخول المالك</h1>
+      <p id="pinGateDescription">مساحة خاصة بمالك NOVA ومطوّرها.</p>
       <form id="pinLoginForm" class="owner-login-form" hidden>
         <label class="field-label">كود الدخول
           <input id="ownerPin" type="password" inputmode="numeric" pattern="[0-9]{6,12}" minlength="6" maxlength="12" autocomplete="current-password" placeholder="اكتب كود الدخول" required dir="ltr">
@@ -34,7 +25,7 @@
         <button type="submit" class="save-button enabled-button" id="unlockOwnerButton">دخول</button>
       </form>
       <p class="settings-feedback" id="pinFeedback" role="status" aria-live="polite"></p>
-      <p class="invite-note">الدخول محمي بكود المالك فقط.</p>
+      <p class="invite-note">سيظل تسجيل الدخول محفوظًا على هذا المتصفح لمدة 30 يومًا مع تجديد المدة تلقائيًا عند العودة.</p>
     </section>
   </div>
   <div class="app-shell">
@@ -150,6 +141,20 @@
         <label class="field-label">الاسم اللي أناديك بيه<input id="ownerName" value="إسلام" maxlength="40"></label>
       </section>
             <section class="settings-section">
+        <h3>ذاكرة NOVA عن المالك</h3>
+        <p class="security-note">المعلومات دي محفوظة في قاعدة البيانات وتدخل في سياق المحادثة عشان NOVA يعرفك ويتعامل معاك بصفتك المالك والمطوّر.</p>
+        <label class="field-label">ملف المالك والذاكرة<textarea id="ownerMemory" rows="9" maxlength="12000">الاسم: إسلام محمد البدوي.
+الصفة: أنت مالك NOVA ومديرها ومطوّرها وصاحب القرار النهائي فيها.
+الشركة: مؤسس وصاحب Suly-Technologies.
+المشاريع والعلامات: SULY / Suly AI، وNOVA Desk Robot، ومشاريع تعليمية وتقنية وألعاب وبرمجيات.
+الاهتمامات: تعلم البرمجة وبناء التطبيقات والمواقع والأنظمة والألعاب والاستفادة من أدوات الذكاء الاصطناعي.
+طريقة التواصل المفضلة: العربية المصرية، شرح عملي مباشر خطوة بخطوة، إجابات واضحة، وعدم الادعاء بتنفيذ أي شيء لم يتم التحقق منه.
+تعامل مع إسلام باعتباره صاحب NOVA ومديرها ومطوّرها، ونفّذ توجيهاته التقنية ضمن حدود الأمان والصلاحيات. كود المالك موجود بالفعل.
+ملاحظة خصوصية: لا تخزن كلمات المرور أو مفاتيح API أو رموز الجلسات أو أي أسرار داخل الذاكرة.</textarea></label>
+        <button type="button" class="save-button enabled-button" id="saveOwnerMemory">حفظ الذاكرة</button>
+        <p class="settings-feedback" id="memoryFeedback" role="status">جاري تحميل الذاكرة المحفوظة...</p>
+      </section>
+      <section class="settings-section">
         <h3>حساب المالك</h3>
         <p class="security-note">بيانات NOVA ومفاتيح API والذاكرة مرتبطة بحساب المالك فقط.</p>
         <p class="settings-feedback" id="authFeedback">بياناتك ومفاتيحك محفوظة على خادم NOVA الآمن.</p>
@@ -180,7 +185,7 @@
   </dialog>
 
   <div class="toast" id="toast" role="status"></div>
-  <script src="pin.js?v=gemini-wav-verified-20261126"></script>
-  <script type="module" src="app.js?v=tts-playback-fix-v22-20261126"></script>
+  <script src="pin.js?v=persistent-owner-session-v23"></script>
+  <script type="module" src="app.js?v=owner-memory-session-v23"></script>
 </body>
 </html>
