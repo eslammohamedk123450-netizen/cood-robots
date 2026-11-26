@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const SUPABASE_URL = "https://razvryvazmqvvqkzetuo.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_t5xrzZNN6Uj9zhhBLUYQVg_mj7qPjQL";
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
 });
 const $ = (id) => document.getElementById(id);
 const state = {
@@ -113,8 +113,15 @@ function setFeedback(id, message, isError = false) {
 function openSettings() { $("settingsDialog").showModal(); }
 function closeSettings() { $("settingsDialog").close(); }
 
+const providerDefaults = {
+  gemini: { label: "Google Gemini", url: "https://generativelanguage.googleapis.com/v1beta" },
+  openrouter: { label: "OpenRouter", url: "https://openrouter.ai/api/v1" },
+  openai: { label: "OpenAI", url: "https://api.openai.com/v1" },
+  anthropic: { label: "Claude (Anthropic)", url: "https://api.anthropic.com/v1" },
+  custom: { label: "مزود مخصص", url: "https://api.example.com/v1" }
+};
 async function invokeNova(action, payload = {}) {
-  if (!state.session) throw new Error("سجّل الدخول بحساب المالك الأول.");
+  if (!state.session) throw new Error("لسه بنجهز جلسة الجهاز. استنى لحظة وجرب تاني.");
   const { data, error } = await supabase.functions.invoke("nova-ai", { body: { action, ...payload } });
   if (error) {
     const message = data?.error || error.message || "تعذر الاتصال بالخادم";
@@ -123,9 +130,15 @@ async function invokeNova(action, payload = {}) {
   if (data?.error) throw new Error(data.error);
   return data;
 }
+function applyProviderDefaults() {
+  const preset = providerDefaults[$("providerType").value] || providerDefaults.custom;
+  $("providerBaseUrl").value = preset.url;
+  $("providerBaseUrl").dataset.userEdited = "";
+  if (!$("providerLabel").value.trim()) $("providerLabel").placeholder = preset.label + " الشخصي";
+}
 async function loadProviders() {
   if (!state.session) {
-    $("providerList").innerHTML = '<p class="empty-provider-list">سجّل الدخول لعرض مفاتيحك ونماذجك.</p>';
+    $("providerList").innerHTML = '<p class="empty-provider-list">جاري تجهيز الجلسة التلقائية...</p>';
     return;
   }
   try {
@@ -207,48 +220,59 @@ function renderProviders() {
   });
 }
 async function addProvider() {
-  const label = $("providerLabel").value.trim();
-  const provider = $("providerType").value.trim() || "openai-compatible";
+  const type = $("providerType").value;
+  const preset = providerDefaults[type] || providerDefaults.custom;
+  const label = $("providerLabel").value.trim() || (preset.label + " " + (state.providers.filter((p) => p.provider === type).length + 1));
   const base_url = $("providerBaseUrl").value.trim();
   const api_key = $("providerApiKey").value.trim();
-  if (!label || !base_url || !api_key) {
-    setFeedback("settingsFeedback", "اكتب اسم المفتاح والرابط والمفتاح السري.", true); return;
+  if (!base_url || !api_key) {
+    setFeedback("settingsFeedback", "اكتب رابط API ومفتاح الخدمة.", true); return;
   }
   const button = $("addProviderButton");
-  button.disabled = true; button.textContent = "جاري الحفظ الآمن...";
+  button.disabled = true; button.textContent = "جاري الحفظ واختبار النماذج...";
   try {
-    const result = await invokeNova("add_provider", { label, provider, base_url, api_key });
+    const result = await invokeNova("add_provider", { label, provider: type, base_url, api_key });
     $("providerApiKey").value = "";
     $("providerLabel").value = "";
     await loadProviders();
-    setFeedback("settingsFeedback", result.message || "تمت إضافة المفتاح.");
+    let syncMessage = "";
+    if (result.provider?.id) {
+      try {
+        const sync = await invokeNova("sync_models", { provider_id: result.provider.id });
+        await loadProviders();
+        syncMessage = " وتم اكتشاف " + sync.synced + " نموذج.";
+      } catch (syncError) {
+        syncMessage = " المفتاح اتحفظ، لكن اكتشاف النماذج تعذر: " + syncError.message;
+      }
+    }
+    setFeedback("settingsFeedback", (result.message || "تم حفظ المفتاح بأمان.") + syncMessage);
   } catch (error) { setFeedback("settingsFeedback", error.message, true); }
-  finally { button.disabled = false; button.textContent = "إضافة المفتاح"; }
+  finally { button.disabled = false; button.textContent = "حفظ المفتاح واكتشاف النماذج"; }
 }
-async function signIn() {
-  const email = $("authEmail").value.trim();
-  const password = $("authPassword").value;
-  if (!email || !password) { setFeedback("authFeedback", "اكتب البريد وكلمة المرور.", true); return; }
-  const button = $("signInButton"); button.disabled = true;
+async function initializeDeviceSession() {
+  setFeedback("authFeedback", "جاري تجهيز جلستك الخاصة على الجهاز...");
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    state.session = data.session;
-    $("connectionLabel").textContent = "متصل بحساب المالك";
-    $("authPassword").value = "";
-    setFeedback("authFeedback", "تم تسجيل الدخول بحساب المالك.");
+    const { data: current, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
+    let session = current.session;
+    if (!session) {
+      const { data, error } = await supabase.auth.signInAnonymously();
+      if (error) throw error;
+      session = data.session;
+    }
+    state.session = session;
+    $("connectionLabel").textContent = "جلسة الجهاز جاهزة";
+    setFeedback("authFeedback", "اتصال تلقائي جاهز — مش محتاج تسجّل دخول.");
     await loadProviders();
-  } catch (error) { setFeedback("authFeedback", error.message || "فشل تسجيل الدخول.", true); }
-  finally { button.disabled = false; }
+  } catch (error) {
+    state.session = null;
+    $("connectionLabel").textContent = "محتاج تفعيل الاتصال";
+    const message = /anonymous|disabled|signups not allowed/i.test(error.message || "")
+      ? "لازم تفعيل Anonymous Sign-Ins مرة واحدة من Supabase: Authentication → Providers → Anonymous Sign-Ins."
+      : "تعذر تجهيز الجلسة التلقائية: " + (error.message || "خطأ غير معروف");
+    setFeedback("authFeedback", message, true);
+  }
 }
-async function signOut() {
-  await supabase.auth.signOut();
-  state.session = null; state.providers = []; state.models = [];
-  $("connectionLabel").textContent = "جاهز أقابلك";
-  $("providerList").innerHTML = '<p class="empty-provider-list">سجّل الدخول لعرض مفاتيحك ونماذجك.</p>';
-  setFeedback("authFeedback", "تم تسجيل الخروج.");
-}
-
 async function requestAIReply(text) {
   if (!state.session) return "أنا سامعك يا " + state.ownerName + ". سجّل دخولك من الإعدادات، وبعدها أضف مفتاح API عشان أقدر أرد عليك بذكاء اصطناعي حقيقي.";
   if (!state.messages.length) {
@@ -361,27 +385,25 @@ $("ownerName").addEventListener("change", (event) => {
   state.ownerName = event.target.value.trim() || "إسلام";
   $("greeting").textContent = "أهلاً يا " + state.ownerName + "، نورتني.";
 });
-$("signInButton").addEventListener("click", () => void signIn());
-$("signOutButton").addEventListener("click", () => void signOut());
 $("addProviderButton").addEventListener("click", () => void addProvider());
+$("providerType").addEventListener("change", applyProviderDefaults);
+$("providerBaseUrl").addEventListener("input", () => { $("providerBaseUrl").dataset.userEdited = "true"; });
 $("settingsDialog").addEventListener("click", (event) => { if (event.target === $("settingsDialog")) closeSettings(); });
 
 supabase.auth.onAuthStateChange((_event, session) => {
   state.session = session;
   if (session) {
-    setFeedback("authFeedback", "أنت مسجل الدخول بحساب المالك.");
+    $("connectionLabel").textContent = "جلسة الجهاز جاهزة";
+    setFeedback("authFeedback", "اتصال تلقائي جاهز — مش محتاج تسجّل دخول.");
     void loadProviders();
   } else {
-    setFeedback("authFeedback", "سجّل الدخول بحساب المالك لإدارة المفاتيح.");
     state.providers = []; state.models = [];
-    $("providerList").innerHTML = '<p class="empty-provider-list">سجّل الدخول لعرض مفاتيحك ونماذجك.</p>';
+    $("connectionLabel").textContent = "جاري الاتصال";
+    $("providerList").innerHTML = '<p class="empty-provider-list">جاري تجهيز الجلسة التلقائية...</p>';
   }
 });
-supabase.auth.getSession().then(({ data }) => {
-  state.session = data.session;
-  if (state.session) void loadProviders();
-  $("connectionLabel").textContent = state.session ? "متصل بحساب المالك" : "جاهز أقابلك";
-});
+void initializeDeviceSession();
+applyProviderDefaults();
 import("./nova-3d.js").then(({ initNOVACharacter3D }) => {
   character3D = initNOVACharacter3D();
   character3D?.setPersona(state.persona);
