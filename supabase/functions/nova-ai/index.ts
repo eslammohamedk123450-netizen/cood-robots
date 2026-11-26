@@ -98,6 +98,38 @@ async function providerModels(provider: ProviderType, baseUrl: string, apiKey: s
     return { id, name: cleanString(m?.displayName ?? m?.name ?? m?.id, 200) };
   }).filter((m: any) => m.id).slice(0, 500);
 }
+async function requestGeminiSpeech(baseUrl: string, apiKey: string, text: string, persona: string): Promise<string> {
+  const voiceName = persona === "soleen" ? "Callirrhoe" : "Achird";
+  const style = persona === "soleen"
+    ? "Speak in natural everyday Egyptian Arabic (Masri, Egypt). You are a warm, friendly young Egyptian woman talking naturally to a close friend. Use an authentic Egyptian accent, relaxed conversational rhythm, expressive but subtle intonation, human-like phrasing, gentle breaths, and natural pauses. Avoid Modern Standard Arabic, robotic reading, announcer delivery, or exaggerated acting."
+    : "Speak in natural everyday Egyptian Arabic (Masri, Egypt). You are a warm, friendly young Egyptian man talking naturally to a close friend. Use an authentic Egyptian accent, relaxed conversational rhythm, expressive but subtle intonation, human-like phrasing, gentle breaths, and natural pauses. Avoid Modern Standard Arabic, robotic reading, announcer delivery, or exaggerated acting.";
+  const endpoint = baseUrl.replace(/\\/+$/, "") + "/models/gemini-3.8-flash-tts:generateContent";
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text, speechMetadata: { style } }] }],
+      generationConfig: {
+        responseModalities: ["AUDIO"],
+        speechConfig: {
+          languageCode: "ar-EG",
+          voiceConfig: { prebuiltVoiceConfig: { voiceName } },
+        },
+      },
+    }),
+    signal: AbortSignal.timeout(60000),
+    redirect: "error",
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const providerMessage = cleanString(result?.error?.message, 300);
+    throw new Error(providerMessage || "Gemini TTS رفض الطلب (HTTP " + response.status + "). تأكد أن مفتاح Gemini يدعم نموذج الصوت.");
+  }
+  const audioPart = result?.candidates?.[0]?.content?.parts?.find((part: any) => part?.inlineData?.data);
+  if (!audioPart?.inlineData?.data) throw new Error("Gemini TTS لم يرجع ملفًا صوتيًا.");
+  return audioPart.inlineData.data;
+}
+
 async function requestProviderChat(provider: ProviderType, baseUrl: string, apiKey: string, modelId: string, messages: any[]): Promise<string> {
   const systemText = messages.filter((m) => m?.role === "system" && typeof m.content === "string").map((m) => m.content).join("\n");
   const dialogue = messages.filter((m) => (m?.role === "user" || m?.role === "assistant") && typeof m.content === "string");
@@ -284,6 +316,7 @@ Deno.serve(async (req: Request) => {
       sync_models: 10,
       toggle_model: 30,
       chat: 20,
+      tts: 12,
     };
     const requestLimit = actionLimits[action];
     if (!requestLimit) return json({ error: "Unknown action" }, 400, origin);
@@ -352,6 +385,22 @@ Deno.serve(async (req: Request) => {
         .eq("id", modelId).eq("user_id", userId).select("id,enabled").maybeSingle();
       if (error || !data) return json({ error: "تعذر تحديث النموذج" }, 404, origin);
       return json({ model: data }, 200, origin);
+    }
+
+    if (action === "tts") {
+      const text = typeof body?.text === "string" ? body.text.trim() : "";
+      const persona = body?.persona === "soleen" ? "soleen" : body?.persona === "soly" ? "soly" : "";
+      if (!text || text.length > 2600 || !persona) return json({ error: "نص الصوت أو الشخصية غير صالح." }, 400, origin);
+      const { data: providers, error: providerError } = await admin.from("nova_api_keys")
+        .select("id,base_url,secret_id").eq("user_id", userId).eq("provider", "gemini").eq("is_active", true)
+        .order("created_at", { ascending: true }).limit(1);
+      if (providerError) throw providerError;
+      const provider = providers?.[0];
+      if (!provider) return json({ error: "علشان أتكلم بصوت طبيعي، أضف مفتاح Gemini من الإعدادات > مزودات API. الصوت الآلي القديم اتشال." }, 409, origin);
+      const { data: apiKey, error: keyError } = await admin.rpc("nova_read_api_secret", { p_secret_id: provider.secret_id });
+      if (keyError || typeof apiKey !== "string" || !apiKey) throw new Error("Gemini API credential unavailable");
+      const audio = await requestGeminiSpeech(provider.base_url, apiKey, text, persona);
+      return json({ audio, mime_type: "audio/wav", voice: persona === "soleen" ? "Callirrhoe" : "Achird", engine: "gemini-3.8-flash-tts" }, 200, origin);
     }
 
     if (action === "chat") {
