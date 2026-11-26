@@ -405,6 +405,9 @@ Deno.serve(async (req: Request) => {
       if (apiKey.length < 12 || apiKey.length > 4096 || !/^[a-z0-9-]{2,40}$/.test(region)) {
         return json({ error: "اكتب مفتاح Microsoft Speech صحيحًا ومنطقة المورد (Region) كما تظهر في Azure." }, 400, origin);
       }
+      const { data: previous, error: previousError } = await admin.from("nova_speech_settings")
+        .select("secret_id").eq("user_id", userId).maybeSingle();
+      if (previousError) throw previousError;
       const { data: secretId, error: secretError } = await admin.rpc("nova_store_api_secret", {
         p_name: "NOVA Microsoft Speech Egyptian Voice",
         p_secret: apiKey,
@@ -413,7 +416,14 @@ Deno.serve(async (req: Request) => {
       const { error: saveError } = await admin.from("nova_speech_settings").upsert({
         user_id: userId, secret_id: secretId, region, updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" });
-      if (saveError) throw saveError;
+      if (saveError) {
+        await admin.rpc("nova_delete_api_secret", { p_secret_id: secretId });
+        throw saveError;
+      }
+      if (previous?.secret_id && previous.secret_id !== secretId) {
+        const { error: cleanupError } = await admin.rpc("nova_delete_api_secret", { p_secret_id: previous.secret_id });
+        if (cleanupError) console.error("Previous speech credential cleanup failed.");
+      }
       return json({ saved: true, configured: true, region, voice_male: "ar-EG-ShakirNeural", voice_female: "ar-EG-SalmaNeural" }, 200, origin);
     }
 
