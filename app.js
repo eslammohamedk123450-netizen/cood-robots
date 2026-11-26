@@ -451,7 +451,9 @@ async function saveSpeechSettings() {
     await invokeNova("speech_save", { api_key });
     $("speechApiKey").value = "";
     await loadSpeechSettings();
-    setFeedback("speechFeedback", "تم حفظ مفتاح Sonex Labs داخل Supabase Vault.");
+    if ($("speechEngine")) $("speechEngine").value = "server";
+    localStorage.setItem("nova.speech.engine", "server");
+    setFeedback("speechFeedback", "تم حفظ المفتاح بأمان. تم اختيار Sonex Labs عبر Supabase كمحرك الصوت.");
   } catch (error) {
     setFeedback("speechFeedback", error.message, true);
   } finally {
