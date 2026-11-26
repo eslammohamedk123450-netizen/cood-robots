@@ -109,10 +109,10 @@ async function speak(text) {
     const result = await invokeNova("tts", { text: spokenText, persona });
     if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
     const sourceMime = String(result.mime_type || "audio/L16;codec=pcm;rate=24000").toLowerCase();
-    if (!/audio\\/(l16|pcm|raw)/i.test(sourceMime)) {
+    if (!/audio\/(l16|pcm|raw)/i.test(sourceMime)) {
       throw new Error("صيغة الصوت غير متوقعة: " + sourceMime);
     }
-    const rateMatch = sourceMime.match(/rate=(\\d+)/);
+    const rateMatch = sourceMime.match(/rate=(\d+)/);
     const sampleRate = rateMatch ? Number(rateMatch[1]) : 24000;
     const binary = atob(result.audio);
     const byteLength = binary.length - (binary.length % 2);
