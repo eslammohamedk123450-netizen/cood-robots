@@ -679,24 +679,6 @@ $("providerBaseUrl").addEventListener("input", () => { $("providerBaseUrl").data
 $("settingsDialog").addEventListener("click", (event) => { if (event.target === $("settingsDialog")) closeSettings(); });
 
 $("pinSetupForm").addEventListener("submit", createOwnerPin);\n$("pinLoginForm").addEventListener("submit", verifyOwnerPin);
-$("forgotPasswordButton").addEventListener("click", openPasswordRecovery);
-$("sendRecoveryCodeButton").addEventListener("click", () => void sendRecoveryCode());
-$("verifyRecoveryCodeButton").addEventListener("click", () => void verifyRecoveryCode());
-$("passwordRecoveryForm").addEventListener("submit", resetOwnerPassword);
-$("backToLoginButton").addEventListener("click", () => {
-  $("passwordRecoveryForm").hidden = true;
-  $("recoveryEmailLabel").hidden = false;
-  $("ownerLoginForm").hidden = false;
-  $("passwordRecoveryForm").reset();
-  state.recoveryEmail = "";
-  $("recoveryEmailLabel").hidden = false;
-  $("recoveryCodeLabel").hidden = true;
-  $("verifyRecoveryCodeButton").hidden = true;
-  $("sendRecoveryCodeButton").hidden = false;
-  state.passwordRecovery = false;
-  void supabase.auth.signOut();
-  setFeedback("recoveryFeedback", "");
-});
 // Sign-out is intentionally unavailable in the temporary local preview.
 
 void initializeOwnerSession();
