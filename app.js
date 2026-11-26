@@ -548,7 +548,8 @@ $("ownerName").addEventListener("change", (event) => {
   $("greeting").textContent = "أهلاً يا " + state.ownerName + "، نورتني.";
 });
 $("addProviderButton").addEventListener("click", () => void addProvider());
-$("saveOwnerMemory")?.addEventListener("click", () => void saveOwnerMemory());\n$("saveSpeechSettings")?.addEventListener("click", () => void saveSpeechSettings());
+$("saveOwnerMemory")?.addEventListener("click", () => void saveOwnerMemory());
+$("saveSpeechSettings")?.addEventListener("click", () => void saveSpeechSettings());
 $("providerType").addEventListener("change", applyProviderDefaults);
 $("providerBaseUrl").addEventListener("input", () => { $("providerBaseUrl").dataset.userEdited = "true"; });
 $("settingsDialog").addEventListener("click", (event) => { if (event.target === $("settingsDialog")) closeSettings(); });
