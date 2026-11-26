@@ -124,14 +124,26 @@
         <h3>بيانات المالك</h3>
         <label class="field-label">الاسم اللي أناديك بيه<input id="ownerName" value="إسلام" maxlength="40"></label>
       </section>
+            <section class="settings-section">
+        <h3>دخول المالك</h3>
+        <label class="field-label">البريد الإلكتروني<input id="authEmail" type="email" autocomplete="username" value="eslammohamedk123450@gmail.com" dir="ltr"></label>
+        <label class="field-label">كلمة المرور<input id="authPassword" type="password" autocomplete="current-password" placeholder="كلمة مرور حسابك"></label>
+        <div class="settings-actions">
+          <button type="button" class="save-button enabled-button" id="signInButton">تسجيل الدخول</button>
+          <button type="button" class="save-button secondary-button" id="signOutButton">تسجيل الخروج</button>
+        </div>
+        <p class="settings-feedback" id="authFeedback">سجّل الدخول بحساب المالك لإدارة مفاتيحك ومحادثاتك.</p>
+      </section>
       <section class="settings-section">
-        <h3>اتصال الذكاء الاصطناعي</h3>
-        <label class="field-label">Supabase Project URL<input id="supabaseUrl" type="url" placeholder="https://your-project.supabase.co" dir="ltr"></label>
-        <label class="field-label">Supabase Publishable Key<input id="supabasePublishableKey" type="password" placeholder="sb_publishable_..." dir="ltr" autocomplete="off"></label>
-        <label class="field-label">مفتاح مزود الذكاء الاصطناعي<input id="providerApiKey" type="password" placeholder="أضف مفتاح مزود AI" dir="ltr" autocomplete="new-password"></label>
-        <p class="security-note">لن نحفظ مفتاح مزود AI في المتصفح أو GitHub. زر الحفظ الآمن سيتفعّل بعد تجهيز نقطة اتصال خادمية موثّقة وتخزين المفتاح في Supabase Vault.</p>
-        <button type="button" class="save-button" id="saveConnection" disabled>الحفظ الآمن — قيد التجهيز</button>
-        <p class="settings-feedback" id="settingsFeedback">إعداد الاتصال لم يُفعّل بعد.</p>
+        <h3>مفاتيح مزودي الذكاء الاصطناعي</h3>
+        <p class="security-note">تقدر تضيف أكتر من مفتاح. المفتاح بيتخزن في Supabase Vault ولا يُحفظ في المتصفح.</p>
+        <label class="field-label">اسم المفتاح<input id="providerLabel" type="text" maxlength="80" placeholder="مثال: OpenRouter الأساسي"></label>
+        <label class="field-label">نوع المزود<input id="providerType" type="text" maxlength="50" value="openai-compatible" dir="ltr"></label>
+        <label class="field-label">رابط API الأساسي<input id="providerBaseUrl" type="url" value="https://openrouter.ai/api/v1" dir="ltr" placeholder="https://api.example.com/v1"></label>
+        <label class="field-label">مفتاح API<input id="providerApiKey" type="password" autocomplete="new-password" placeholder="الصق المفتاح هنا" dir="ltr"></label>
+        <button type="button" class="save-button enabled-button" id="addProviderButton">إضافة المفتاح</button>
+        <p class="settings-feedback" id="settingsFeedback">سجّل الدخول أولًا لإضافة مفتاح API.</p>
+        <div id="providerList" class="provider-list"><p class="empty-provider-list">لا توجد مفاتيح مضافة حتى الآن.</p></div>
       </section>
       <p class="settings-footnote">لا كاميرا ولا تعرّف على الوجه. الميكروفون يعمل فقط بعد ضغطك على زر المحادثة.</p>
     </div>
