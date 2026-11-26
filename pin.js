@@ -1,65 +1,121 @@
 (() => {
   "use strict";
-  const $ = id => document.getElementById(id);
-  const HASH="nova.owner.pin.hash.v1", SALT="nova.owner.pin.salt.v1", ATTEMPTS="nova.owner.pin.attempts.v1", LOCK="nova.owner.pin.lockUntil.v1";
-  const hex = bytes => Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
-  const fromHex = value => new Uint8Array((value.match(/.{1,2}/g)||[]).map(part=>parseInt(part,16)));
-  function message(text,error=false){const node=$("pinFeedback");if(node){node.textContent=text;node.style.color=error?"#ff9d91":"";}}
-  function showSetup(first){
-    $("authGate").hidden=false;$("pinSetupForm").hidden=!first;$("pinLoginForm").hidden=first;
-    $("pinGateTitle").textContent=first?"أنشئ كود الدخول":"أهلاً بعودتك";
-    $("pinGateDescription").textContent=first?"دي أول مرة على الجهاز ده. أنشئ كودًا خاصًا من 6 إلى 12 رقمًا.":"اكتب كودك الشخصي لفتح NOVA.";message("");
+  const $ = (id) => document.getElementById(id);
+  const API_URL = "https://razvryvazmqvvqkzetuo.supabase.co/functions/v1/nova-ai";
+  const PUBLISHABLE_KEY = "sb_publishable_t5xrzZNN6Uj9zhhBLUYQVg_mj7qPjQL";
+  const SESSION_KEY = "nova.owner.session.v2";
+
+  function message(text, error = false) {
+    const node = $("pinFeedback");
+    if (!node) return;
+    node.textContent = text;
+    node.style.color = error ? "#ff9d91" : "";
   }
-  async function hashPin(pin,salt){
-    if(!window.crypto||!crypto.subtle)throw new Error("التشفير الآمن غير متاح. افتح رابط التطبيق HTTPS.");
-    const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(pin),"PBKDF2",false,["deriveBits"]);
-    const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:fromHex(salt),iterations:210000,hash:"SHA-256"},key,256);
-    return hex(new Uint8Array(bits));
+  async function callServer(action, payload = {}) {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": PUBLISHABLE_KEY,
+        ...(payload.token ? { "Authorization": "Bearer " + payload.token } : {})
+      },
+      body: JSON.stringify({ action, ...payload })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(data.error || "تعذر الاتصال بخادم NOVA.");
+      error.status = response.status;
+      error.retryAfter = Number(data.retry_after || response.headers.get("Retry-After") || 0);
+      throw error;
+    }
+    return data;
   }
-  function openApp(){
-    $("authGate").hidden=true;
-    if($("connectionLabel"))$("connectionLabel").textContent="الوضع الشخصي المحلي";
-    if($("greeting"))$("greeting").textContent="أهلاً يا إسلام، نورتني.";
-    if($("authFeedback"))$("authFeedback").textContent="الوضع المحلي مفتوح. ربط الخدمات السحابية مؤجل.";
-    if($("providerList"))$("providerList").textContent="إعدادات الخدمات السحابية ستتوفر بعد تفعيل الربط لاحقًا.";
+  function showGate(isFirstSetup) {
+    $("authGate").hidden = false;
+    $("pinSetupForm").hidden = !isFirstSetup;
+    $("pinLoginForm").hidden = isFirstSetup;
+    $("pinGateTitle").textContent = isFirstSetup ? "إنشاء كود المالك" : "تسجيل الدخول";
+    $("pinGateDescription").textContent = isFirstSetup
+      ? "أنشئ كودك مرة واحدة فقط. سيعمل نفس الكود على كل أجهزتك."
+      : "اكتب كود المالك فقط لفتح NOVA من أي جهاز.";
+    message("");
+    if (isFirstSetup) $("newOwnerPin").focus();
+    else $("ownerPin").focus();
   }
-  async function savePin(event){
-    event.preventDefault();const pin=$("newOwnerPin").value.trim(),confirm=$("confirmOwnerPin").value.trim();
-    if(!/^\d{6,12}$/.test(pin))return message("الكود لازم يكون من 6 إلى 12 رقمًا.",true);
-    if(pin!==confirm)return message("الكودان غير متطابقين. اكتبهم مرة تانية.",true);
-    const button=$("saveOwnerPinButton");button.disabled=true;button.textContent="جاري حفظ الكود...";
-    try{
-      const salt=hex(crypto.getRandomValues(new Uint8Array(16))),digest=await hashPin(pin,salt);
-      localStorage.setItem(SALT,salt);localStorage.setItem(HASH,digest);localStorage.removeItem(ATTEMPTS);localStorage.removeItem(LOCK);
-      $("pinSetupForm").reset();openApp();
-    }catch(error){message(error?.message||"تعذر حفظ الكود على الجهاز.",true);}
-    finally{button.disabled=false;button.textContent="حفظ الكود وفتح التطبيق";}
+  function openApp(token) {
+    localStorage.setItem(SESSION_KEY, token);
+    $("authGate").hidden = true;
+    if ($("connectionLabel")) $("connectionLabel").textContent = "متصل بخادم NOVA";
+    if ($("greeting")) $("greeting").textContent = "أهلاً يا إسلام، نورتني.";
+    window.dispatchEvent(new CustomEvent("nova:authenticated", { detail: { token } }));
   }
-  async function unlockPin(event){
-    event.preventDefault();const pin=$("ownerPin").value.trim();
-    if(!/^\d{6,12}$/.test(pin))return message("اكتب كودًا من 6 إلى 12 رقمًا.",true);
-    const until=Number(localStorage.getItem(LOCK)||0);
-    if(Date.now()<until)return message("انتظر "+Math.ceil((until-Date.now())/1000)+" ثانية ثم حاول.",true);
-    const button=$("unlockOwnerButton");button.disabled=true;button.textContent="جاري التحقق...";
-    try{
-      const salt=localStorage.getItem(SALT),expected=localStorage.getItem(HASH);
-      if(!salt||!expected){showSetup(true);return;}
-      const actual=await hashPin(pin,salt);
-      if(actual!==expected){
-        const count=Number(localStorage.getItem(ATTEMPTS)||0)+1;
-        if(count>=5){localStorage.setItem(LOCK,String(Date.now()+30000));localStorage.setItem(ATTEMPTS,"0");message("الكود غير صحيح. تم إيقاف المحاولات لمدة 30 ثانية.",true);}
-        else{localStorage.setItem(ATTEMPTS,String(count));message("الكود غير صحيح. متبقي "+(5-count)+" محاولات.",true);}
-        $("ownerPin").value="";return;
+  async function checkSetup() {
+    try {
+      const result = await callServer("check_setup");
+      showGate(!result.initialized);
+    } catch (error) {
+      $("pinSetupForm").hidden = true;
+      $("pinLoginForm").hidden = true;
+      message("مش قادر أوصل لخادم NOVA. اتأكد من الإنترنت وأعد تحميل الصفحة. " + error.message, true);
+    }
+  }
+  async function savePin(event) {
+    event.preventDefault();
+    const pin = $("newOwnerPin").value.trim();
+    const confirm = $("confirmOwnerPin").value.trim();
+    if (!/^\d{6,12}$/.test(pin)) return message("الكود لازم يكون من 6 إلى 12 رقمًا.", true);
+    if (pin !== confirm) return message("الكودان غير متطابقين. اكتبهم مرة تانية.", true);
+    const button = $("saveOwnerPinButton");
+    button.disabled = true;
+    button.textContent = "جاري إنشاء الكود على الخادم...";
+    try {
+      const result = await callServer("setup_pin", { pin });
+      $("pinSetupForm").reset();
+      openApp(result.token);
+      message("");
+    } catch (error) {
+      if (error.status === 409) {
+        showGate(false);
+        message("كود المالك اتعمل بالفعل. سجّل الدخول بالكود الموجود.", true);
+      } else {
+        message(error.message || "تعذر إنشاء الكود. حاول مرة أخرى.", true);
       }
-      localStorage.removeItem(ATTEMPTS);localStorage.removeItem(LOCK);$("pinLoginForm").reset();openApp();
-    }catch(error){message(error?.message||"تعذر التحقق من الكود.",true);}
-    finally{button.disabled=false;button.textContent="دخول";}
+    } finally {
+      button.disabled = false;
+      button.textContent = "إنشاء الكود وفتح NOVA";
+    }
   }
-  function start(){
-    if(!$("pinSetupForm")||!$("pinLoginForm")||!$("authGate")){console.error("NOVA PIN: required elements are missing.");return;}
-    $("pinSetupForm").addEventListener("submit",savePin);$("pinLoginForm").addEventListener("submit",unlockPin);
-    try{showSetup(!localStorage.getItem(HASH)||!localStorage.getItem(SALT));}
-    catch(_){showSetup(true);message("المتصفح منع التخزين المحلي. فعّل التخزين للموقع ثم أعد المحاولة.",true);}
+  async function unlockPin(event) {
+    event.preventDefault();
+    const pin = $("ownerPin").value.trim();
+    if (!/^\d{6,12}$/.test(pin)) return message("اكتب كودًا من 6 إلى 12 رقمًا.", true);
+    const button = $("unlockOwnerButton");
+    button.disabled = true;
+    button.textContent = "جاري التحقق من الخادم...";
+    try {
+      const result = await callServer("login_pin", { pin });
+      $("pinLoginForm").reset();
+      openApp(result.token);
+      message("");
+    } catch (error) {
+      $("ownerPin").value = "";
+      if (error.status === 429) {
+        const minutes = Math.max(1, Math.ceil((error.retryAfter || 600) / 60));
+        message(error.message + " المتبقي تقريبًا " + minutes + " دقيقة.", true);
+      } else {
+        message(error.message || "الكود غير صحيح.", true);
+      }
+    } finally {
+      button.disabled = false;
+      button.textContent = "دخول";
+    }
   }
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start();
+  function start() {
+    if (!$("pinSetupForm") || !$("pinLoginForm") || !$("authGate")) return;
+    $("pinSetupForm").addEventListener("submit", savePin);
+    $("pinLoginForm").addEventListener("submit", unlockPin);
+    void checkSetup();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+  else start();
 })();
