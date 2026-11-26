@@ -125,6 +125,44 @@ async function speak(text) {
     state.speaking = false;
     state.audio = null;
     if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
+
+    // Gemini TTS can temporarily stop when the API quota is exhausted.
+    // Keep NOVA audible through the device's Arabic speech engine until Gemini is available again.
+    if ("speechSynthesis" in window && "SpeechSynthesisUtterance" in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(spokenText);
+        utterance.lang = "ar-EG";
+        utterance.rate = 0.96;
+        utterance.pitch = persona === "soleen" ? 1.08 : 0.94;
+        const availableVoices = window.speechSynthesis.getVoices();
+        const arabicVoices = availableVoices.filter((voice) => /^ar([_-]|$)/i.test(voice.lang || ""));
+        const egyptianVoice = arabicVoices.find((voice) => /^ar[-_]eg$/i.test(voice.lang || ""));
+        if (egyptianVoice || arabicVoices[0]) utterance.voice = egyptianVoice || arabicVoices[0];
+
+        let finished = false;
+        const finishFallback = () => {
+          if (finished) return;
+          finished = true;
+          state.speaking = false;
+          state.audio = null;
+          setStatus(state.listening ? "سامعك، كمل كلامك" : "مستنيك تبدأ", state.listening ? "listening" : "idle");
+          if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
+        };
+        utterance.onend = finishFallback;
+        utterance.onerror = finishFallback;
+        state.audio = { pause: () => { window.speechSynthesis.cancel(); finishFallback(); } };
+        state.speaking = true;
+        setStatus(personas[persona].name + " بيتكلم بالصوت الاحتياطي", "speaking");
+        showToast("صوت Gemini غير متاح مؤقتًا بسبب حد الاستخدام؛ بستخدم صوت الجهاز بدلًا منه.");
+        animateCharacter("happy");
+        window.speechSynthesis.speak(utterance);
+        return;
+      } catch (fallbackError) {
+        console.warn("NOVA device speech fallback failed:", fallbackError);
+      }
+    }
+
     setStatus("حصلت مشكلة في تشغيل الصوت الطبيعي", "error");
     const reason = error?.name ? error.name + ": " + (error.message || "") : (error.message || "خطأ غير معروف");
     showToast("تعذر تشغيل الصوت: " + reason.slice(0, 150));
