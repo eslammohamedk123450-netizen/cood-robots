@@ -123,38 +123,38 @@ function pcm16Mono24kToWav(pcm: Uint8Array): Uint8Array {
   view.setUint16(32, 2, true); view.setUint16(34, 16, true); write(36, "data"); view.setUint32(40, pcm.length, true);
   const wav = new Uint8Array(44 + pcm.length); wav.set(new Uint8Array(header)); wav.set(pcm, 44); return wav;
 }
-async function requestGeminiSpeech(baseUrl: string, apiKey: string, text: string, persona: string): Promise<{data:string; mimeType:string}> {
-  const voiceName = persona === "soleen" ? "Callirrhoe" : "Achird";
-  const style = persona === "soleen"
-    ? "Speak in natural everyday Egyptian Arabic (Masri, Egypt). You are a warm, friendly young Egyptian woman talking naturally to a close friend. Use an authentic Egyptian accent, relaxed conversational rhythm, expressive but subtle intonation, human-like phrasing, gentle breaths, and natural pauses. Avoid Modern Standard Arabic, robotic reading, announcer delivery, or exaggerated acting."
-    : "Speak in natural everyday Egyptian Arabic (Masri, Egypt). You are a warm, friendly young Egyptian man talking naturally to a close friend. Use an authentic Egyptian accent, relaxed conversational rhythm, expressive but subtle intonation, human-like phrasing, gentle breaths, and natural pauses. Avoid Modern Standard Arabic, robotic reading, announcer delivery, or exaggerated acting.";
-  const endpoint = baseUrl.replace(/\/+$/, "") + "/models/gemini-3.8-flash-tts:generateContent";
-  const response = await fetch(endpoint, {
+function escapeXml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;",
+  }[char]!));
+}
+async function requestAzureSpeech(region: string, apiKey: string, text: string, persona: string): Promise<{data:string; mimeType:string; voice:string}> {
+  const safeRegion = region.trim().toLowerCase();
+  if (!/^[a-z0-9-]{2,40}$/.test(safeRegion)) throw new Error("Microsoft Speech region is invalid.");
+  const voice = persona === "soleen" ? "ar-EG-SalmaNeural" : "ar-EG-ShakirNeural";
+  const ssml = "<speak version='1.0' xml:lang='ar-EG'><voice name='" + voice + "'><prosody rate='+2%' pitch='+0Hz'>" + escapeXml(text) + "</prosody></voice></speak>";
+  const response = await fetch("https://" + safeRegion + ".tts.speech.microsoft.com/cognitiveservices/v1", {
     method: "POST",
-    headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text, speechMetadata: { style } }] }],
-      generationConfig: { responseModalities: ["AUDIO"], speechConfig: { languageCode: "ar-EG", voiceConfig: { prebuiltVoiceConfig: { voiceName } } } },
-    }),
+    headers: {
+      "Ocp-Apim-Subscription-Key": apiKey,
+      "Content-Type": "application/ssml+xml",
+      "X-Microsoft-OutputFormat": "riff-24khz-16bit-mono-pcm",
+      "User-Agent": "NOVA-Desk-Robot",
+      Accept: "audio/wav",
+    },
+    body: ssml,
     signal: AbortSignal.timeout(60000),
     redirect: "error",
   });
-  const result = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const providerMessage = cleanString(result?.error?.message, 300);
-    throw new Error(providerMessage || "Gemini TTS رفض الطلب (HTTP " + response.status + "). تأكد أن مفتاح Gemini يدعم نموذج الصوت.");
+    const detail = (await response.text().catch(() => "")).slice(0, 240);
+    throw new Error("Microsoft Speech rejected the request (HTTP " + response.status + "). " + detail);
   }
-  const audioPart = result?.candidates?.[0]?.content?.parts?.find((part: any) => part?.inlineData?.data);
-  if (!audioPart?.inlineData?.data) throw new Error("Gemini TTS لم يرجع ملفًا صوتيًا.");
-  const raw = decodeBase64Audio(audioPart.inlineData.data);
-  const providerMime = cleanString(audioPart.inlineData.mimeType, 120).toLowerCase();
-  if (isWav(raw)) return { data: encodeBase64Audio(raw), mimeType: "audio/wav" };
-  if (providerMime.includes("pcm") || providerMime.includes("l16") || providerMime === "") {
-    const wav = pcm16Mono24kToWav(raw);
-    return { data: encodeBase64Audio(wav), mimeType: "audio/wav" };
-  }
-  throw new Error("Gemini returned an unsupported audio format: " + providerMime.slice(0, 80));
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (!isWav(bytes)) throw new Error("Microsoft Speech returned an invalid WAV audio file.");
+  return { data: encodeBase64Audio(bytes), mimeType: "audio/wav", voice };
 }
+
 async function requestProviderChat(provider: ProviderType, baseUrl: string, apiKey: string, modelId: string, messages: any[]): Promise<string> {
   const systemText = messages.filter((m) => m?.role === "system" && typeof m.content === "string").map((m) => m.content).join("\n");
   const dialogue = messages.filter((m) => (m?.role === "user" || m?.role === "assistant") && typeof m.content === "string");
@@ -392,6 +392,31 @@ Deno.serve(async (req: Request) => {
       return json({ profile: data.profile_text, updated_at: data.updated_at, saved: true }, 200, origin);
     }
 
+    if (action === "speech_get") {
+      const { data, error } = await admin.from("nova_speech_settings")
+        .select("region,secret_id,updated_at").eq("user_id", userId).maybeSingle();
+      if (error) throw error;
+      return json({ configured: Boolean(data?.secret_id), region: data?.region ?? "", voice_male: "ar-EG-ShakirNeural", voice_female: "ar-EG-SalmaNeural", updated_at: data?.updated_at ?? null }, 200, origin);
+    }
+
+    if (action === "speech_save") {
+      const apiKey = typeof body?.api_key === "string" ? body.api_key.trim() : "";
+      const region = cleanString(body?.region, 40).toLowerCase();
+      if (apiKey.length < 12 || apiKey.length > 4096 || !/^[a-z0-9-]{2,40}$/.test(region)) {
+        return json({ error: "اكتب مفتاح Microsoft Speech صحيحًا ومنطقة المورد (Region) كما تظهر في Azure." }, 400, origin);
+      }
+      const { data: secretId, error: secretError } = await admin.rpc("nova_store_api_secret", {
+        p_name: "NOVA Microsoft Speech Egyptian Voice",
+        p_secret: apiKey,
+      });
+      if (secretError || !secretId) throw new Error("تعذر حفظ مفتاح Microsoft Speech في Vault.");
+      const { error: saveError } = await admin.from("nova_speech_settings").upsert({
+        user_id: userId, secret_id: secretId, region, updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+      if (saveError) throw saveError;
+      return json({ saved: true, configured: true, region, voice_male: "ar-EG-ShakirNeural", voice_female: "ar-EG-SalmaNeural" }, 200, origin);
+    }
+
     if (action === "list") {
       const { data: providers, error } = await admin.from("nova_api_keys")
         .select("id,label,provider,base_url,is_active,created_at")
@@ -471,16 +496,16 @@ Deno.serve(async (req: Request) => {
       const text = typeof body?.text === "string" ? body.text.trim() : "";
       const persona = body?.persona === "soleen" ? "soleen" : body?.persona === "soly" ? "soly" : "";
       if (!text || text.length > 2600 || !persona) return json({ error: "نص الصوت أو الشخصية غير صالح." }, 400, origin);
-      const { data: providers, error: providerError } = await admin.from("nova_api_keys")
-        .select("id,base_url,secret_id").eq("user_id", userId).eq("provider", "gemini").eq("is_active", true)
-        .order("created_at", { ascending: true }).limit(1);
-      if (providerError) throw providerError;
-      const provider = providers?.[0];
-      if (!provider) return json({ error: "علشان أتكلم بصوت طبيعي، أضف مفتاح Gemini من الإعدادات > مزودات API. الصوت الآلي القديم اتشال." }, 409, origin);
-      const { data: apiKey, error: keyError } = await admin.rpc("nova_read_api_secret", { p_secret_id: provider.secret_id });
-      if (keyError || typeof apiKey !== "string" || !apiKey) throw new Error("Gemini API credential unavailable");
-      const audio = await requestGeminiSpeech(provider.base_url, apiKey, text, persona);
-      return json({ audio: audio.data, mime_type: audio.mimeType, voice: persona === "soleen" ? "Callirrhoe" : "Achird", engine: "gemini-3.8-flash-tts" }, 200, origin);
+      const { data: settings, error: settingsError } = await admin.from("nova_speech_settings")
+        .select("region,secret_id").eq("user_id", userId).maybeSingle();
+      if (settingsError) throw settingsError;
+      if (!settings?.secret_id || !settings?.region) {
+        return json({ error: "الصوت المصري الثابت غير مُعدّ بعد. أضف مفتاح Microsoft Speech من إعدادات الصوت مرة واحدة." }, 409, origin);
+      }
+      const { data: apiKey, error: keyError } = await admin.rpc("nova_read_api_secret", { p_secret_id: settings.secret_id });
+      if (keyError || typeof apiKey !== "string" || !apiKey) throw new Error("Microsoft Speech credential unavailable");
+      const audio = await requestAzureSpeech(settings.region, apiKey, text, persona);
+      return json({ audio: audio.data, mime_type: audio.mimeType, voice: audio.voice, engine: "microsoft-azure-speech" }, 200, origin);
     }
 
     if (action === "chat") {
