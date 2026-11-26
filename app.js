@@ -278,15 +278,122 @@ async function acceptOwnerSession(session) {
   await loadProviders();
   return true;
 }
-function initializeOwnerSession() {
-  // Temporary single-owner local preview: no Supabase sign-in/session is used.
+const OWNER_PIN_HASH_KEY = "nova.owner.pin.hash.v1";
+const OWNER_PIN_SALT_KEY = "nova.owner.pin.salt.v1";
+const OWNER_PIN_ATTEMPTS_KEY = "nova.owner.pin.attempts.v1";
+const OWNER_PIN_LOCK_KEY = "nova.owner.pin.lockUntil.v1";
+
+function bytesToHex(bytes) {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+function hexToBytes(hex) {
+  return new Uint8Array((hex.match(/.{1,2}/g) || []).map((part) => parseInt(part, 16)));
+}
+async function derivePinHash(pin, saltHex) {
+  if (!window.crypto?.subtle) throw new Error("التشفير الآمن غير متاح. افتح التطبيق من رابط HTTPS.");
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", encoder.encode(pin), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: hexToBytes(saltHex), iterations: 210000, hash: "SHA-256" }, key, 256);
+  return bytesToHex(new Uint8Array(bits));
+}
+function showPinGate(isFirstSetup) {
+  $("authGate").hidden = false;
+  $("pinSetupForm").hidden = !isFirstSetup;
+  $("pinLoginForm").hidden = isFirstSetup;
+  $("pinGateTitle").textContent = isFirstSetup ? "أنشئ كود الدخول" : "أهلاً بعودتك";
+  $("pinGateDescription").textContent = isFirstSetup
+    ? "دي أول مرة على الجهاز ده. أنشئ كودًا خاصًا من 6 إلى 12 رقمًا."
+    : "اكتب كودك الشخصي لفتح NOVA.";
+  $("pinFeedback").textContent = "";
+  if (isFirstSetup) $("newOwnerPin").focus();
+  else $("ownerPin").focus();
+}
+function unlockLocalOwner() {
   state.session = null;
   state.ownerName = "إسلام";
   $("authGate").hidden = true;
-  $("connectionLabel").textContent = "وضع شخصي محلي";
-  setFeedback("authFeedback", "التطبيق مفتوح محليًا باسم إسلام (" + OWNER_EMAIL + "). ربط الحساب والخدمات السحابية مؤجل.");
+  $("connectionLabel").textContent = "الوضع الشخصي المحلي";
+  setFeedback("authFeedback", "الوضع المحلي مفتوح باسم إسلام (" + OWNER_EMAIL + "). ربط الخدمات السحابية مؤجل.");
   $("greeting").textContent = "أهلاً يا إسلام، نورتني.";
   $("providerList").textContent = "إعدادات الخدمات السحابية ستتوفر بعد تفعيل الربط لاحقًا.";
+}
+async function initializeOwnerSession() {
+  state.session = null;
+  state.ownerName = "إسلام";
+  $("connectionLabel").textContent = "مقفل";
+  const savedHash = localStorage.getItem(OWNER_PIN_HASH_KEY);
+  const savedSalt = localStorage.getItem(OWNER_PIN_SALT_KEY);
+  showPinGate(Boolean(!savedHash || !savedSalt));
+}
+async function createOwnerPin(event) {
+  event.preventDefault();
+  const pin = $("newOwnerPin").value;
+  const confirm = $("confirmOwnerPin").value;
+  if (!/^\d{6,12}$/.test(pin)) {
+    setFeedback("pinFeedback", "الكود لازم يكون من 6 إلى 12 رقمًا.", true); return;
+  }
+  if (pin !== confirm) {
+    setFeedback("pinFeedback", "الكودان غير متطابقين. اكتبهم مرة تانية.", true); return;
+  }
+  const button = $("saveOwnerPinButton");
+  button.disabled = true; button.textContent = "جاري حفظ الكود...";
+  try {
+    const salt = bytesToHex(crypto.getRandomValues(new Uint8Array(16)));
+    const hash = await derivePinHash(pin, salt);
+    localStorage.setItem(OWNER_PIN_SALT_KEY, salt);
+    localStorage.setItem(OWNER_PIN_HASH_KEY, hash);
+    localStorage.removeItem(OWNER_PIN_ATTEMPTS_KEY);
+    localStorage.removeItem(OWNER_PIN_LOCK_KEY);
+    $("pinSetupForm").reset();
+    unlockLocalOwner();
+    showToast("تم حفظ كودك وفتح NOVA");
+  } catch (error) {
+    setFeedback("pinFeedback", error.message || "تعذر حفظ الكود على الجهاز.", true);
+  } finally {
+    button.disabled = false; button.textContent = "حفظ الكود وفتح التطبيق";
+  }
+}
+async function verifyOwnerPin(event) {
+  event.preventDefault();
+  const pin = $("ownerPin").value;
+  if (!/^\d{6,12}$/.test(pin)) {
+    setFeedback("pinFeedback", "اكتب الكود المكوّن من 6 إلى 12 رقمًا.", true); return;
+  }
+  const lockUntil = Number(localStorage.getItem(OWNER_PIN_LOCK_KEY) || 0);
+  if (Date.now() < lockUntil) {
+    const seconds = Math.ceil((lockUntil - Date.now()) / 1000);
+    setFeedback("pinFeedback", "محاولات كثيرة. حاول بعد " + seconds + " ثانية.", true); return;
+  }
+  const button = $("unlockOwnerButton");
+  button.disabled = true; button.textContent = "جاري التحقق...";
+  try {
+    const salt = localStorage.getItem(OWNER_PIN_SALT_KEY);
+    const expected = localStorage.getItem(OWNER_PIN_HASH_KEY);
+    if (!salt || !expected) { showPinGate(true); return; }
+    const actual = await derivePinHash(pin, salt);
+    if (actual !== expected) {
+      const attempts = Number(localStorage.getItem(OWNER_PIN_ATTEMPTS_KEY) || 0) + 1;
+      localStorage.setItem(OWNER_PIN_ATTEMPTS_KEY, String(attempts));
+      if (attempts >= 5) {
+        localStorage.setItem(OWNER_PIN_LOCK_KEY, String(Date.now() + 30000));
+        localStorage.setItem(OWNER_PIN_ATTEMPTS_KEY, "0");
+        setFeedback("pinFeedback", "الكود غير صحيح. تم إيقاف المحاولات لمدة 30 ثانية.", true);
+      } else {
+        setFeedback("pinFeedback", "الكود غير صحيح. متبقي " + (5 - attempts) + " محاولات قبل الإيقاف المؤقت.", true);
+      }
+      $("ownerPin").value = "";
+      return;
+    }
+    localStorage.removeItem(OWNER_PIN_ATTEMPTS_KEY);
+    localStorage.removeItem(OWNER_PIN_LOCK_KEY);
+    $("pinLoginForm").reset();
+    unlockLocalOwner();
+    showToast("أهلاً بعودتك يا إسلام ❤️");
+  } catch (error) {
+    setFeedback("pinFeedback", error.message || "تعذر التحقق من الكود.", true);
+  } finally {
+    button.disabled = false; button.textContent = "دخول";
+  }
 }
 
 async function signInOwner(event) {
@@ -571,7 +678,7 @@ $("providerType").addEventListener("change", applyProviderDefaults);
 $("providerBaseUrl").addEventListener("input", () => { $("providerBaseUrl").dataset.userEdited = "true"; });
 $("settingsDialog").addEventListener("click", (event) => { if (event.target === $("settingsDialog")) closeSettings(); });
 
-$("ownerLoginForm").addEventListener("submit", signInOwner);
+$("pinSetupForm").addEventListener("submit", createOwnerPin);\n$("pinLoginForm").addEventListener("submit", verifyOwnerPin);
 $("forgotPasswordButton").addEventListener("click", openPasswordRecovery);
 $("sendRecoveryCodeButton").addEventListener("click", () => void sendRecoveryCode());
 $("verifyRecoveryCodeButton").addEventListener("click", () => void verifyRecoveryCode());
@@ -592,7 +699,7 @@ $("backToLoginButton").addEventListener("click", () => {
 });
 // Sign-out is intentionally unavailable in the temporary local preview.
 
-initializeOwnerSession();
+void initializeOwnerSession();
 applyProviderDefaults();
 import("./nova-3d.js").then(({ initNOVACharacter3D }) => {
   character3D = initNOVACharacter3D();
