@@ -560,7 +560,8 @@ window.addEventListener("nova:authenticated", (event) => {
   $("connectionLabel").textContent = "متصل بخادم NOVA";
   setFeedback("authFeedback", "تم التحقق من كود المالك والاتصال بالخادم.");
   void loadProviders();
-  void loadOwnerMemory();\n  void loadSpeechSettings();
+  void loadOwnerMemory();
+  void loadSpeechSettings();
 });
 applyProviderDefaults();
 import("./nova-3d.js").then(({ initNOVACharacter3D }) => {
