@@ -479,11 +479,7 @@ $("providerType").addEventListener("change", applyProviderDefaults);
 $("providerBaseUrl").addEventListener("input", () => { $("providerBaseUrl").dataset.userEdited = "true"; });
 $("settingsDialog").addEventListener("click", (event) => { if (event.target === $("settingsDialog")) closeSettings(); });
 
-$("pinSetupForm").addEventListener("submit", createOwnerPin);
-$("pinLoginForm").addEventListener("submit", verifyOwnerPin);
-// Sign-out is intentionally unavailable in the temporary local preview.
-
-void initializeOwnerSession();
+// PIN access is handled independently by pin.js.
 applyProviderDefaults();
 import("./nova-3d.js").then(({ initNOVACharacter3D }) => {
   character3D = initNOVACharacter3D();
