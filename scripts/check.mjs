@@ -31,9 +31,9 @@ assert.match(edge, /nova_record_pin_failure/, "Failed PIN attempts must be count
 assert.match(edge, /10 دقائق/, "Six failed PIN attempts must trigger a ten-minute lockout");
 assert.match(edge, /nova_owner_sessions/, "PIN login must issue a server-validated session");
 assert.match(edge, /action === "tts"/, "Server must expose authenticated neural TTS");
-assert.match(edge, /requestAzureSpeech/, "Speech must use an independent Azure neural TTS engine");
-assert.match(edge, /ar-EG-ShakirNeural/, "Blue persona must use a fixed Egyptian male neural voice");
-assert.match(edge, /ar-EG-SalmaNeural/, "Pink persona must use a fixed Egyptian female neural voice");
+assert.match(edge, /requestSonexSpeech/, "Speech must use Sonex Labs through the Supabase Edge Function");
+assert.match(edge, /api\.sonexlabs\.com\/v1\/speech/, "Sonex speech must be requested server-side");
+assert.match(edge, /api\.sonexlabs\.com\/v1\/voices/, "Sonex voice list must be loaded server-side");
 assert.doesNotMatch(edge, /requestGeminiSpeech|gemini-3\.8-flash-tts/, "Speech must not depend on Gemini");
 assert.match(edge, /action === "speech_get"/, "Speech settings must be readable through the owner session");
 assert.match(edge, /action === "speech_save"/, "Speech API keys must be saved through the secure server");
@@ -42,9 +42,12 @@ assert.match(app, /loadSpeechSettings/, "Client must load fixed voice settings")
 assert.match(app, /saveSpeechSettings/, "Client must save fixed voice settings");
 assert.match(app, /state\.processing/, "Voice turns must be serialized to prevent overlapping conversations");
 assert.match(html, /id="speechApiKey"/, "The UI must provide a secure speech key entry");
-assert.match(html, /id="speechRegion"/, "The UI must provide the speech resource region");
+assert.match(html, /id="speechMaleVoice"/, "The UI must provide a male voice selector");
+assert.match(html, /id="speechFemaleVoice"/, "The UI must provide a female voice selector");
+assert.match(html, /Sonex Labs API/, "The UI must identify the Sonex API key field");
 assert.match(app, /invokeNova\("tts"/, "Client must request generated speech from the server");
-assert.doesNotMatch(app, /speechSynthesis|SpeechSynthesisUtterance/, "Client must not use robotic browser speech");
+assert.match(app, /SpeechSynthesisUtterance/, "The optional on-device speech engine must remain available");
+assert.match(app, /audio\\/mpeg/, "The client must accept Sonex MP3 audio");
 assert.match(app, /nova:authenticated/, "The app must receive the authenticated server session");
 assert.doesNotMatch(html, /id="pinSetupForm"|إنشاء كود المالك/, "PIN creation screen must be removed after initial setup");
 assert.match(html, /id="pinLoginForm"/, "Returning owner PIN form must exist");
