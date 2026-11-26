@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { initNOVACharacter3D } from "./nova-3d.js";
 
 const SUPABASE_URL = "https://razvryvazmqvvqkzetuo.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_t5xrzZNN6Uj9zhhBLUYQVg_mj7qPjQL";
@@ -252,8 +251,14 @@ async function signOut() {
 
 async function requestAIReply(text) {
   if (!state.session) return "أنا سامعك يا " + state.ownerName + ". سجّل دخولك من الإعدادات، وبعدها أضف مفتاح API عشان أقدر أرد عليك بذكاء اصطناعي حقيقي.";
+  if (!state.messages.length) {
+    state.messages.push({
+      role: "system",
+      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. تحدث بالعربية المصرية الطبيعية الودودة، كن صريحًا ومختصرًا عند الحاجة، لا تدّع تنفيذ شيء لم تنفذه، واسأل للتوضيح عندما يلزم. اسم المالك إسلام."
+    });
+  }
   state.messages.push({ role: "user", content: text });
-  state.messages = state.messages.slice(-24);
+  state.messages = [state.messages[0], ...state.messages.slice(1).slice(-23)];
   try {
     const result = await invokeNova("chat", { messages: state.messages });
     const reply = result.reply || "وصلني رد فاضي من النموذج.";
@@ -377,7 +382,12 @@ supabase.auth.getSession().then(({ data }) => {
   if (state.session) void loadProviders();
   $("connectionLabel").textContent = state.session ? "متصل بحساب المالك" : "جاهز أقابلك";
 });
-character3D = initNOVACharacter3D();
+import("./nova-3d.js").then(({ initNOVACharacter3D }) => {
+  character3D = initNOVACharacter3D();
+  character3D?.setPersona(state.persona);
+}).catch((error) => {
+  console.warn("3D module unavailable; using the CSS fallback.", error);
+});
 setPersona("soly");
 setStatus("سولي معاك", "idle");
 window.nova = { setPersona, startListening, stopListening, animateCharacter, supabase };
