@@ -65,34 +65,13 @@ function addConversationLine(text, speaker) {
   log.scrollTop = log.scrollHeight;
 }
 let currentSpeechUrl = null;
-function pcmToWav(pcmBytes, sampleRate = 24000) {
-  const header = new ArrayBuffer(44);
-  const view = new DataView(header);
-  const write = (offset, value) => {
-    for (let i = 0; i < value.length; i++) view.setUint8(offset + i, value.charCodeAt(i));
-  };
-  const dataSize = pcmBytes.byteLength;
-  write(0, "RIFF");
-  view.setUint32(4, 36 + dataSize, true);
-  write(8, "WAVE");
-  write(12, "fmt ");
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 2, true);
-  view.setUint16(32, 2, true);
-  view.setUint16(34, 16, true);
-  write(36, "data");
-  view.setUint32(40, dataSize, true);
-  return new Blob([header, pcmBytes], { type: "audio/wav" });
-}
+let speechAudioElement = null;
 function cleanSpeechText(value) {
   return String(value || "")
-    .replace(/```[\s\S]*?```/g, " تم عرض كود في الرسالة. ")
-    .replace(/https?:\/\/\S+/g, " الرابط موجود في الرسالة. ")
-    .replace(/[*_#>\x60]/g, "")
-    .replace(/\s+/g, " ")
+    .replace(/```[\\s\\S]*?```/g, " تم عرض كود في الرسالة. ")
+    .replace(/https?:\\/\\/\\S+/g, " الرابط موجود في الرسالة. ")
+    .replace(/[*_#>\\x60]/g, "")
+    .replace(/\\s+/g, " ")
     .trim()
     .slice(0, 2600);
 }
@@ -108,48 +87,47 @@ async function speak(text) {
   try {
     const result = await invokeNova("tts", { text: spokenText, persona });
     if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
-    const sourceMime = String(result.mime_type || "audio/L16;codec=pcm;rate=24000").toLowerCase();
-    if (!/audio\/(l16|pcm|raw)/i.test(sourceMime)) {
-      throw new Error("صيغة الصوت غير متوقعة: " + sourceMime);
+    const mime = String(result.mime_type || "").split(";")[0].trim().toLowerCase();
+    if (mime !== "audio/wav" && mime !== "audio/x-wav") {
+      throw new Error("الخادم رجّع صيغة صوت غير مدعومة: " + (mime || "غير معروفة"));
     }
-    const rateMatch = sourceMime.match(/rate=(\d+)/);
-    const sampleRate = rateMatch ? Number(rateMatch[1]) : 24000;
     const binary = atob(result.audio);
-    const byteLength = binary.length - (binary.length % 2);
-    if (byteLength < 2) throw new Error("ملف الصوت فارغ أو تالف.");
-    const bytes = new Uint8Array(byteLength);
-    for (let i = 0; i < byteLength; i++) bytes[i] = binary.charCodeAt(i);
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) throw new Error("المتصفح لا يدعم تشغيل الصوت المتقدم.");
-    if (!speechAudioContext || speechAudioContext.state === "closed") speechAudioContext = new AudioContextClass();
-    if (speechAudioContext.state === "suspended") await speechAudioContext.resume();
-    const samples = new Float32Array(byteLength / 2);
-    const view = new DataView(bytes.buffer);
-    for (let i = 0; i < samples.length; i++) samples[i] = view.getInt16(i * 2, true) / 32768;
-    const buffer = speechAudioContext.createBuffer(1, samples.length, sampleRate);
-    buffer.copyToChannel(samples, 0);
-    const source = speechAudioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(speechAudioContext.destination);
-    let finished = false;
+    if (binary.length < 48 || binary.slice(0, 4) !== "RIFF" || binary.slice(8, 12) !== "WAVE") {
+      throw new Error("ملف الصوت المستلم ليس WAV صالحًا (RIFF/WAVE غير موجود).");
+    }
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const wavBlob = new Blob([bytes], { type: "audio/wav" });
+    currentSpeechUrl = URL.createObjectURL(wavBlob);
+    const audio = new Audio();
+    audio.preload = "auto";
+    audio.src = currentSpeechUrl;
+    audio.playsInline = true;
+    speechAudioElement = audio;
     const finish = () => {
-      if (finished) return;
-      finished = true;
       state.speaking = false;
       state.audio = null;
+      if (speechAudioElement === audio) speechAudioElement = null;
       setStatus(state.listening ? "سامعك، كمل كلامك" : "مستنيك تبدأ", state.listening ? "listening" : "idle");
       if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
     };
-    state.audio = { pause: () => { try { source.stop(); } catch (_) {} finish(); } };
-    source.onended = finish;
-    source.start(0);
+    audio.addEventListener("ended", finish, { once: true });
+    audio.addEventListener("error", () => {
+      const code = audio.error?.code || "غير معروف";
+      finish();
+      showToast("المتصفح رفض ملف الصوت WAV (خطأ تشغيل " + code + ").");
+    }, { once: true });
+    state.audio = { pause: () => { audio.pause(); finish(); } };
+    await audio.play();
     setStatus(personas[persona].name + " بيتكلم", "speaking");
     animateCharacter("happy");
   } catch (error) {
     state.speaking = false;
     state.audio = null;
+    if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
     setStatus("حصلت مشكلة في تشغيل الصوت الطبيعي", "error");
-    showToast(error.message || "تعذر تشغيل الصوت الطبيعي.");
+    const reason = error?.name ? error.name + ": " + (error.message || "") : (error.message || "خطأ غير معروف");
+    showToast("تعذر تشغيل الصوت: " + reason.slice(0, 150));
     if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
   }
 }
@@ -363,6 +341,7 @@ function stopListening() {
   $("voiceHint").textContent = "اضغط على الميكروفون عشان تبدأ محادثة صوتية";
   try { state.recognition?.stop(); } catch (_) {}
   if (state.audio) { state.audio.pause(); state.audio = null; }
+  if (speechAudioElement) { try { speechAudioElement.pause(); speechAudioElement.removeAttribute("src"); speechAudioElement.load(); } catch (_) {} speechAudioElement = null; }
   if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
   state.speaking = false;
   setStatus("أنا موجود، لما تحب نتكلم", "idle");
