@@ -75,6 +75,33 @@ function cleanSpeechText(value) {
     .trim()
     .slice(0, 2600);
 }
+function getDeviceArabicVoice(persona) {
+  const voices = window.speechSynthesis?.getVoices?.() || [];
+  const arabic = voices.filter((voice) => /^ar(-|$)/i.test(voice.lang || ""));
+  if (!arabic.length) return null;
+  const egyptian = arabic.filter((voice) => /^ar-EG$/i.test(voice.lang || ""));
+  const pool = egyptian.length ? egyptian : arabic;
+  const hints = persona === "soleen" ? /female|woman|salma|zira|sara/i : /male|man|shakir|hamed|tariq/i;
+  return pool.find((voice) => hints.test(voice.name || "")) || pool[0];
+}
+function speakWithDevice(text, persona) {
+  return new Promise((resolve, reject) => {
+    if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+      reject(new Error("محرك النطق غير متاح في المتصفح ده. افتح NOVA من Chrome على أندرويد."));
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "ar-EG";
+    utterance.rate = 0.94;
+    utterance.pitch = persona === "soleen" ? 1.08 : 0.96;
+    const voice = getDeviceArabicVoice(persona);
+    if (voice) utterance.voice = voice;
+    utterance.onend = resolve;
+    utterance.onerror = (event) => reject(new Error("محرك الجهاز فشل في النطق: " + (event.error || "unknown")));
+    window.speechSynthesis.speak(utterance);
+  });
+}
 async function speak(text) {
   const spokenText = cleanSpeechText(text);
   if (!spokenText) return;
@@ -82,9 +109,24 @@ async function speak(text) {
   state.speaking = true;
   try { state.recognition?.stop(); } catch (_) {}
   if (state.audio) { try { state.audio.pause(); } catch (_) {} state.audio = null; }
+  if (speechAudioElement) { try { speechAudioElement.pause(); } catch (_) {} speechAudioElement = null; }
   if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
-  setStatus(personas[persona].name + " بيجهز صوته...", "thinking");
+  const engine = $("speechEngine")?.value || localStorage.getItem("nova.speech.engine") || "device";
+  const finish = () => {
+    state.speaking = false;
+    state.audio = null;
+    setStatus(state.listening ? "سامعك، كمل كلامك" : "مستنيك تبدأ", state.listening ? "listening" : "idle");
+    if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
+  };
   try {
+    setStatus(personas[persona].name + (engine === "device" ? " بيستخدم صوت الجهاز..." : " بيجهز صوته..."), "thinking");
+    if (engine === "device") {
+      await speakWithDevice(spokenText, persona);
+      finish();
+      setStatus(personas[persona].name + " بيتكلم بصوت الجهاز", "speaking");
+      animateCharacter("happy");
+      return;
+    }
     const result = await invokeNova("tts", { text: spokenText, persona });
     if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
     const mime = String(result.mime_type || "").split(";")[0].trim().toLowerCase();
@@ -100,23 +142,10 @@ async function speak(text) {
     const wavBlob = new Blob([bytes], { type: "audio/wav" });
     currentSpeechUrl = URL.createObjectURL(wavBlob);
     const audio = new Audio();
-    audio.preload = "auto";
-    audio.src = currentSpeechUrl;
-    audio.playsInline = true;
+    audio.preload = "auto"; audio.src = currentSpeechUrl; audio.playsInline = true;
     speechAudioElement = audio;
-    const finish = () => {
-      state.speaking = false;
-      state.audio = null;
-      if (speechAudioElement === audio) speechAudioElement = null;
-      setStatus(state.listening ? "سامعك، كمل كلامك" : "مستنيك تبدأ", state.listening ? "listening" : "idle");
-      if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
-    };
     audio.addEventListener("ended", finish, { once: true });
-    audio.addEventListener("error", () => {
-      const code = audio.error?.code || "غير معروف";
-      finish();
-      showToast("المتصفح رفض ملف الصوت WAV (خطأ تشغيل " + code + ").");
-    }, { once: true });
+    audio.addEventListener("error", () => { finish(); showToast("المتصفح رفض ملف الصوت (خطأ تشغيل " + (audio.error?.code || "غير معروف") + ")."); }, { once: true });
     state.audio = { pause: () => { audio.pause(); finish(); } };
     try {
       await audio.play();
@@ -126,22 +155,18 @@ async function speak(text) {
       if (!AudioContextClass) throw playError;
       if (!speechAudioContext) speechAudioContext = new AudioContextClass();
       if (speechAudioContext.state === "suspended") await speechAudioContext.resume();
-      const audioBuffer = await speechAudioContext.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+      const buffer = await speechAudioContext.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
       const source = speechAudioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(speechAudioContext.destination);
-      source.onended = finish;
+      source.buffer = buffer; source.connect(speechAudioContext.destination); source.onended = finish;
       state.audio = { pause: () => { try { source.stop(); } catch (_) {} finish(); } };
       source.start(0);
     }
-    setStatus(personas[persona].name + " بيتكلم", "speaking");
+    setStatus(personas[persona].name + " بيتكلم بصوت السيرفر", "speaking");
     animateCharacter("happy");
   } catch (error) {
-    state.speaking = false;
-    state.audio = null;
+    state.speaking = false; state.audio = null;
     if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
-
-    setStatus("حصلت مشكلة في تشغيل الصوت الطبيعي", "error");
+    setStatus("حصلت مشكلة في تشغيل الصوت", "error");
     const reason = error?.name ? error.name + ": " + (error.message || "") : (error.message || "خطأ غير معروف");
     showToast("تعذر تشغيل الصوت: " + reason.slice(0, 150));
     if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
@@ -550,6 +575,19 @@ $("ownerName").addEventListener("change", (event) => {
 $("addProviderButton").addEventListener("click", () => void addProvider());
 $("saveOwnerMemory")?.addEventListener("click", () => void saveOwnerMemory());
 $("saveSpeechSettings")?.addEventListener("click", () => void saveSpeechSettings());
+
+const speechEngineSelect = $("speechEngine");
+if (speechEngineSelect) {
+  speechEngineSelect.value = localStorage.getItem("nova.speech.engine") || "device";
+  speechEngineSelect.addEventListener("change", () => {
+    localStorage.setItem("nova.speech.engine", speechEngineSelect.value);
+    setFeedback("speechEngineFeedback", speechEngineSelect.value === "device"
+      ? "تم اختيار صوت الجهاز. تأكد من تثبيت صوت عربي في إعدادات أندرويد."
+      : "تم اختيار صوت السيرفر الحالي للمقارنة.");
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  });
+}
+
 $("providerType").addEventListener("change", applyProviderDefaults);
 $("providerBaseUrl").addEventListener("input", () => { $("providerBaseUrl").dataset.userEdited = "true"; });
 $("settingsDialog").addEventListener("click", (event) => { if (event.target === $("settingsDialog")) closeSettings(); });
