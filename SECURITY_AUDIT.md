@@ -59,7 +59,8 @@ This is **not** a guarantee of zero bugs or a formal penetration test. Live brow
 7. **No browser E2E/device test has been run.** Android Chrome microphone permission, SpeechRecognition, CSP compatibility and WebGL/Three.js rendering still need hands-on verification.
 8. `nova_memories` exists with owner-only schema protection, but memory read/write is not yet connected to chat. Conversation history is still in page memory only.
 9. The audit covers the NOVA frontend, `nova-ai` Edge Function and NOVA database resources. It does not certify the other pre-existing SULY Edge Functions or legacy systems in the shared Supabase project.
-10. GitHub commit metadata may use the account's configured author email. Review GitHub's email privacy setting and use its noreply address for future commits if you do not want the author email shown publicly.
+10. GitHub Pages does not provide repository-controlled HTTP response headers. The HTML CSP meta tag helps, but it cannot set response-only protections such as `frame-ancestors` or `X-Frame-Options`; consider a host with configurable security headers if strict anti-clickjacking/header policy is required.
+11. GitHub commit metadata may use the account's configured author email. Review GitHub's email privacy setting and use its noreply address for future commits if you do not want the author email shown publicly.
 
 ## Manual actions for the owner
 
