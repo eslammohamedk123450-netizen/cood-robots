@@ -340,6 +340,8 @@ Deno.serve(async (req: Request) => {
       add_provider: 5,
       sync_models: 10,
       toggle_model: 30,
+      toggle_provider: 20,
+      delete_provider: 5,
       chat: 20,
       tts: 12,
     };
@@ -403,6 +405,28 @@ Deno.serve(async (req: Request) => {
       return json({ synced: models.length }, 200, origin);
     }
 
+    if (action === "toggle_provider") {
+      const providerId = cleanString(body?.provider_id, 80);
+      const enabled = body?.enabled === true;
+      const { data, error } = await admin.from("nova_api_keys")
+        .update({ is_active: enabled, updated_at: new Date().toISOString() })
+        .eq("id", providerId).eq("user_id", userId)
+        .select("id,is_active").maybeSingle();
+      if (error || !data) return json({ error: "تعذر تحديث حالة المفتاح" }, 404, origin);
+      return json({ provider: data }, 200, origin);
+    }
+
+    if (action === "delete_provider") {
+      const providerId = cleanString(body?.provider_id, 80);
+      if (!providerId) return json({ error: "معرّف المفتاح غير صالح" }, 400, origin);
+      const { data: deleted, error } = await admin.rpc("nova_delete_api_provider", {
+        p_user_id: userId,
+        p_provider_id: providerId,
+      });
+      if (error) throw new Error("تعذر حذف المفتاح بأمان");
+      if (deleted !== true) return json({ error: "المفتاح غير موجود" }, 404, origin);
+      return json({ deleted: true }, 200, origin);
+    }
     if (action === "toggle_model") {
       const modelId = cleanString(body?.model_id, 80);
       const enabled = body?.enabled === true;
