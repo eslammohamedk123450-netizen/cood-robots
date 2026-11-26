@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#080B14">
-  <meta name="description" content="NOVA — رفيقك الرقمي الشخصي.">
+  <meta name="description" content="NOVA — رفيقك الرقمي الشخصي.">\n  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://esm.sh https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://razvryvazmqvvqkzetuo.supabase.co https://*.google.com; img-src 'self' data: blob:; upgrade-insecure-requests">
   <title>NOVA — معاك دايمًا</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -162,7 +162,7 @@
         </label>
         <label class="field-label">اسم المفتاح (اختياري)<input id="providerLabel" type="text" maxlength="80" placeholder="مثال: Gemini الشخصي"></label>
         <label class="field-label">رابط API<input id="providerBaseUrl" type="url" value="https://generativelanguage.googleapis.com/v1beta" dir="ltr" placeholder="https://api.example.com/v1"></label>
-        <label class="field-label">مفتاح API<input id="providerApiKey" type="password" autocomplete="new-password" placeholder="الصق مفتاح API هنا" dir="ltr"></label>
+        <p class="security-note" id="customProviderWarning" hidden>تنبيه: المزود المخصص سيستقبل مفتاح API على النطاق الذي تدخله. استخدم نطاقًا موثوقًا تملكه أو تعرفه.</p>\n        <label class="field-label">مفتاح API<input id="providerApiKey" type="password" autocomplete="new-password" placeholder="الصق مفتاح API هنا" dir="ltr"></label>
         <button type="button" class="save-button enabled-button" id="addProviderButton">حفظ المفتاح واكتشاف النماذج</button>
         <p class="settings-feedback" id="settingsFeedback">اختار المزود وأدخل المفتاح، والرابط الافتراضي هيتحط تلقائيًا.</p>
         <div id="providerList" class="provider-list"><p class="empty-provider-list">لسه مفيش مفاتيح مضافة.</p></div>
