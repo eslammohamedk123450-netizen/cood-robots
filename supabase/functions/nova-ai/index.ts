@@ -1,7 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const allowedOrigins = new Set(["https://eslammohamedk123450-netizen.github.io"]);
 const cors = (origin: string | null) => ({
@@ -155,6 +154,40 @@ async function requestProviderChat(provider: ProviderType, baseUrl: string, apiK
   return reply.trim();
 }
 
+
+const OWNER_USER_ID = "f980820b-f59d-453c-9df8-2b9afc695c74";
+const PIN_ITERATIONS = 310000;
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+function fromHex(value: string): Uint8Array {
+  return new Uint8Array((value.match(/.{2}/g) ?? []).map((part) => parseInt(part, 16)));
+}
+async function deriveServerPinHash(pin: string, saltHex: string): Promise<string> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt: fromHex(saltHex), iterations: PIN_ITERATIONS, hash: "SHA-256" },
+    key,
+    256,
+  );
+  return toHex(new Uint8Array(bits));
+}
+async function sha256Hex(value: string): Promise<string> {
+  return toHex(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))));
+}
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+function createSessionToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get("origin");
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors(origin) });
@@ -162,23 +195,89 @@ Deno.serve(async (req: Request) => {
   const declaredLength = Number(req.headers.get("content-length") ?? "0");
   if (Number.isFinite(declaredLength) && declaredLength > 400_000) return json({ error: "Request body too large" }, 413, origin);
 
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-  if (!token) return json({ error: "Sign in is required" }, 401, origin);
-
-  const userClient = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: "Bearer " + token } } });
-  const { data: authData, error: authError } = await userClient.auth.getUser(token);
-  if (authError || !authData.user) return json({ error: "Invalid or expired session" }, 401, origin);
-  const userId = authData.user.id;
-    const OWNER_USER_ID = "f980820b-f59d-453c-9df8-2b9afc695c74";
-  if (userId !== OWNER_USER_ID || authData.user.is_anonymous === true) {
-    return json({ error: "هذا التطبيق خاص بحساب المالك. يتطلب كود دعوة، ولا توجد أكواد دعوة مفعّلة حاليًا." }, 403, origin);
-  }
   const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 
   try {
     const body = await readJsonBody(req);
     const action = cleanString(body?.action, 40);
+
+    if (action === "check_setup") {
+      const { data, error } = await admin.from("nova_owner_pin_auth").select("id").eq("id", 1).maybeSingle();
+      if (error) throw new Error("Owner PIN setup status unavailable");
+      return json({ initialized: Boolean(data) }, 200, origin);
+    }
+
+    if (action === "setup_pin") {
+      const pin = typeof body?.pin === "string" ? body.pin : "";
+      if (!/^\d{6,12}$/.test(pin)) return json({ error: "الكود لازم يكون من 6 إلى 12 رقمًا." }, 400, origin);
+      const { data: existing, error: readError } = await admin.from("nova_owner_pin_auth").select("id").eq("id", 1).maybeSingle();
+      if (readError) throw new Error("Owner PIN setup status unavailable");
+      if (existing) return json({ error: "تم إنشاء كود المالك بالفعل. استخدم شاشة الدخول بالكود." }, 409, origin);
+      const salt = toHex(crypto.getRandomValues(new Uint8Array(16)));
+      const pinHash = await deriveServerPinHash(pin, salt);
+      const { error: insertError } = await admin.from("nova_owner_pin_auth").insert({
+        id: 1, user_id: OWNER_USER_ID, pin_salt: salt, pin_hash: pinHash, failed_attempts: 0,
+      });
+      if (insertError) {
+        if (insertError.code === "23505") return json({ error: "تم إنشاء كود المالك بالفعل. أعد تحميل الصفحة وسجّل بالكود." }, 409, origin);
+        throw new Error("تعذر حفظ كود المالك على الخادم");
+      }
+      const tokenValue = createSessionToken();
+      const tokenHash = await sha256Hex(tokenValue);
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { error: sessionError } = await admin.from("nova_owner_sessions").insert({ token_hash: tokenHash, user_id: OWNER_USER_ID, expires_at: expiresAt });
+      if (sessionError) throw new Error("تم إنشاء الكود لكن تعذر بدء الجلسة. سجّل الدخول بالكود.");
+      return json({ token: tokenValue, expires_at: expiresAt, message: "تم إنشاء كود المالك على الخادم بنجاح." }, 201, origin);
+    }
+
+    if (action === "login_pin") {
+      const pin = typeof body?.pin === "string" ? body.pin : "";
+      if (!/^\d{6,12}$/.test(pin)) return json({ error: "اكتب كودًا من 6 إلى 12 رقمًا." }, 400, origin);
+      const { data: authRow, error: authReadError } = await admin.from("nova_owner_pin_auth")
+        .select("pin_salt,pin_hash,failed_attempts,locked_until").eq("id", 1).maybeSingle();
+      if (authReadError) throw new Error("تعذر قراءة إعدادات الدخول");
+      if (!authRow) return json({ error: "لم يتم إنشاء كود المالك بعد. افتح شاشة الإنشاء." }, 409, origin);
+      if (authRow.locked_until && new Date(authRow.locked_until).getTime() > Date.now()) {
+        const seconds = Math.ceil((new Date(authRow.locked_until).getTime() - Date.now()) / 1000);
+        return new Response(JSON.stringify({ error: "تم إيقاف المحاولات مؤقتًا بعد 6 محاولات خاطئة. حاول بعد 10 دقائق.", retry_after: seconds }), {
+          status: 429, headers: { ...cors(origin), "Content-Type": "application/json", "Cache-Control": "no-store", "Retry-After": String(seconds) },
+        });
+      }
+      const candidate = await deriveServerPinHash(pin, authRow.pin_salt);
+      if (!constantTimeEqual(candidate, authRow.pin_hash)) {
+        const { data: failureRows, error: failureError } = await admin.rpc("nova_record_pin_failure");
+        if (failureError) throw new Error("تعذر تسجيل محاولة الدخول");
+        const failure = Array.isArray(failureRows) ? failureRows[0] : failureRows;
+        const attempts = Number(failure?.failed_attempts ?? 1);
+        if (failure?.locked_until) {
+          return new Response(JSON.stringify({ error: "الكود غير صحيح. تم إيقاف الدخول لمدة 10 دقائق بعد 6 محاولات.", retry_after: 600 }), {
+            status: 429, headers: { ...cors(origin), "Content-Type": "application/json", "Cache-Control": "no-store", "Retry-After": "600" },
+          });
+        }
+        return json({ error: "الكود غير صحيح. متبقي " + Math.max(0, 6 - attempts) + " محاولات." }, 401, origin);
+      }
+      const { error: resetError } = await admin.from("nova_owner_pin_auth")
+        .update({ failed_attempts: 0, locked_until: null, updated_at: new Date().toISOString() }).eq("id", 1);
+      if (resetError) throw new Error("تعذر تحديث حالة الدخول");
+      await admin.from("nova_owner_sessions").delete().lt("expires_at", new Date().toISOString());
+      const tokenValue = createSessionToken();
+      const tokenHash = await sha256Hex(tokenValue);
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { error: sessionError } = await admin.from("nova_owner_sessions").insert({ token_hash: tokenHash, user_id: OWNER_USER_ID, expires_at: expiresAt });
+      if (sessionError) throw new Error("تعذر إنشاء جلسة الدخول. حاول مرة أخرى.");
+      return json({ token: tokenValue, expires_at: expiresAt, message: "تم التحقق من كود المالك." }, 200, origin);
+    }
+
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    if (!token) return json({ error: "اكتب كود المالك أولًا." }, 401, origin);
+    const tokenHash = await sha256Hex(token);
+    const { data: sessionRow, error: sessionReadError } = await admin.from("nova_owner_sessions")
+      .select("token_hash,user_id,expires_at").eq("token_hash", tokenHash).eq("user_id", OWNER_USER_ID)
+      .gt("expires_at", new Date().toISOString()).maybeSingle();
+    if (sessionReadError || !sessionRow) return json({ error: "انتهت جلسة الدخول. اكتب كود المالك مرة أخرى." }, 401, origin);
+    const userId = OWNER_USER_ID;
+    await admin.from("nova_owner_sessions").update({ last_used_at: new Date().toISOString() }).eq("token_hash", tokenHash);
     const actionLimits: Record<string, number> = {
       list: 60,
       add_provider: 5,
