@@ -1,26 +1,33 @@
-# NOVA — Current Development Plan
+# NOVA — Development Plan
 
-This file is a short entry point. The approved long-term direction and V1 requirements live in the dedicated documents below.
+The current V1 is a private, voice-first personal companion for Islam. The implementation checklist and exact status are in [TODO.md](TODO.md). The backend contract and security design are in [NOVA_SUPABASE.md](NOVA_SUPABASE.md).
 
-- Long-term product vision: NOVA_MASTER_VISION.md
-- Approved first-version scope: NOVA_V1_SCOPE.md
-- Mandatory repository/agent restrictions: AGENTS.md and NOVA_EXECUTION_RULES.md
-- Current implementation checklist: TODO.md
+## Current implementation phase
 
-## Current phase: Voice-first meeting screen
+1. Keep the meeting screen focused on the character, microphone, optional typing and conversation transcript.
+2. Use the existing Supabase project and owner Auth account; do not create another project or branch.
+3. Store provider credentials only in Supabase Vault, never in browser storage or GitHub.
+4. Let the owner add multiple OpenAI-compatible provider keys, discover models from each provider, enable/disable models, and route chat requests across enabled models.
+5. Render an original procedural 3D full-body robot in the prepared character mount. This is a first 3D prototype, not the final authored character.
+6. Keep conversation history in page memory until durable conversation persistence and memory controls are implemented.
 
-The V1 interface is a quiet, character-first meeting space for Islam:
-1. Keep Soly (blue) and Soleen (pink) and the existing NOVA dark/gold identity.
-2. Remove camera, face recognition, identity verification demos, guest management, command dashboards, and quick-command controls.
-3. Make microphone conversation the primary interaction.
-4. Keep text entry optional and secondary.
-5. Prepare a dedicated 3D character mount point. The temporary CSS character is not the final 3D model.
-6. Add the authenticated AI, natural Egyptian Arabic speech, and persistent owner memory in later V1 stages.
+## Current Supabase status
 
-## Explicitly excluded from the current release
+- Project URL and publishable client key are configured in the app.
+- Owner email/password sign-in is connected to Supabase Auth.
+- NOVA tables and RLS are deployed.
+- Vault-only provider secret functions are deployed with service_role-only execution.
+- Edge Function `nova-ai` is deployed; it validates the user session itself and exposes provider management, model discovery/toggles, and chat fallback.
+- The live add-key/model-discovery/chat flow still needs to be exercised using the owner's session and a real provider key.
+
+## Supabase cleanup policy
+
+The existing Supabase project contains more than unused legacy data: the inventory revealed reusable AI routing, model synchronization, memory and conversation infrastructure. Do not mass-delete the existing tables or Edge Functions. Preserve the project, Auth account and migration history. Finish dependency mapping first, then remove only confirmed-unused resources with explicit owner approval. The old Storage bucket currently contains one object and must be handled through the supported Storage API, not direct SQL deletion.
+
+## Explicitly excluded from this V1
 
 No camera, face recognition, wake-word background service, alarms, desktop/device control, smart-home control, or physical robot movement.
 
-## Execution requirements
+## Repository operating rules
 
-Work only on the existing main branch in this one repository. Do not create branches, clones, forks, mirrors, worktrees, or alternate copies without Islam's prior explicit permission. Do not destructively clean Supabase until an itemized inventory is presented and the owner confirms the exact destructive scope.
+Work only on the existing `main` branch in this one repository. Do not create branches, clones, forks, mirrors, worktrees, or alternate copies without Islam's prior explicit permission. Never delegate work to another agent on another branch or copy. Record every task as completed only after implementation; keep live tests and unverified work unchecked.
