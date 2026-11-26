@@ -25,7 +25,7 @@
         <label class="field-label">أكد كود الدخول
           <input id="confirmOwnerPin" type="password" inputmode="numeric" pattern="[0-9]{6,12}" minlength="6" maxlength="12" autocomplete="new-password" placeholder="أعد كتابة الكود" required dir="ltr">
         </label>
-        <button type="submit" class="save-button enabled-button" id="saveOwnerPinButton">حفظ الكود وفتح التطبيق</button>
+        <button type="submit" class="save-button enabled-button" id="saveOwnerPinButton">إنشاء الكود وفتح NOVA</button>
       </form>
       <form id="pinLoginForm" class="owner-login-form" hidden>
         <label class="field-label">كود الدخول
@@ -34,7 +34,7 @@
         <button type="submit" class="save-button enabled-button" id="unlockOwnerButton">دخول</button>
       </form>
       <p class="settings-feedback" id="pinFeedback" role="status" aria-live="polite"></p>
-      <p class="invite-note">حساب المالك: <span dir="ltr">eslammohamedk123450@gmail.com</span></p>
+      <p class="invite-note">الدخول محمي بكود المالك فقط.</p>
     </section>
   </div>
   <div class="app-shell">
@@ -152,7 +152,7 @@
             <section class="settings-section">
         <h3>حساب المالك</h3>
         <p class="security-note">بيانات NOVA ومفاتيح API والذاكرة مرتبطة بحساب المالك فقط.</p>
-        <p class="settings-feedback" id="authFeedback">الوضع الشخصي المحلي مفتوح.</p>
+        <p class="settings-feedback" id="authFeedback">بياناتك ومفاتيحك محفوظة على خادم NOVA الآمن.</p>
         
       </section>
       <section class="settings-section">
