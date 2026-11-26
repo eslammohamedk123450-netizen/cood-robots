@@ -14,7 +14,7 @@
 - The frontend checks the owner user ID. The `nova-ai` Edge Function independently calls `auth.getUser(token)`, rejects anonymous identities and checks the same owner user ID.
 - RLS policies on NOVA provider keys, models, preferences and memories require the owner identity.
 - Other Auth identities receive HTTP 403 from `nova-ai`, even if a user manages to create an Auth account.
-- **Manual dashboard action still required:** disable new user sign-ups under Supabase Authentication settings. This prevents unnecessary accounts from being created at the Auth service level.
+- **Manual dashboard action still required:** disable new user sign-ups and anonymous sign-ins under Supabase Authentication settings. This prevents unnecessary accounts from being created at the Auth service level.
 - Supabase leaked-password protection is currently reported disabled by the Security Advisor. Enable it if available on the current project plan.
 
 ## NOVA database tables
