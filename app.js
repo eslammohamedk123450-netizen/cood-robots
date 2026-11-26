@@ -355,7 +355,7 @@ async function resetOwnerPassword(event) {
   const token = $("recoveryCode").value.trim();
   const password = $("newPassword").value;
   const confirmation = $("confirmNewPassword").value;
-  if (!/^\\d{6}$/.test(token)) {
+  if (!/^\d{6}$/.test(token)) {
     setFeedback("recoveryFeedback", "اكتب كود الاستعادة المكوّن من 6 أرقام.", true);
     return;
   }
