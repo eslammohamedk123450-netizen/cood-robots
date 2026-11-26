@@ -17,7 +17,8 @@ Legend: [x] implemented or deployed; [ ] not yet implemented or not yet verified
 - [x] Create NOVA-owned provider/model/preference tables with RLS enabled.
 - [x] Add owner-scoped SELECT policies for provider and model metadata.
 - [x] Add Vault-backed secret storage/retrieval SQL functions callable only by service_role.
-- [x] Deploy `nova-ai` Edge Function (version 2); it verifies the bearer session with Supabase Auth.
+- [x] Deploy `nova-ai` Edge Function (active version 3); it verifies the bearer session with Supabase Auth.
+- [x] Commit the deployed Edge Function source and the applied SQL migration history under `supabase/`.
 - [x] Add multiple provider-key records, server-side model discovery, per-model enable/disable, and automatic fallback across enabled models.
 - [x] Connect voice/text chat requests to the authenticated `nova-ai` endpoint.
 - [ ] Sign in with the owner account in the live app and test the complete add-key → sync-models → enable-model → chat flow.
