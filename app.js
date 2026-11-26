@@ -2,7 +2,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const SUPABASE_URL = "https://razvryvazmqvvqkzetuo.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_t5xrzZNN6Uj9zhhBLUYQVg_mj7qPjQL";
-const OWNER_EMAIL = "eslammohamedk123450@gmail.com";
 const OWNER_USER_ID = "f980820b-f59d-453c-9df8-2b9afc695c74";
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
@@ -262,7 +261,7 @@ function hideAuthGate() {
   $("ownerLoginPassword").value = "";
 }
 async function acceptOwnerSession(session) {
-  if (!session?.user || session.user.id !== OWNER_USER_ID || session.user.email?.toLowerCase() !== OWNER_EMAIL) {
+  if (!session?.user || session.user.id !== OWNER_USER_ID) {
     await supabase.auth.signOut();
     state.session = null;
     state.providers = []; state.models = [];
@@ -273,7 +272,7 @@ async function acceptOwnerSession(session) {
   state.session = session;
   hideAuthGate();
   $("connectionLabel").textContent = "متصل بحساب المالك";
-  setFeedback("authFeedback", "مسجل الدخول باسم " + OWNER_EMAIL);
+  setFeedback("authFeedback", "مسجل الدخول باسم " + (session.user.email || "حساب المالك"));
   await loadProviders();
   return true;
 }
@@ -284,7 +283,7 @@ async function initializeOwnerSession() {
     if (error) throw error;
     if (data.session) {
       const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData.user || userData.user.id !== OWNER_USER_ID || userData.user.email?.toLowerCase() !== OWNER_EMAIL) {
+      if (userError || !userData.user || userData.user.id !== OWNER_USER_ID) {
         await supabase.auth.signOut();
         showAuthGate("الحساب المحفوظ غير مصرح له. سجّل الدخول بحساب المالك.", true);
         return;
@@ -303,10 +302,6 @@ async function signInOwner(event) {
   event.preventDefault();
   const email = $("ownerLoginEmail").value.trim().toLowerCase();
   const password = $("ownerLoginPassword").value;
-  if (email !== OWNER_EMAIL) {
-    setFeedback("authGateFeedback", "يتطلب كود دعوة. لا توجد أكواد دعوة مفعّلة حاليًا، والدخول متاح لحساب المالك فقط.", true);
-    return;
-  }
   const button = $("ownerLoginButton");
   button.disabled = true; button.textContent = "جاري التحقق...";
   try {
@@ -459,10 +454,10 @@ supabase.auth.onAuthStateChange((_event, session) => {
     renderProviders();
     return;
   }
-  if (session.user?.id === OWNER_USER_ID && session.user?.email?.toLowerCase() === OWNER_EMAIL) {
+  if (session.user?.id === OWNER_USER_ID) {
     state.session = session;
     $("connectionLabel").textContent = "متصل بحساب المالك";
-    setFeedback("authFeedback", "مسجل الدخول باسم " + OWNER_EMAIL);
+    setFeedback("authFeedback", "مسجل الدخول باسم " + (session.user.email || "حساب المالك"));
     void loadProviders();
   } else {
     void supabase.auth.signOut();
