@@ -1,46 +1,26 @@
-# خطة NOVA Desk Robot
+# NOVA — Current Development Plan
 
-## الهدف
+This file is a short entry point. The approved long-term direction and V1 requirements live in the dedicated documents below.
 
-نسخة ويب أولية تمثل عقل وروح روبوت مكتبي قبل بناء الهيكل الإلكتروني. الواجهة تعتمد على المرجع البصري الموجود في `IMG-20261126-WA0000.jpg` وتحتوي على شخصيتي **سولي** و**سولين** بنفس الأسماء والهوية اللونية، مع وجه متفاعل يتغير مع الاستماع والتفكير والتحدث والتنفيذ.
+- Long-term product vision: NOVA_MASTER_VISION.md
+- Approved first-version scope: NOVA_V1_SCOPE.md
+- Mandatory repository/agent restrictions: AGENTS.md and NOVA_EXECUTION_RULES.md
+- Current implementation checklist: TODO.md
 
-## ما تم اختياره
+## Current phase: Voice-first meeting screen
 
-- تطبيق ثابت Vanilla HTML/CSS/JavaScript مناسب لـ GitHub Pages.
-- وضع تجريبي محلي أولًا حتى يمكن اختبار الفكرة بدون حسابات أو مفاتيح.
-- الصوت يعتمد على Web Speech API عندما يدعمه المتصفح. دعم `SpeechRecognition` محدود وقد يستخدم خدمة خارجية في بعض المتصفحات، لذلك تبقى الكتابة هي البديل الأساسي.
-- الكاميرا تعتمد على `getUserMedia` وتعمل عبر HTTPS مع إذن المستخدم. النسخة الحالية تثبت تجربة الكاميرا محليًا ولا تعتبر التعرف البيومتري نظام أمان.
-- Supabase هو المسار المقترح للمرحلة التالية: Authentication للمستخدمين، جداول الأشخاص والصلاحيات، Storage عند الحاجة، وEdge Function لإخفاء مفتاح مزود الذكاء الاصطناعي.
-- لا توجد أسرار داخل المستودع. حقول الإعدادات تحفظ محليًا للتجربة فقط ولا تُستخدم لاتصال حقيقي بعد.
+The V1 interface is a quiet, character-first meeting space for Islam:
+1. Keep Soly (blue) and Soleen (pink) and the existing NOVA dark/gold identity.
+2. Remove camera, face recognition, identity verification demos, guest management, command dashboards, and quick-command controls.
+3. Make microphone conversation the primary interaction.
+4. Keep text entry optional and secondary.
+5. Prepare a dedicated 3D character mount point. The temporary CSS character is not the final 3D model.
+6. Add the authenticated AI, natural Egyptian Arabic speech, and persistent owner memory in later V1 stages.
 
-## الحركة والتصميم
+## Explicitly excluded from the current release
 
-اعتمدت الواجهة أسلوب **Command Deck / Friendly Machine** باحتمال 0.06، مقابل Neon Toy 0.04 وSoft Lab 0.08. الاختيار يوازن بين شكل لوحة تحكم تقنية وبين شخصية ودودة تصلح لاحقًا لشاشة روبوت حقيقية.
+No camera, face recognition, wake-word background service, alarms, desktop/device control, smart-home control, or physical robot movement.
 
-المبادئ هي: (1) الوجه هو نقطة التركيز لا لوحة البيانات، (2) كل حالة للنظام لها لون وحركة، (3) كثافة المعلومات منخفضة وقابلة للاستخدام على الهاتف، (4) لا توجد مفاتيح حساسة في الواجهة العامة. لوحة الألوان داكنة لتقليل وهج شاشة الروبوت، السماوي لحالة الجاهزية، الأزرق لسولي، والوردي لسولين.
+## Execution requirements
 
-التخطيط يستخدم محورًا بصريًا للروبوت بجانب مركز الأوامر بدل شبكة بطاقات متساوية. التوقيع البصري هو شبكة المسرح، مؤشرات الإشارة، والوجه المستعاد من الرسم المرجعي. العناوين تجمع Cairo العربية مع Space Grotesk للأرقام والوسوم التقنية. صوت العلامة مباشر وودود: «خلّي الروبوت يسمعك» و«جهّز العقل قبل الجسم».
-
-## بنية الملفات
-
-- `index.html`: الهيكل العربي RTL، المسارات الثلاثة، وجه الروبوت، المحادثة، الهوية، والكاميرا.
-- `style.css`: النظام البصري المتجاوب وحالات الحركة.
-- `app.js`: إدارة الشخصيات والتعبيرات، الأوامر التجريبية، النطق، التعرف الصوتي، الكاميرا، والإعدادات المحلية.
-- `IMG-20261126-WA0000.jpg`: المرجع الأصلي للشخصيتين.
-- `.github/workflows/pages.yml`: نشر تلقائي إلى GitHub Pages.
-- `manus-routes.json`: تعريف مسارات التطبيق للمعاينة.
-
-## المسار بعد النسخة الأولى
-
-1. إضافة Supabase project وربط البريد/الدخول أو Magic Link.
-2. إنشاء `profiles`, `trusted_people`, `commands`, `robot_settings` مع RLS حسب المستخدم المالك.
-3. نقل طلب الذكاء الاصطناعي إلى Edge Function وعدم استدعاء المزود من المتصفح مباشرة.
-4. إضافة Face API محلية أو خدمة تحقق مدروسة، مع موافقة صريحة وحذف/تشفير descriptors وعدم استخدامها كبديل وحيد للأمان.
-5. إضافة قناة WebSocket أو MQTT عندما يصبح هناك Raspberry Pi/ESP32، مع قائمة أوامر آمنة ووقت انتهاء للأوامر.
-6. بناء جسم مكتبي: شاشة صغيرة، Raspberry Pi أو ESP32 حسب مستوى الذكاء المطلوب، Servo للرقبة/اليد، ميكروفون، سماعة، وحساسات.
-
-## مراجع تقنية
-
-- [1]: https://github.com/vladmandic/face-api/blob/master/TUTORIAL.md "Face API browser model loading and descriptors"
-- [2]: https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition "MDN SpeechRecognition"
-- [3]: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia "MDN getUserMedia"
+Work only on the existing main branch in this one repository. Do not create branches, clones, forks, mirrors, worktrees, or alternate copies without Islam's prior explicit permission. Do not destructively clean Supabase until an itemized inventory is presented and the owner confirms the exact destructive scope.
