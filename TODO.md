@@ -19,7 +19,7 @@ Legend: [x] implemented or deployed; [ ] not yet implemented or not yet verified
 - [x] Create NOVA-owned provider/model/preference tables with RLS enabled.
 - [x] Add owner-scoped SELECT policies for provider and model metadata.
 - [x] Add Vault-backed secret storage/retrieval SQL functions callable only by service_role.
-- [x] Deploy `nova-ai` Edge Function (active version 3); it verifies the bearer session with Supabase Auth.
+- [x] Deploy `nova-ai` Edge Function (active version 5); it verifies the bearer session with Supabase Auth.
 - [x] Commit the deployed Edge Function source and the applied SQL migration history under `supabase/`.
 - [x] Add multiple provider-key records, server-side model discovery, per-model enable/disable, and automatic fallback across enabled models.
 - [x] Add provider dropdown presets for Gemini, OpenRouter, OpenAI, Claude/Anthropic and custom OpenAI-compatible endpoints.
