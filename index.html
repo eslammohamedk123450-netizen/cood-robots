@@ -20,15 +20,32 @@
       <p>سجّل الدخول بحساب المالك عشان تفتح NOVA. الجلسة هتفضل محفوظة على جهازك.</p>
       <form id="ownerLoginForm" class="owner-login-form">
         <label class="field-label">البريد الإلكتروني
-          <input id="ownerLoginEmail" type="email" placeholder="البريد الإلكتروني لحساب المالك" autocomplete="username" required dir="ltr">
+          <input id="ownerLoginEmail" type="email" value="eslammohamedk123450@gmail.com" autocomplete="username" readonly required dir="ltr">
         </label>
         <label class="field-label">كلمة المرور
           <input id="ownerLoginPassword" type="password" autocomplete="current-password" placeholder="كلمة مرور حسابك" required dir="ltr">
         </label>
         <button type="submit" class="save-button enabled-button" id="ownerLoginButton">تسجيل الدخول</button>
-        <p class="settings-feedback" id="authGateFeedback" role="status">الدخول متاح لحساب المالك فقط.</p>
+        <button type="button" class="auth-text-button" id="forgotPasswordButton">نسيت كلمة المرور؟</button>
+        <p class="settings-feedback" id="authGateFeedback" role="status">الدخول متاح للبريد الشخصي المصرّح به فقط.</p>
       </form>
-      <p class="invite-note">لو الحساب مش الحساب المصرّح به، هتحتاج كود دعوة. مفيش أكواد دعوة مفعّلة حاليًا.</p>
+      <form id="passwordRecoveryForm" class="owner-login-form recovery-form" hidden>
+        <p class="recovery-intro">هنبعت كود استعادة مكوّن من 6 أرقام إلى بريدك الشخصي. أدخل الكود ثم اختار كلمة مرور جديدة.</p>
+        <button type="button" class="auth-text-button" id="sendRecoveryCodeButton">إرسال كود إلى بريدي</button>
+        <label class="field-label" id="recoveryCodeLabel" hidden>كود الاستعادة
+          <input id="recoveryCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" dir="ltr">
+        </label>
+        <label class="field-label" id="newPasswordLabel" hidden>كلمة المرور الجديدة
+          <input id="newPassword" type="password" autocomplete="new-password" minlength="8" placeholder="8 أحرف على الأقل" dir="ltr">
+        </label>
+        <label class="field-label" id="confirmPasswordLabel" hidden>تأكيد كلمة المرور الجديدة
+          <input id="confirmNewPassword" type="password" autocomplete="new-password" minlength="8" placeholder="اكتب كلمة المرور مرة أخرى" dir="ltr">
+        </label>
+        <button type="submit" class="save-button enabled-button" id="resetPasswordButton" hidden>تأكيد الكود وتغيير كلمة المرور</button>
+        <button type="button" class="auth-text-button" id="backToLoginButton">العودة لتسجيل الدخول</button>
+        <p class="settings-feedback" id="recoveryFeedback" role="status" aria-live="polite"></p>
+      </form>
+      <p class="invite-note">هذا التطبيق خاص بحساب واحد فقط، ولا يمكن إنشاء حسابات جديدة من شاشة الدخول.</p>
     </section>
   </div>
   <div class="app-shell">
