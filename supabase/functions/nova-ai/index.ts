@@ -258,6 +258,19 @@ Deno.serve(async (req: Request) => {
     const body = await readJsonBody(req);
     const action = cleanString(body?.action, 40);
 
+    if (action === "check_session") {
+      const supplied = typeof body?.token === "string" ? body.token : "";
+      if (!supplied) return json({ valid: false }, 200, origin);
+      const tokenHash = await sha256Hex(supplied);
+      const { data: row, error } = await admin.from("nova_owner_sessions")
+        .select("token_hash").eq("token_hash", tokenHash).eq("user_id", OWNER_USER_ID)
+        .gt("expires_at", new Date().toISOString()).maybeSingle();
+      if (error || !row) return json({ valid: false }, 200, origin);
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      await admin.from("nova_owner_sessions").update({ last_used_at: new Date().toISOString(), expires_at: expiresAt }).eq("token_hash", tokenHash);
+      return json({ valid: true, expires_at: expiresAt }, 200, origin);
+    }
+
     if (action === "check_setup") {
       const { data, error } = await admin.from("nova_owner_pin_auth").select("id").eq("id", 1).maybeSingle();
       if (error) throw new Error("Owner PIN setup status unavailable");
@@ -337,6 +350,8 @@ Deno.serve(async (req: Request) => {
     await admin.from("nova_owner_sessions").update({ last_used_at: new Date().toISOString() }).eq("token_hash", tokenHash);
     const actionLimits: Record<string, number> = {
       list: 60,
+      profile_get: 30,
+      profile_save: 10,
       add_provider: 5,
       sync_models: 10,
       toggle_model: 30,
@@ -359,6 +374,22 @@ Deno.serve(async (req: Request) => {
         status: 429,
         headers: { ...cors(origin), "Content-Type": "application/json", "Cache-Control": "no-store", "Retry-After": "60" },
       });
+    }
+
+    if (action === "profile_get") {
+      const { data, error } = await admin.from("nova_owner_profile_memory")
+        .select("profile_text,updated_at").eq("user_id", userId).maybeSingle();
+      if (error) throw error;
+      return json({ profile: data?.profile_text ?? "", updated_at: data?.updated_at ?? null }, 200, origin);
+    }
+    if (action === "profile_save") {
+      const profile = typeof body?.profile === "string" ? body.profile.trim().slice(0, 12000) : "";
+      if (!profile) return json({ error: "اكتب معلومات الذاكرة أولًا." }, 400, origin);
+      const { data, error } = await admin.from("nova_owner_profile_memory")
+        .upsert({ user_id: userId, profile_text: profile, updated_at: new Date().toISOString() }, { onConflict: "user_id" })
+        .select("profile_text,updated_at").single();
+      if (error) throw error;
+      return json({ profile: data.profile_text, updated_at: data.updated_at, saved: true }, 200, origin);
     }
 
     if (action === "list") {
