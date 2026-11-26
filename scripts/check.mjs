@@ -47,7 +47,7 @@ assert.match(html, /id="speechFemaleVoice"/, "The UI must provide a female voice
 assert.match(html, /Sonex Labs API/, "The UI must identify the Sonex API key field");
 assert.match(app, /invokeNova\("tts"/, "Client must request generated speech from the server");
 assert.match(app, /SpeechSynthesisUtterance/, "The optional on-device speech engine must remain available");
-assert.match(app, /audio\\/mpeg/, "The client must accept Sonex MP3 audio");
+assert.match(app, /audio\/mpeg/, "The client must accept Sonex MP3 audio");
 assert.match(app, /nova:authenticated/, "The app must receive the authenticated server session");
 assert.doesNotMatch(html, /id="pinSetupForm"|إنشاء كود المالك/, "PIN creation screen must be removed after initial setup");
 assert.match(html, /id="pinLoginForm"/, "Returning owner PIN form must exist");
