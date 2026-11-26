@@ -260,7 +260,7 @@ function hideAuthGate() {
   $("authGate").hidden = true;
   $("ownerLoginPassword").value = "";
 }
-async async function acceptOwnerSession(session) {
+async function acceptOwnerSession(session) {
   if (!session?.user || session.user.id !== OWNER_USER_ID) {
     await supabase.auth.signOut();
     state.session = null;
