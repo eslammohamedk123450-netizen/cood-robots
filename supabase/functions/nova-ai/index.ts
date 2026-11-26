@@ -179,6 +179,28 @@ Deno.serve(async (req: Request) => {
   try {
     const body = await readJsonBody(req);
     const action = cleanString(body?.action, 40);
+    const actionLimits: Record<string, number> = {
+      list: 60,
+      add_provider: 5,
+      sync_models: 10,
+      toggle_model: 30,
+      chat: 20,
+    };
+    const requestLimit = actionLimits[action];
+    if (!requestLimit) return json({ error: "Unknown action" }, 400, origin);
+    const { data: allowed, error: limitError } = await admin.rpc("nova_consume_rate_limit", {
+      p_user_id: userId,
+      p_action: action,
+      p_limit: requestLimit,
+      p_window_seconds: 60,
+    });
+    if (limitError) throw new Error("Rate limit protection unavailable");
+    if (allowed !== true) {
+      return new Response(JSON.stringify({ error: "طلبات كتير في وقت قصير. استنى دقيقة وجرب تاني." }), {
+        status: 429,
+        headers: { ...cors(origin), "Content-Type": "application/json", "Cache-Control": "no-store", "Retry-After": "60" },
+      });
+    }
 
     if (action === "list") {
       const { data: providers, error } = await admin.from("nova_api_keys")
