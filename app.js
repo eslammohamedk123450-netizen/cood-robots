@@ -127,20 +127,22 @@ async function speak(text) {
       animateCharacter("happy");
       return;
     }
-    const result = await invokeNova("tts", { text: spokenText, persona });
+    const voiceId = localStorage.getItem(persona === "soleen" ? "nova.sonex.voice.female" : "nova.sonex.voice.male") || "";
+    const result = await invokeNova("tts", { text: spokenText, persona, voice_id: voiceId });
     if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
     const mime = String(result.mime_type || "").split(";")[0].trim().toLowerCase();
-    if (mime !== "audio/wav" && mime !== "audio/x-wav") {
+    if (mime !== "audio/mpeg" && mime !== "audio/mp3" && mime !== "audio/wav" && mime !== "audio/x-wav") {
       throw new Error("الخادم رجّع صيغة صوت غير مدعومة: " + (mime || "غير معروفة"));
     }
     const binary = atob(result.audio);
-    if (binary.length < 48 || binary.slice(0, 4) !== "RIFF" || binary.slice(8, 12) !== "WAVE") {
-      throw new Error("ملف الصوت المستلم ليس WAV صالحًا (RIFF/WAVE غير موجود).");
+    if (binary.length < 48) throw new Error("ملف الصوت المستلم فارغ أو غير صالح.");
+    if ((mime === "audio/wav" || mime === "audio/x-wav") && (binary.slice(0, 4) !== "RIFF" || binary.slice(8, 12) !== "WAVE")) {
+      throw new Error("ملف WAV المستلم غير صالح.");
     }
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    const wavBlob = new Blob([bytes], { type: "audio/wav" });
-    currentSpeechUrl = URL.createObjectURL(wavBlob);
+    const audioBlob = new Blob([bytes], { type: mime });
+    currentSpeechUrl = URL.createObjectURL(audioBlob);
     const audio = new Audio();
     audio.preload = "auto"; audio.src = currentSpeechUrl; audio.playsInline = true;
     speechAudioElement = audio;
@@ -404,14 +406,37 @@ async function saveOwnerMemory() {
   } catch (error) { setFeedback("memoryFeedback", error.message, true); }
   finally { button.disabled = false; }
 }
+async function loadSonexVoices() {
+  const result = await invokeNova("speech_voices");
+  const voices = Array.isArray(result.voices) ? result.voices : [];
+  const fill = (select, gender, storageKey) => {
+    const options = voices.filter(v => v.gender === gender);
+    const usable = options.length ? options : voices;
+    select.replaceChildren();
+    for (const voice of usable) {
+      const option = document.createElement("option");
+      option.value = voice.id;
+      option.textContent = [voice.name || voice.id, voice.language || (voice.languages || []).join(", ")].filter(Boolean).join(" — ");
+      select.appendChild(option);
+    }
+    const saved = localStorage.getItem(storageKey);
+    if (saved && [...select.options].some(o => o.value === saved)) select.value = saved;
+    if (select.value) localStorage.setItem(storageKey, select.value);
+  };
+  fill($("speechMaleVoice"), "male", "nova.sonex.voice.male");
+  fill($("speechFemaleVoice"), "female", "nova.sonex.voice.female");
+  if (!voices.length) throw new Error("Sonex لم يرجع أصواتًا متاحة.");
+  setFeedback("speechFeedback", "تم تحميل " + voices.length + " صوتًا. اختار صوت سولي وسولين من القائمتين.");
+}
 async function loadSpeechSettings() {
   if (!state.session) return;
   try {
     const result = await invokeNova("speech_get");
-    if ($("speechRegion") && result.region) $("speechRegion").value = result.region;
-    setFeedback("speechFeedback", result.configured
-      ? "الصوت المصري الثابت متصل: " + (result.voice_male || "ShakirNeural") + " / " + (result.voice_female || "SalmaNeural")
-      : "أضف مفتاح Microsoft Speech مرة واحدة لتفعيل صوت سولي الثابت.");
+    if (result.configured) {
+      setFeedback("speechFeedback", "مفتاح Sonex Labs محفوظ بأمان في Supabase Vault.");
+      try { await loadSonexVoices(); }
+      catch (voiceError) { setFeedback("speechFeedback", "المفتاح محفوظ، لكن تعذر تحميل الأصوات: " + voiceError.message, true); }
+    } else setFeedback("speechFeedback", "أضف مفتاح Sonex Labs الذي يبدأ بـ vsk_ لتفعيل الصوت.");
   } catch (error) {
     setFeedback("speechFeedback", "تعذر قراءة إعدادات الصوت: " + error.message, true);
   }
@@ -419,23 +444,19 @@ async function loadSpeechSettings() {
 async function saveSpeechSettings() {
   const button = $("saveSpeechSettings");
   const api_key = $("speechApiKey")?.value.trim() || "";
-  const region = $("speechRegion")?.value.trim() || "";
-  if (!api_key || !region) {
-    setFeedback("speechFeedback", "اكتب مفتاح Microsoft Speech والمنطقة (Region).", true);
-    return;
-  }
+  if (!api_key) { setFeedback("speechFeedback", "الصق مفتاح Sonex Labs أولًا.", true); return; }
   button.disabled = true;
-  button.textContent = "جاري حفظ إعدادات الصوت...";
+  button.textContent = "جاري حفظ المفتاح في Supabase...";
   try {
-    await invokeNova("speech_save", { api_key, region });
+    await invokeNova("speech_save", { api_key });
     $("speechApiKey").value = "";
     await loadSpeechSettings();
-    setFeedback("speechFeedback", "اتحفظ الصوت المصري الثابت بأمان. سولي هتستخدم نفس الصوت مع أي نموذج محادثة.");
+    setFeedback("speechFeedback", "تم حفظ مفتاح Sonex Labs داخل Supabase Vault.");
   } catch (error) {
     setFeedback("speechFeedback", error.message, true);
   } finally {
     button.disabled = false;
-    button.textContent = "حفظ الصوت الثابت";
+    button.textContent = "حفظ مفتاح Sonex Labs بأمان";
   }
 }
 async function requestAIReply(text) {
@@ -575,6 +596,15 @@ $("ownerName").addEventListener("change", (event) => {
 $("addProviderButton").addEventListener("click", () => void addProvider());
 $("saveOwnerMemory")?.addEventListener("click", () => void saveOwnerMemory());
 $("saveSpeechSettings")?.addEventListener("click", () => void saveSpeechSettings());
+$("reloadSpeechVoices")?.addEventListener("click", async () => {
+  const button = $("reloadSpeechVoices");
+  button.disabled = true;
+  try { await loadSonexVoices(); }
+  catch (error) { setFeedback("speechFeedback", error.message, true); }
+  finally { button.disabled = false; }
+});
+$("speechMaleVoice")?.addEventListener("change", (event) => localStorage.setItem("nova.sonex.voice.male", event.target.value));
+$("speechFemaleVoice")?.addEventListener("change", (event) => localStorage.setItem("nova.sonex.voice.female", event.target.value));
 
 const speechEngineSelect = $("speechEngine");
 if (speechEngineSelect) {
