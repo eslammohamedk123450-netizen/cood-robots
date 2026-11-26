@@ -1,0 +1,18 @@
+create or replace function public.nova_store_api_secret(p_name text, p_secret text)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare v_secret_id uuid;
+begin
+  if p_secret is null or length(p_secret) < 8 or length(p_secret) > 4096 then
+    raise exception 'Invalid API key';
+  end if;
+  select vault.create_secret(p_secret, left(coalesce(p_name, 'NOVA provider key'), 100), 'NOVA provider API credential')
+    into v_secret_id;
+  return v_secret_id;
+end;
+$$;
+revoke all on function public.nova_store_api_secret(text,text) from public, anon, authenticated;
+grant execute on function public.nova_store_api_secret(text,text) to service_role;
