@@ -10,7 +10,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soly", emotion: "idle", listening: false, speaking: false,
-  recognition: null, restartRecognition: false, passwordRecovery: new URLSearchParams(window.location.hash.slice(1)).get("type") === "recovery", ownerName: "إسلام",
+  recognition: null, restartRecognition: false, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
   messages: [], session: null, providers: [], models: []
 };
 const personas = {
@@ -329,7 +329,9 @@ function showPasswordResetForm() {
   $("ownerLoginForm").hidden = true;
   $("passwordRecoveryForm").hidden = false;
   $("sendRecoveryCodeButton").hidden = true;
+  $("verifyRecoveryCodeButton").hidden = true;
   $("recoveryEmailLabel").hidden = true;
+  $("recoveryCodeLabel").hidden = true;
   $("newPasswordLabel").hidden = false;
   $("confirmPasswordLabel").hidden = false;
   $("resetPasswordButton").hidden = false;
@@ -341,31 +343,71 @@ function openPasswordRecovery() {
   $("ownerLoginForm").hidden = true;
   $("passwordRecoveryForm").hidden = false;
   $("sendRecoveryCodeButton").hidden = false;
+  $("verifyRecoveryCodeButton").hidden = true;
   $("recoveryEmailLabel").hidden = false;
+  $("recoveryCodeLabel").hidden = true;
   $("newPasswordLabel").hidden = true;
   $("confirmPasswordLabel").hidden = true;
   $("resetPasswordButton").hidden = true;
   $("newPassword").required = false;
   $("confirmNewPassword").required = false;
-  setFeedback("recoveryFeedback", "اكتب بريد الحساب المصرّح به. هنرسل له رابط تأكيد، وبعد فتحه هتقدر تعيّن كلمة مرور جديدة.");
+  $("recoveryCode").value = "";
+  state.recoveryEmail = "";
+  setFeedback("recoveryFeedback", "اكتب بريد الحساب المصرّح به. هنرسل لك كود تحقق على Gmail، وبعدها اكتبه هنا لتعيين كلمة مرور جديدة.");
 }
-async function sendRecoveryLink() {
+async function sendRecoveryCode() {
   const button = $("sendRecoveryCodeButton");
   button.disabled = true;
-  button.textContent = "جاري إرسال الرابط...";
+  button.textContent = "جاري إرسال الكود...";
   setFeedback("recoveryFeedback", "");
   try {
     const email = $("recoveryEmail").value.trim().toLowerCase();
     if (email !== OWNER_EMAIL) throw new Error("هذا البريد غير مصرح له باستعادة كلمة المرور.");
-    const redirectTo = window.location.origin + window.location.pathname;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
     if (error) throw error;
-    setFeedback("recoveryFeedback", "لو إعدادات البريد مفعّلة، هيوصلك رابط تأكيد. افتحه من نفس المتصفح؛ بعد التحقق هتظهر شاشة إنشاء كلمة المرور الجديدة. راجع الوارد والرسائل غير المرغوب فيها.");
+    state.recoveryEmail = email;
+    $("recoveryEmailLabel").hidden = true;
+    $("sendRecoveryCodeButton").hidden = true;
+    $("recoveryCodeLabel").hidden = false;
+    $("verifyRecoveryCodeButton").hidden = false;
+    $("recoveryCode").focus();
+    setFeedback("recoveryFeedback", "افتح رسالة Supabase في Gmail وانسخ كود التحقق المكوّن من 6 أرقام، ثم اكتبه هنا. لو الرسالة فيها رابط فقط، لازم تعديل قالب Reset Password في Supabase ليعرض {{ .Token }}.");
   } catch (error) {
-    setFeedback("recoveryFeedback", error.message || "تعذر إرسال رابط الاستعادة.", true);
+    setFeedback("recoveryFeedback", error.message || "تعذر إرسال كود الاستعادة.", true);
   } finally {
     button.disabled = false;
-    button.textContent = "إعادة إرسال رابط الاستعادة";
+    button.textContent = "إرسال كود التحقق";
+  }
+}
+async function verifyRecoveryCode() {
+  const button = $("verifyRecoveryCodeButton");
+  const token = $("recoveryCode").value.trim().replace(/\s+/g, "");
+  if (!state.recoveryEmail || state.recoveryEmail !== OWNER_EMAIL) {
+    setFeedback("recoveryFeedback", "ابدأ بطلب كود جديد على البريد المصرّح به.", true);
+    return;
+  }
+  if (!/^\d{6}$/.test(token)) {
+    setFeedback("recoveryFeedback", "اكتب كود التحقق المكوّن من 6 أرقام.", true);
+    return;
+  }
+  button.disabled = true;
+  button.textContent = "جاري التحقق...";
+  try {
+    const { data, error } = await supabase.auth.verifyOtp({ email: state.recoveryEmail, token, type: "recovery" });
+    if (error) throw error;
+    if (!data.user || data.user.id !== OWNER_USER_ID || data.user.email?.toLowerCase() !== OWNER_EMAIL) {
+      await supabase.auth.signOut();
+      throw new Error("الكود لا يخص حساب المالك المصرّح به.");
+    }
+    state.session = data.session;
+    state.passwordRecovery = true;
+    showPasswordResetForm();
+    setFeedback("recoveryFeedback", "تم التحقق من الكود بنجاح. اكتب كلمة المرور الجديدة مرتين.");
+  } catch (error) {
+    setFeedback("recoveryFeedback", error.message || "الكود غير صحيح أو انتهت صلاحيته. اطلب كودًا جديدًا.", true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "تحقق من الكود";
   }
 }
 async function resetOwnerPassword(event) {
@@ -397,7 +439,9 @@ async function resetOwnerPassword(event) {
     $("passwordRecoveryForm").reset();
     $("passwordRecoveryForm").hidden = true;
     $("sendRecoveryCodeButton").hidden = false;
+    $("verifyRecoveryCodeButton").hidden = true;
     $("recoveryEmailLabel").hidden = false;
+    $("recoveryCodeLabel").hidden = true;
     $("ownerLoginForm").hidden = false;
     $("ownerLoginPassword").value = "";
     setFeedback("authGateFeedback", "تم تغيير كلمة المرور بنجاح. سجّل الدخول بكلمة المرور الجديدة.");
@@ -536,13 +580,19 @@ $("settingsDialog").addEventListener("click", (event) => { if (event.target === 
 
 $("ownerLoginForm").addEventListener("submit", signInOwner);
 $("forgotPasswordButton").addEventListener("click", openPasswordRecovery);
-$("sendRecoveryCodeButton").addEventListener("click", () => void sendRecoveryLink());
+$("sendRecoveryCodeButton").addEventListener("click", () => void sendRecoveryCode());
+$("verifyRecoveryCodeButton").addEventListener("click", () => void verifyRecoveryCode());
 $("passwordRecoveryForm").addEventListener("submit", resetOwnerPassword);
 $("backToLoginButton").addEventListener("click", () => {
   $("passwordRecoveryForm").hidden = true;
   $("recoveryEmailLabel").hidden = false;
   $("ownerLoginForm").hidden = false;
   $("passwordRecoveryForm").reset();
+  state.recoveryEmail = "";
+  $("recoveryEmailLabel").hidden = false;
+  $("recoveryCodeLabel").hidden = true;
+  $("verifyRecoveryCodeButton").hidden = true;
+  $("sendRecoveryCodeButton").hidden = false;
   state.passwordRecovery = false;
   void supabase.auth.signOut();
   setFeedback("recoveryFeedback", "");
