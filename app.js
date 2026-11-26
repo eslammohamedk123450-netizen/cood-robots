@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const SUPABASE_URL = "https://razvryvazmqvvqkzetuo.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_t5xrzZNN6Uj9zhhBLUYQVg_mj7qPjQL";
 const OWNER_USER_ID = "f980820b-f59d-453c-9df8-2b9afc695c74";
+const OWNER_EMAIL = "eslammohamedk123450@gmail.com";
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
 });
@@ -261,7 +262,7 @@ function hideAuthGate() {
   $("ownerLoginPassword").value = "";
 }
 async function acceptOwnerSession(session) {
-  if (!session?.user || session.user.id !== OWNER_USER_ID) {
+  if (!session?.user || session.user.id !== OWNER_USER_ID || session.user.email?.toLowerCase() !== OWNER_EMAIL) {
     await supabase.auth.signOut();
     state.session = null;
     state.providers = []; state.models = [];
@@ -283,7 +284,7 @@ async function initializeOwnerSession() {
     if (error) throw error;
     if (data.session) {
       const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData.user || userData.user.id !== OWNER_USER_ID) {
+      if (userError || !userData.user || userData.user.id !== OWNER_USER_ID || userData.user.email?.toLowerCase() !== OWNER_EMAIL) {
         await supabase.auth.signOut();
         showAuthGate("الحساب المحفوظ غير مصرح له. سجّل الدخول بحساب المالك.", true);
         return;
@@ -300,7 +301,7 @@ async function initializeOwnerSession() {
 }
 async function signInOwner(event) {
   event.preventDefault();
-  const email = $("ownerLoginEmail").value.trim().toLowerCase();
+  const email = OWNER_EMAIL;
   const password = $("ownerLoginPassword").value;
   const button = $("ownerLoginButton");
   button.disabled = true; button.textContent = "جاري التحقق...";
@@ -316,6 +317,80 @@ async function signInOwner(event) {
     setFeedback("authGateFeedback", "تعذر تسجيل الدخول. راجع البريد وكلمة المرور.", true);
   } finally {
     button.disabled = false; button.textContent = "تسجيل الدخول";
+  }
+}
+function showRecoveryCodeFields() {
+  $("recoveryCodeLabel").hidden = false;
+  $("newPasswordLabel").hidden = false;
+  $("confirmPasswordLabel").hidden = false;
+  $("resetPasswordButton").hidden = false;
+  $("recoveryCode").required = true;
+  $("newPassword").required = true;
+  $("confirmNewPassword").required = true;
+}
+function openPasswordRecovery() {
+  $("ownerLoginForm").hidden = true;
+  $("passwordRecoveryForm").hidden = false;
+  setFeedback("recoveryFeedback", "هنرسل الكود إلى البريد الشخصي المصرّح به فقط.");
+}
+async function sendRecoveryCode() {
+  const button = $("sendRecoveryCodeButton");
+  button.disabled = true;
+  button.textContent = "جاري إرسال الكود...";
+  setFeedback("recoveryFeedback", "");
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(OWNER_EMAIL);
+    if (error) throw error;
+    showRecoveryCodeFields();
+    setFeedback("recoveryFeedback", "لو إعدادات البريد مفعّلة، هيوصلك كود الاستعادة. راجع الوارد والرسائل غير المرغوب فيها.");
+  } catch (error) {
+    setFeedback("recoveryFeedback", error.message || "تعذر إرسال كود الاستعادة.", true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "إعادة إرسال كود الاستعادة";
+  }
+}
+async function resetOwnerPassword(event) {
+  event.preventDefault();
+  const token = $("recoveryCode").value.trim();
+  const password = $("newPassword").value;
+  const confirmation = $("confirmNewPassword").value;
+  if (!/^\\d{6}$/.test(token)) {
+    setFeedback("recoveryFeedback", "اكتب كود الاستعادة المكوّن من 6 أرقام.", true);
+    return;
+  }
+  if (password.length < 8) {
+    setFeedback("recoveryFeedback", "كلمة المرور لازم تكون 8 أحرف على الأقل.", true);
+    return;
+  }
+  if (password !== confirmation) {
+    setFeedback("recoveryFeedback", "كلمتا المرور غير متطابقتين.", true);
+    return;
+  }
+  const button = $("resetPasswordButton");
+  button.disabled = true;
+  button.textContent = "جاري التحقق وتحديث كلمة المرور...";
+  try {
+    const { data, error } = await supabase.auth.verifyOtp({ email: OWNER_EMAIL, token, type: "recovery" });
+    if (error) throw error;
+    if (!data.user || data.user.id !== OWNER_USER_ID || data.user.email?.toLowerCase() !== OWNER_EMAIL) {
+      await supabase.auth.signOut();
+      throw new Error("هذا البريد غير مرتبط بحساب المالك المصرّح به.");
+    }
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+    if (updateError) throw updateError;
+    await supabase.auth.signOut();
+    $("passwordRecoveryForm").reset();
+    $("passwordRecoveryForm").hidden = true;
+    $("ownerLoginForm").hidden = false;
+    $("ownerLoginPassword").value = "";
+    setFeedback("authGateFeedback", "تم تغيير كلمة المرور بنجاح. سجّل الدخول بكلمة المرور الجديدة.");
+    showToast("تم تحديث كلمة المرور بنجاح");
+  } catch (error) {
+    setFeedback("recoveryFeedback", error.message || "الكود غير صحيح أو انتهت صلاحيته.", true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "تأكيد الكود وتغيير كلمة المرور";
   }
 }
 async function signOutOwner() {
@@ -444,6 +519,15 @@ $("providerBaseUrl").addEventListener("input", () => { $("providerBaseUrl").data
 $("settingsDialog").addEventListener("click", (event) => { if (event.target === $("settingsDialog")) closeSettings(); });
 
 $("ownerLoginForm").addEventListener("submit", signInOwner);
+$("forgotPasswordButton").addEventListener("click", openPasswordRecovery);
+$("sendRecoveryCodeButton").addEventListener("click", () => void sendRecoveryCode());
+$("passwordRecoveryForm").addEventListener("submit", resetOwnerPassword);
+$("backToLoginButton").addEventListener("click", () => {
+  $("passwordRecoveryForm").hidden = true;
+  $("ownerLoginForm").hidden = false;
+  $("passwordRecoveryForm").reset();
+  setFeedback("recoveryFeedback", "");
+});
 $("ownerSignOutButton").addEventListener("click", () => void signOutOwner());
 supabase.auth.onAuthStateChange((_event, session) => {
   if (!session) {
@@ -454,7 +538,7 @@ supabase.auth.onAuthStateChange((_event, session) => {
     renderProviders();
     return;
   }
-  if (session.user?.id === OWNER_USER_ID) {
+  if (session.user?.id === OWNER_USER_ID && session.user.email?.toLowerCase() === OWNER_EMAIL) {
     state.session = session;
     $("connectionLabel").textContent = "متصل بحساب المالك";
     setFeedback("authFeedback", "مسجل الدخول باسم " + (session.user.email || "حساب المالك"));
