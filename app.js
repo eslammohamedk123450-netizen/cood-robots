@@ -274,7 +274,7 @@ async function initializeDeviceSession() {
   }
 }
 async function requestAIReply(text) {
-  if (!state.session) return "أنا سامعك يا " + state.ownerName + ". سجّل دخولك من الإعدادات، وبعدها أضف مفتاح API عشان أقدر أرد عليك بذكاء اصطناعي حقيقي.";
+  if (!state.session) return "أنا سامعك يا " + state.ownerName + ". لسه الاتصال التلقائي بيتجهز. افتح الإعدادات وشوف حالة الاتصال، وبعدها أضف مفتاح API.";
   if (!state.messages.length) {
     state.messages.push({
       role: "system",
