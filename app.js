@@ -66,10 +66,10 @@ function addConversationLine(text, speaker) {
 let currentSpeechUrl = null;
 function cleanSpeechText(value) {
   return String(value || "")
-    .replace(/```[\\s\\S]*?```/g, " تم عرض كود في الرسالة. ")
-    .replace(/https?:\\/\\/\\S+/g, " الرابط موجود في الرسالة. ")
-    .replace(/[*_#>\\x60]/g, "")
-    .replace(/\\s+/g, " ")
+    .replace(/```[\s\S]*?```/g, " تم عرض كود في الرسالة. ")
+    .replace(/https?:\/\/\S+/g, " الرابط موجود في الرسالة. ")
+    .replace(/[*_#>\x60]/g, "")
+    .replace(/\s+/g, " ")
     .trim()
     .slice(0, 2600);
 }
