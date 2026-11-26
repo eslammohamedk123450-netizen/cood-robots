@@ -118,6 +118,12 @@ Deno.serve(async (req: Request) => {
   const { data: authData, error: authError } = await userClient.auth.getUser(token);
   if (authError || !authData.user) return json({ error: "Invalid or expired session" }, 401, origin);
   const userId = authData.user.id;
+  const ownerEmail = (authData.user.email ?? "").toLowerCase();
+  const OWNER_USER_ID = "f980820b-f59d-453c-9df8-2b9afc695c74";
+  const OWNER_EMAIL = "eslammohamedk123450@gmail.com";
+  if (userId !== OWNER_USER_ID || ownerEmail !== OWNER_EMAIL || authData.user.is_anonymous === true) {
+    return json({ error: "هذا التطبيق خاص بحساب المالك. يتطلب كود دعوة، ولا توجد أكواد دعوة مفعّلة حاليًا." }, 403, origin);
+  }
   const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 
   try {
