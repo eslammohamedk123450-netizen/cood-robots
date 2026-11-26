@@ -160,3 +160,9 @@ body[data-mood="happy"] .mouth{height:13px}
 .recovery-form{margin-top:14px}
 .recovery-intro{margin:0;color:#aab3c2;font-size:11px;line-height:1.9}
 .auth-card [hidden]{display:none!important}
+
+/* Owner PIN gate */
+.pin-gate-note{direction:ltr;text-align:center;overflow-wrap:anywhere}
+#pinFeedback{min-height:20px;margin:4px 0 0;text-align:center;line-height:1.8}
+#pinSetupForm input,#pinLoginForm input{font-size:20px;letter-spacing:5px;text-align:center}
+#pinSetupForm[hidden],#pinLoginForm[hidden]{display:none!important}
