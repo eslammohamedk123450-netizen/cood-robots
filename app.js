@@ -235,6 +235,7 @@ async function signIn() {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     state.session = data.session;
+    $("connectionLabel").textContent = "متصل بحساب المالك";
     $("authPassword").value = "";
     setFeedback("authFeedback", "تم تسجيل الدخول بحساب المالك.");
     await loadProviders();
@@ -244,6 +245,7 @@ async function signIn() {
 async function signOut() {
   await supabase.auth.signOut();
   state.session = null; state.providers = []; state.models = [];
+  $("connectionLabel").textContent = "جاهز أقابلك";
   $("providerList").innerHTML = '<p class="empty-provider-list">سجّل الدخول لعرض مفاتيحك ونماذجك.</p>';
   setFeedback("authFeedback", "تم تسجيل الخروج.");
 }
