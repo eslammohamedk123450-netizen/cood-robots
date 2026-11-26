@@ -94,6 +94,9 @@ function speak(text) {
   utterance.onerror = () => {
     state.speaking = false;
     setStatus('حصلت مشكلة في تشغيل الصوت', 'error');
+    if (state.listening && state.recognition) {
+      window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 300);
+    }
   };
   window.speechSynthesis.speak(utterance);
 }
