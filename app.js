@@ -152,9 +152,10 @@ async function speak(text) {
     try {
       await audio.play();
     } catch (playError) {
-      if (playError?.name !== "NotSupportedError") throw playError;
+      // Android browsers can reject delayed HTMLAudio playback after a network round-trip.
+      // Reuse the AudioContext unlocked by the original send/microphone tap.
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) throw playError;
+      if (!AudioContextClass || !["NotSupportedError", "NotAllowedError"].includes(playError?.name)) throw playError;
       if (!speechAudioContext) speechAudioContext = new AudioContextClass();
       if (speechAudioContext.state === "suspended") await speechAudioContext.resume();
       const buffer = await speechAudioContext.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
@@ -433,7 +434,11 @@ async function loadSpeechSettings() {
   try {
     const result = await invokeNova("speech_get");
     if (result.configured) {
-      setFeedback("speechFeedback", "مفتاح Sonex Labs محفوظ بأمان في Supabase Vault.");
+      // The credential is stored centrally, so newly installed clients must also select the server engine.
+      if ($("speechEngine")) $("speechEngine").value = "server";
+      localStorage.setItem("nova.speech.engine", "server");
+      setFeedback("speechEngineFeedback", "Sonex Labs متصل عبر Supabase وجاهز لتوليد الصوت.");
+      setFeedback("speechFeedback", "مفتاح Sonex Labs محفوظ بأمان في Supabase Vault. تم تفعيل الصوت السحابي تلقائيًا.");
       try { await loadSonexVoices(); }
       catch (voiceError) { setFeedback("speechFeedback", "المفتاح محفوظ، لكن تعذر تحميل الأصوات: " + voiceError.message, true); }
     } else setFeedback("speechFeedback", "أضف مفتاح Sonex Labs الذي يبدأ بـ vsk_ لتفعيل الصوت.");
@@ -573,12 +578,27 @@ function startListening() {
   try { recognition.start(); }
   catch (_) { state.listening = false; state.restartRecognition = false; showToast("مش قادر أشغل الميكروفون دلوقتي. جرّب تاني."); }
 }
+function prepareSpeechPlayback() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+  try {
+    if (!speechAudioContext) speechAudioContext = new AudioContextClass();
+    if (speechAudioContext.state === "suspended") void speechAudioContext.resume().catch(() => {});
+  } catch (error) {
+    console.warn("Audio playback context could not be prepared.", error);
+  }
+}
 function submitText(text) {
   const clean = text.trim(); if (!clean) return;
+  // Unlock mobile-browser audio during the user's tap, before the AI network request.
+  prepareSpeechPlayback();
   $("textInput").value = ""; void handleRecognizedText(clean);
 }
 
-$("micButton").addEventListener("click", () => state.listening ? stopListening() : startListening());
+$("micButton").addEventListener("click", () => {
+  prepareSpeechPlayback();
+  state.listening ? stopListening() : startListening();
+});
 $("textToggle").addEventListener("click", () => {
   $("textForm").classList.toggle("hidden");
   if (!$("textForm").classList.contains("hidden")) $("textInput").focus();
