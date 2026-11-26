@@ -123,7 +123,7 @@ const providerDefaults = {
   custom: { label: "مزود مخصص", url: "https://api.example.com/v1" }
 };
 async function invokeNova(action, payload = {}) {
-  if (!state.session) throw new Error("لسه بنجهز جلسة الجهاز. استنى لحظة وجرب تاني.");
+  if (!state.session) throw new Error("ربط الذكاء الاصطناعي والخدمات السحابية مؤجل حاليًا. التطبيق مفتوح في الوضع المحلي.");
   const { data, error } = await supabase.functions.invoke("nova-ai", { body: { action, ...payload } });
   if (error) {
     const message = data?.error || error.message || "تعذر الاتصال بالخادم";
@@ -278,28 +278,17 @@ async function acceptOwnerSession(session) {
   await loadProviders();
   return true;
 }
-async function initializeOwnerSession() {
-  setFeedback("authFeedback", "جاري التحقق من جلسة حساب المالك...");
-  try {
-    const { data, error } = await supabase.auth.getSession();
-    if (error) throw error;
-    if (data.session) {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData.user || userData.user.id !== OWNER_USER_ID || userData.user.email?.toLowerCase() !== OWNER_EMAIL) {
-        await supabase.auth.signOut();
-        showAuthGate("الحساب المحفوظ غير مصرح له. سجّل الدخول بحساب المالك.", true);
-        return;
-      }
-      await acceptOwnerSession(data.session);
-    } else {
-      showAuthGate();
-      $("connectionLabel").textContent = "بانتظار تسجيل الدخول";
-      setFeedback("authFeedback", "سجّل الدخول بحساب المالك للوصول إلى مفاتيحك وبياناتك.");
-    }
-  } catch (error) {
-    showAuthGate("تعذر استعادة الجلسة: " + (error.message || "خطأ غير معروف"), true);
-  }
+function initializeOwnerSession() {
+  // Temporary single-owner local preview: no Supabase sign-in/session is used.
+  state.session = null;
+  state.ownerName = "إسلام";
+  $("authGate").hidden = true;
+  $("connectionLabel").textContent = "وضع شخصي محلي";
+  setFeedback("authFeedback", "التطبيق مفتوح محليًا باسم إسلام (" + OWNER_EMAIL + "). ربط الحساب والخدمات السحابية مؤجل.");
+  $("greeting").textContent = "أهلاً يا إسلام، نورتني.";
+  $("providerList").textContent = "إعدادات الخدمات السحابية ستتوفر بعد تفعيل الربط لاحقًا.";
 }
+
 async function signInOwner(event) {
   event.preventDefault();
   const email = $("ownerLoginEmail").value.trim().toLowerCase();
@@ -466,7 +455,7 @@ async function signOutOwner() {
   showAuthGate("تم تسجيل الخروج. سجّل الدخول بحساب المالك للمتابعة.");
 }
 async function requestAIReply(text) {
-  if (!state.session) return "سجّل الدخول بحساب المالك عشان نقدر نكمل المحادثة.";
+  if (!state.session) return "أنا جاهز معاك يا إسلام ❤️ واجهة NOVA مفتوحة حاليًا في الوضع المحلي. تشغيل ردود الذكاء الاصطناعي وحفظ البيانات السحابي هيتفعل لما نربط الخدمات لاحقًا.";
   if (!state.messages.length) {
     state.messages.push({
       role: "system",
@@ -601,37 +590,9 @@ $("backToLoginButton").addEventListener("click", () => {
   void supabase.auth.signOut();
   setFeedback("recoveryFeedback", "");
 });
-$("ownerSignOutButton").addEventListener("click", () => void signOutOwner());
-supabase.auth.onAuthStateChange((event, session) => {
-  if (event === "PASSWORD_RECOVERY" && session) {
-    if (session.user?.id !== OWNER_USER_ID || session.user.email?.toLowerCase() !== OWNER_EMAIL) {
-      void supabase.auth.signOut();
-      showAuthGate("رابط الاستعادة غير مصرح لهذا الحساب.", true);
-      return;
-    }
-    state.passwordRecovery = true;
-    showPasswordResetForm();
-    setFeedback("recoveryFeedback", "تم التحقق من رابط الاستعادة. اختار كلمة المرور الجديدة.");
-    return;
-  }
-  if (!session) {
-    state.session = null; state.providers = []; state.models = [];
-    $("connectionLabel").textContent = "بانتظار تسجيل الدخول";
-    if (!$("authGate").hidden) return;
-    showAuthGate("انتهت الجلسة. سجّل الدخول مرة أخرى.");
-    renderProviders();
-    return;
-  }
-  if (session.user?.id === OWNER_USER_ID && session.user.email?.toLowerCase() === OWNER_EMAIL) {
-    state.session = session;
-    $("connectionLabel").textContent = "متصل بحساب المالك";
-    setFeedback("authFeedback", "مسجل الدخول باسم " + (session.user.email || "حساب المالك"));
-    void loadProviders();
-  } else {
-    void supabase.auth.signOut();
-  }
-});
-void initializeOwnerSession();
+// Sign-out is intentionally unavailable in the temporary local preview.
+
+initializeOwnerSession();
 applyProviderDefaults();
 import("./nova-3d.js").then(({ initNOVACharacter3D }) => {
   character3D = initNOVACharacter3D();
