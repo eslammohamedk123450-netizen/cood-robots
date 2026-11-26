@@ -9,20 +9,70 @@ const cors = (origin: string | null) => ({
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Vary": "Origin",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
 });
 const json = (data: unknown, status = 200, origin: string | null = null) =>
   new Response(JSON.stringify(data), { status, headers: { ...cors(origin), "Content-Type": "application/json", "Cache-Control": "no-store" } });
 
-function safeBaseUrl(value: unknown): string | null {
+function safeBaseUrl(value: unknown, provider: string): string | null {
   if (typeof value !== "string" || value.length > 300) return null;
   try {
     const u = new URL(value.trim());
     const h = u.hostname.toLowerCase();
     if (u.protocol !== "https:" || u.username || u.password || u.search || u.hash || (u.port && u.port !== "443")) return null;
-    if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal") || /^\d{1,3}(\.\d{1,3}){3}$/.test(h) || h.includes(":")) return null;
+    if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal") || h.endsWith(".test") || h.endsWith(".invalid") || /^\d{1,3}(\.\d{1,3}){3}$/.test(h) || h.includes(":")) return null;
     if (/^(10\.|127\.|0\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h)) return null;
+    const officialHosts: Record<string,string> = {
+      gemini: "generativelanguage.googleapis.com",
+      openrouter: "openrouter.ai",
+      openai: "api.openai.com",
+      anthropic: "api.anthropic.com",
+    };
+    const expectedHost = officialHosts[provider];
+    if (expectedHost && h !== expectedHost) return null;
     return u.toString().replace(/\/+$/, "");
   } catch { return null; }
+}
+async function readJsonBody(req: Request, maxBytes = 400_000): Promise<any> {
+  const reader = req.body?.getReader();
+  if (!reader) throw new Error("Empty request body");
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > maxBytes) {
+      await reader.cancel();
+      throw new Error("Request body too large");
+    }
+    chunks.push(value);
+  }
+  const merged = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) { merged.set(chunk, offset); offset += chunk.byteLength; }
+  return JSON.parse(new TextDecoder().decode(merged));
+}
+function normalizeMessages(value: unknown): Array<{role:"system"|"user"|"assistant";content:string}> | null {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 24) return null;
+  let total = 0;
+  let systemCount = 0;
+  const clean: Array<{role:"system"|"user"|"assistant";content:string}> = [];
+  for (let i = 0; i < value.length; i++) {
+    const item = value[i];
+    if (!item || typeof item !== "object" || !["system","user","assistant"].includes(item.role) || typeof item.content !== "string") return null;
+    if (item.content.length > 12000) return null;
+    total += item.content.length;
+    if (total > 200000) return null;
+    if (item.role === "system") {
+      systemCount++;
+      if (systemCount > 1 || i !== 0 || item.content.length > 8000) return null;
+    }
+    clean.push({ role: item.role, content: item.content });
+  }
+  if (clean[clean.length - 1].role !== "user") return null;
+  return clean;
 }
 function cleanString(v: unknown, max = 120): string {
   return typeof v === "string" ? v.trim().slice(0, max) : "";
@@ -109,6 +159,8 @@ Deno.serve(async (req: Request) => {
   const origin = req.headers.get("origin");
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors(origin) });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405, origin);
+  const declaredLength = Number(req.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > 400_000) return json({ error: "Request body too large" }, 413, origin);
 
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
@@ -127,7 +179,7 @@ Deno.serve(async (req: Request) => {
   const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 
   try {
-    const body = await req.json();
+    const body = await readJsonBody(req);
     const action = cleanString(body?.action, 40);
 
     if (action === "list") {
@@ -146,7 +198,7 @@ Deno.serve(async (req: Request) => {
       const label = cleanString(body?.label, 80);
       const provider = cleanString(body?.provider, 50) || "custom";
       if (!providerTypes.has(provider as ProviderType)) return json({ error: "مزود الخدمة غير مدعوم" }, 400, origin);
-      const baseUrl = safeBaseUrl(body?.base_url);
+      const baseUrl = safeBaseUrl(body?.base_url, provider);
       const apiKey = typeof body?.api_key === "string" ? body.api_key.trim() : "";
       if (!label || !baseUrl || apiKey.length < 8 || apiKey.length > 4096) return json({ error: "راجع الاسم والرابط ومفتاح API" }, 400, origin);
       const { data: secretId, error: secretError } = await admin.rpc("nova_store_api_secret", { p_name: "NOVA " + label, p_secret: apiKey });
@@ -184,11 +236,9 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "chat") {
-      const messages = Array.isArray(body?.messages) ? body.messages.slice(-24) : [];
-      const userMessage = messages.length ? messages[messages.length - 1] : null;
-      if (!userMessage || userMessage.role !== "user" || typeof userMessage.content !== "string" || userMessage.content.length > 12000) {
-        return json({ error: "رسالة غير صالحة" }, 400, origin);
-      }
+      const messages = normalizeMessages(body?.messages);
+      if (!messages) return json({ error: "سجل المحادثة غير صالح أو تجاوز الحدود المسموحة" }, 400, origin);
+      const userMessage = messages[messages.length - 1];
       const { data: models, error } = await admin.from("nova_api_models")
         .select("id,model_id,api_key_id")
         .eq("user_id", userId).eq("enabled", true).limit(30);
