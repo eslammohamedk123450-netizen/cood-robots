@@ -28,7 +28,7 @@ function cleanString(v: unknown, max = 120): string {
   return typeof v === "string" ? v.trim().slice(0, max) : "";
 }
 type ProviderType = "gemini" | "openrouter" | "openai" | "anthropic" | "custom";
-const providerTypes = new Set<ProviderType>(["gemini", "openrouter", "openai", "anthropic", "custom"]);
+const providerTypes = new Set<string>(["gemini", "openrouter", "openai", "anthropic", "custom", "openai-compatible"]);
 function providerHeaders(provider: ProviderType, apiKey: string): Record<string,string> {
   if (provider === "gemini") return { "x-goog-api-key": apiKey, Accept: "application/json" };
   if (provider === "anthropic") return { "x-api-key": apiKey, "anthropic-version": "2023-06-01", Accept: "application/json" };
@@ -43,7 +43,7 @@ async function providerModels(provider: ProviderType, baseUrl: string, apiKey: s
   if (!response.ok) throw new Error("Provider models endpoint returned HTTP " + response.status);
   const body = await response.json();
   const rows = Array.isArray(body?.data) ? body.data : Array.isArray(body?.models) ? body.models : [];
-  return rows.map((m: any) => {
+  return rows.filter((m: any) => provider !== "gemini" || (Array.isArray(m?.supportedGenerationMethods) && m.supportedGenerationMethods.includes("generateContent"))).map((m: any) => {
     const rawId = cleanString(m?.id ?? m?.name, 200);
     const id = provider === "gemini" ? rawId.replace(/^models\//, "") : rawId;
     return { id, name: cleanString(m?.displayName ?? m?.name ?? m?.id, 200) };
