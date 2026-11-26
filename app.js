@@ -424,7 +424,10 @@ async function requestAIReply(text) {
   const now = new Date();
   const currentDateTime = new Intl.DateTimeFormat("ar-EG", { dateStyle: "full", timeStyle: "short" }).format(now);
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "التوقيت المحلي للجهاز";
-  state.messages[0].content = state.messages[0].content.split("\\n\\n[الوقت المحلي الحالي:")[0] + "\\n\\n[الوقت المحلي الحالي: " + currentDateTime + " | المنطقة الزمنية: " + timezone + "]. استخدم هذه المعلومة عند السؤال عن الوقت أو التاريخ أو غدًا، ولا تخمّن.";
+  const timeMarker = " [الوقت المحلي الحالي:";
+  const markerIndex = state.messages[0].content.indexOf(timeMarker);
+  const baseSystemPrompt = markerIndex >= 0 ? state.messages[0].content.slice(0, markerIndex) : state.messages[0].content;
+  state.messages[0].content = baseSystemPrompt + timeMarker + " " + currentDateTime + " | المنطقة الزمنية: " + timezone + "]. استخدم هذه المعلومة عند السؤال عن الوقت أو التاريخ أو غدًا، ولا تخمّن.";
   state.messages.push({ role: "user", content: text });
   state.messages = [state.messages[0], ...state.messages.slice(1).slice(-23)];
   try {
@@ -437,17 +440,18 @@ async function requestAIReply(text) {
     return "معلش يا " + state.ownerName + "، " + error.message;
   }
 }
-async function handleRecognizedText(text) {
+async function handleRecognizedText(text, voiceTurn = false) {
   const clean = text.trim();
-  if (!clean || state.processing || !state.listening) return;
+  if (!clean || state.processing || (voiceTurn && !state.listening)) return;
   state.processing = true;
   try {
-    try { state.recognition?.stop(); } catch (_) {}
+    if (voiceTurn) { try { state.recognition?.stop(); } catch (_) {} }
     $("liveTranscript").textContent = "أنت قلت: “" + clean + "”";
     addConversationLine(clean, "owner");
     setStatus("بفكر في كلامك...", "thinking");
     animateCharacter("thinking");
     const reply = await requestAIReply(clean);
+    if (voiceTurn && !state.listening) return;
     addConversationLine(reply, "nova");
     $("liveTranscript").textContent = reply;
     await speak(reply);
@@ -456,7 +460,7 @@ async function handleRecognizedText(text) {
   }
 }
 function stopListening() {
-  state.listening = false; state.restartRecognition = false; state.processing = false;
+  state.listening = false; state.restartRecognition = false;
   $("micButton").classList.remove("active");
   $("micButton").setAttribute("aria-pressed", "false");
   $("micButton").setAttribute("aria-label", "ابدأ المحادثة الصوتية");
@@ -492,7 +496,7 @@ function startListening() {
     let interim = "";
     for (let i = event.resultIndex; i < event.results.length; i += 1) {
       const transcript = event.results[i][0].transcript.trim();
-      if (event.results[i].isFinal && transcript) void handleRecognizedText(transcript);
+      if (event.results[i].isFinal && transcript) void handleRecognizedText(transcript, true);
       else if (!event.results[i].isFinal) interim += transcript;
     }
     if (interim) { $("liveTranscript").textContent = interim; setStatus("بسمعك...", "listening"); }
