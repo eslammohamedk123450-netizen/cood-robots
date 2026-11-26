@@ -34,7 +34,7 @@ Serve the repository over localhost:
 ```sh
 python3 -m http.server 4173
 ```
-Open `http://localhost:4173`. Microphone access requires HTTPS or localhost and browser permission. Three.js and the Supabase client load from external CDNs, so those features need internet access.
+Open `http://localhost:4173`. This is a static UI preview only: the Edge Function CORS policy allows the production GitHub Pages origin, so local preview cannot use owner authentication or AI APIs unless a deliberate development origin is added. Microphone access requires HTTPS or localhost and browser permission. Three.js and the Supabase client load from external CDNs, so those features need internet access.
 
 ## Known limitations
 - New user sign-ups still need to be disabled manually in Supabase Auth settings. The NOVA backend already rejects all identities except the owner.
