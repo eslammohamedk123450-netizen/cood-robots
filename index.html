@@ -12,6 +12,24 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="auth-gate" id="authGate" hidden>
+    <section class="auth-card" aria-labelledby="authGateTitle">
+      <span class="eyebrow">NOVA · PRIVATE OWNER ACCESS</span>
+      <h1 id="authGateTitle">مساحتك الخاصة</h1>
+      <p>سجّل الدخول بحساب المالك عشان تفتح NOVA. الجلسة هتفضل محفوظة على جهازك.</p>
+      <form id="ownerLoginForm" class="owner-login-form">
+        <label class="field-label">البريد الإلكتروني
+          <input id="ownerLoginEmail" type="email" value="eslammohamedk123450@gmail.com" autocomplete="username" required dir="ltr">
+        </label>
+        <label class="field-label">كلمة المرور
+          <input id="ownerLoginPassword" type="password" autocomplete="current-password" placeholder="كلمة مرور حسابك" required dir="ltr">
+        </label>
+        <button type="submit" class="save-button enabled-button" id="ownerLoginButton">تسجيل الدخول</button>
+        <p class="settings-feedback" id="authGateFeedback" role="status">الدخول متاح لحساب المالك فقط.</p>
+      </form>
+      <p class="invite-note">لو الحساب مش الحساب المصرّح به، هتحتاج كود دعوة. مفيش أكواد دعوة مفعّلة حاليًا.</p>
+    </section>
+  </div>
   <div class="app-shell">
     <header class="topbar">
       <a class="brand" href="#home" aria-label="NOVA home">
@@ -125,9 +143,10 @@
         <label class="field-label">الاسم اللي أناديك بيه<input id="ownerName" value="إسلام" maxlength="40"></label>
       </section>
             <section class="settings-section">
-        <h3>الاتصال التلقائي</h3>
-        <p class="security-note">NOVA هيفتح مباشرة بجلسة خاصة محفوظة على الجهاز، من غير بريد أو كلمة مرور. لو مسحت بيانات المتصفح هتحتاج تبدأ جلسة جديدة.</p>
-        <p class="settings-feedback" id="authFeedback">جاري تجهيز جلستك الخاصة...</p>
+        <h3>حساب المالك</h3>
+        <p class="security-note">بيانات NOVA ومفاتيح API والذاكرة مرتبطة بحساب المالك فقط.</p>
+        <p class="settings-feedback" id="authFeedback">غير مسجل الدخول.</p>
+        <button type="button" class="text-button" id="ownerSignOutButton">تسجيل الخروج</button>
       </section>
       <section class="settings-section">
         <h3>مفاتيح مزودي الذكاء الاصطناعي</h3>
