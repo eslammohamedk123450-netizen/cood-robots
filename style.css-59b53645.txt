@@ -1,0 +1,16 @@
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#0e1220;color:#eef;font-family:system-ui,"Segoe UI",Tahoma,sans-serif;display:flex;justify-content:center;align-items:center}
+main{width:min(92vw,560px);text-align:center;padding:16px}
+#face{width:100%;height:auto;filter:drop-shadow(0 12px 30px rgba(0,0,0,.5))}
+#head{fill:var(--head)}
+#eyeL,#eyeR{fill:#fff}
+#pupL,#pupR{fill:var(--accent)}
+#cheeks{fill:var(--cheek);opacity:.55}
+#brows path,#lashes path{fill:none;stroke:#10142a;stroke-width:8;stroke-linecap:round}
+#lashes path{stroke-width:5}
+#mouth{fill:#10142a;stroke:#10142a;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}
+h1{margin:8px 0 0;font-size:28px;color:var(--accent)}
+#status{margin:4px 0 14px;opacity:.7;min-height:1.4em}
+.row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:8px 0}
+button{background:#1c2340;color:#eef;border:1px solid #33407a;border-radius:999px;padding:8px 16px;font-size:15px;cursor:pointer}
+button.on{background:var(--accent);color:#0e1220;border-color:transparent}
