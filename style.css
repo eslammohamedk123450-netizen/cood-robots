@@ -139,3 +139,7 @@ body[data-mood="happy"] .mouth{height:13px}
 
 .model-list[hidden]{display:none}
 .provider-card .badge{font-size:9px;color:#e9d99f;background:#2b2a21;border-radius:20px;padding:3px 7px;white-space:nowrap}
+
+.provider-select{display:block;width:100%;margin-top:6px;padding:11px 12px;border:1px solid var(--line);border-radius:9px;background:#090e18;color:var(--text);outline:0;font-size:12px;direction:ltr}
+.provider-select:focus{border-color:var(--gold)}
+.provider-select option{background:#101521;color:var(--text)}
