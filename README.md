@@ -11,8 +11,9 @@ NOVA is a private, voice-first digital companion for Islam. The first release fo
 - An original procedural full-body 3D robot is rendered inside `character3dMount`; the CSS character remains as fallback if WebGL/Three.js cannot load.
 
 ## Supabase integration
-- Uses the existing Supabase project with an automatically persisted anonymous device session; no manual email/password sign-in in V1.
-- Anonymous Sign-Ins must be enabled once in Supabase Authentication → Providers. The same browser profile retains its session; clearing browser data or switching devices creates a new identity.
+- Uses a persistent email/password session for the single pre-created owner account; the browser remembers the session after the first sign-in.
+- The UI accepts only the configured owner email. Other email addresses are told that an invitation code is required; no invitations are active.
+- The backend independently checks the exact owner user ID and email before allowing any NOVA provider or chat operation.
 - The client contains only the public project URL and publishable key.
 - Provider API keys are sent to an authenticated Edge Function and stored in Supabase Vault, never in LocalStorage or GitHub.
 - Provider presets include Google Gemini, OpenRouter, OpenAI, Claude/Anthropic and custom OpenAI-compatible endpoints. Base URLs are prefilled and editable.
@@ -28,7 +29,7 @@ Open http://localhost:4173. Microphone access requires HTTPS or localhost and br
 
 ## Current limitations and pending verification
 - Anonymous Sign-Ins still need to be enabled once in the Supabase dashboard, then the automatic device session and real provider-key/model/chat flow need live testing.
-- Anonymous sessions are convenient but do not prove the visitor is Islam; add device pairing or permanent authentication before sharing the public app URL widely.
+- New sign-ups should be disabled in Supabase Auth settings as an additional barrier. Until that dashboard setting is switched off, the backend still blocks all non-owner identities from NOVA data and AI operations.
 - Three.js CDN loading, Android Chrome WebGL performance and speech recognition need device testing.
 - Browser speech recognition support and Egyptian Arabic accuracy vary by browser/device.
 - Browser speech synthesis is still the voice fallback, not the final natural voice service.
