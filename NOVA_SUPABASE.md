@@ -9,7 +9,11 @@
 - Never put the service-role key or any AI-provider key in the frontend, repository, browser storage, or logs.
 
 ## Authentication
-The web app signs in using the existing owner Auth account via email/password. The deployed `nova-ai` Edge Function currently has platform JWT verification disabled because it performs its own explicit `auth.getUser(token)` validation before any operation. Every provider/model operation is scoped to the verified `auth.uid()`.
+The V1 web app now creates a Supabase anonymous Auth session automatically on first use and persists it in the same browser. No email or password is requested. Anonymous Sign-Ins must be enabled once in Supabase Dashboard → Authentication → Providers. The current implementation reuses an existing session if present. Clearing browser data or switching browsers/devices creates a different anonymous user, so existing provider records will not automatically follow. Supabase documents this behavior at https://supabase.com/docs/guides/auth/auth-anonymous.
+
+This removes the login prompt; it does not prove that the visitor is Islam. Anyone who can access the public app URL may create an anonymous session. Before wider public sharing, add a device-pairing secret or a permanent owner authentication method. A future upgrade flow should link the anonymous identity to a permanent account without losing provider data.
+
+The deployed `nova-ai` Edge Function has platform JWT verification disabled because it performs its own explicit `auth.getUser(token)` validation before any operation. Every provider/model operation is scoped to the verified `auth.uid()`.
 
 ## NOVA tables
 - `public.nova_api_keys`: provider label, base URL, active state and Vault secret reference. The raw API key is never stored in this table.
@@ -28,16 +32,22 @@ All three tables have RLS enabled. Provider/model metadata is owner-readable; pr
 ## Edge Function: `nova-ai`
 Deployed in the existing project (active deployment version 3; source committed at `supabase/functions/nova-ai/index.ts`). Applied SQL migrations are committed under `supabase/migrations/`. It validates the caller's bearer token with Supabase Auth and supports:
 - `list`: list only the signed-in owner's provider metadata and models.
-- `add_provider`: validate an HTTPS OpenAI-compatible base URL, store the key in Vault, and save its metadata.
+- `add_provider`: validate an HTTPS provider base URL, store the key in Vault, and save its metadata.
 - `sync_models`: call the provider's `/models` endpoint and upsert model IDs while preserving existing enable/disable choices.
 - `toggle_model`: enable or disable one model owned by the caller.
 - `chat`: try enabled models in sequence against `/chat/completions`, returning the first valid response.
 
-Current provider compatibility assumes an OpenAI-compatible API with `GET /models` and `POST /chat/completions`. Some providers may require provider-specific headers, model response normalization or endpoint adapters; these need testing before being marked supported.
+Provider adapters currently support:
+- Google Gemini: native `GET /models` and `POST /models/{model}:generateContent` using the `x-goog-api-key` header.
+- Claude / Anthropic: native `GET /models` and `POST /messages` using `x-api-key` and `anthropic-version` headers.
+- OpenRouter, OpenAI and custom providers: OpenAI-compatible `GET /models` and `POST /chat/completions`.
+
+The dropdown supplies default base URLs, but users can edit them. The frontend automatically attempts model discovery immediately after a new key is saved.
 
 ## Frontend
 - Supabase URL and publishable key are in `app.js`.
-- Supabase Auth session persistence is handled by the official client SDK.
+- Supabase anonymous Auth session persistence is handled by the official client SDK; no manual sign-in screen is required for V1.
+- Provider selector presets: Gemini, OpenRouter, OpenAI, Anthropic and custom.
 - Provider API keys are not stored in LocalStorage/sessionStorage.
 - The UI supports multiple provider records, refreshing discovered models, and per-model enable/disable controls.
 - Chat requests require an owner session and at least one enabled model.
@@ -46,7 +56,8 @@ Current provider compatibility assumes an OpenAI-compatible API with `GET /model
 `nova-3d.js` renders an original full-body procedural robot using Three.js primitives. It loads Three.js from jsDelivr, so an internet connection is required for the 3D renderer. The CSS fallback remains if WebGL/CDN initialization fails. This is a first 3D prototype, not a finished custom sculpted GLB model.
 
 ## Not yet verified
-- Owner sign-in in the deployed GitHub Pages site.
+- Enable Anonymous Sign-Ins once in Supabase Dashboard → Authentication → Providers.
+- Automatic anonymous session creation in the deployed GitHub Pages site.
 - Saving a real provider key into Vault and confirming no key is returned to the browser.
 - Provider model discovery and model toggles with a real provider.
 - End-to-end chat and automatic fallback with real provider responses.
