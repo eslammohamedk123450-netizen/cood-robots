@@ -1,50 +1,59 @@
 # NOVA — Your Personal Companion
 
-NOVA is a private, voice-first digital companion for Islam. The first release focuses on a warm character-led experience with Soly (blue) and Soleen (pink), rather than a command dashboard.
+NOVA is a private, voice-first digital companion. The first release focuses on a warm character-led meeting experience with Soly (blue) and Soleen (pink), not a command dashboard.
 
-## Current interface
-- A single meeting screen centered on the character.
-- Voice is the primary interaction; text entry is optional.
-- Conversation transcript can be opened when needed.
-- Settings support persona selection, owner display name, automatic anonymous device sessions, and multiple AI provider keys.
-- Camera, face recognition, guest management, quick commands and device-control demos are excluded from V1.
-- An original procedural full-body 3D robot is rendered inside `character3dMount`; the CSS character remains as fallback if WebGL/Three.js cannot load.
+## Current experience
+- Character-first meeting screen with optional text entry and voice controls.
+- Conversation transcript is displayed locally in the current page session.
+- Settings include persona selection, owner display name and AI provider configuration.
+- An original procedural full-body 3D robot is rendered in `nova-3d.js`; the CSS character remains as a fallback.
+- Camera, face recognition, guest management and device-control demos are excluded from V1.
 
-## Supabase integration
-- Uses a persistent email/password session for the single pre-created owner account; the browser remembers the session after the first sign-in.
-- The UI accepts only the configured owner email. Other email addresses are told that an invitation code is required; no invitations are active.
-- The backend independently checks the exact owner user ID and email before allowing any NOVA provider or chat operation.
-- The client contains only the public project URL and publishable key.
-- Provider API keys are sent to an authenticated Edge Function and stored in Supabase Vault, never in LocalStorage or GitHub.
-- Provider presets include Google Gemini, OpenRouter, OpenAI, Claude/Anthropic and custom OpenAI-compatible endpoints. Base URLs are prefilled and editable.
-- Gemini and Anthropic use native API adapters; OpenRouter, OpenAI and custom providers use OpenAI-compatible endpoints.
-- Saving a key automatically triggers model discovery; individual models can be enabled/disabled.
-- Chat requests try enabled models in sequence and return the first successful response.
-- Full details and security boundaries: [NOVA_SUPABASE.md](NOVA_SUPABASE.md).
+## Owner-only access
+- The app uses persistent Supabase email/password authentication for the one pre-created owner account.
+- The frontend checks the immutable Supabase Auth user ID; the Edge Function independently verifies the bearer token and the same owner ID.
+- Other authenticated identities are rejected by the backend with HTTP 403. There is no invite-code issuance system.
+- The browser session persists on the same browser profile. Clearing site data or changing browser/device requires signing in again.
+- The repository is public, so source code is visible. The public Supabase publishable key is intentionally client-side; service-role and provider API secrets are not.
+
+## Supabase and AI providers
+- Provider API keys are sent over HTTPS to the authenticated Edge Function and stored in Supabase Vault, never in browser storage or Git.
+- Supported presets: Gemini, OpenRouter, OpenAI, Anthropic and custom OpenAI-compatible endpoints.
+- Official provider presets are restricted to their official API hostnames.
+- Custom endpoints accept a user-supplied HTTPS host. Only use a domain you trust; the API key is sent to that host.
+- Model discovery, per-model enable/disable and automatic fallback are handled server-side.
+- The `nova-ai` Edge Function validates owner identity, request size and message structure, and applies per-action rate limits.
+
+## Quality checks
+- `npm test` runs Node syntax checks for the frontend modules and repository smoke tests.
+- GitHub Actions runs these checks before the Pages artifact is built and deployed.
+- The Edge Function is deployed from `supabase/functions/nova-ai/index.ts`; SQL migrations are recorded under `supabase/migrations/`.
 
 ## Run locally
 Serve the repository over localhost:
-    python3 -m http.server 4173
-Open http://localhost:4173. Microphone access requires HTTPS or localhost and browser permission. The 3D renderer and Supabase client load from external CDNs, so internet access is needed for those features.
+```sh
+python3 -m http.server 4173
+```
+Open `http://localhost:4173`. Microphone access requires HTTPS or localhost and browser permission. Three.js and the Supabase client load from external CDNs, so those features need internet access.
 
-## Current limitations and pending verification
-- Anonymous Sign-Ins still need to be enabled once in the Supabase dashboard, then the automatic device session and real provider-key/model/chat flow need live testing.
-- New sign-ups should be disabled in Supabase Auth settings as an additional barrier. Until that dashboard setting is switched off, the backend still blocks all non-owner identities from NOVA data and AI operations.
-- Three.js CDN loading, Android Chrome WebGL performance and speech recognition need device testing.
-- Browser speech recognition support and Egyptian Arabic accuracy vary by browser/device.
-- Browser speech synthesis is still the voice fallback, not the final natural voice service.
-- Conversation history is currently in page memory only; persistent conversations and long-term memory are not yet implemented.
-- The procedural robot is an initial 3D prototype, not the final polished authored/licensed character.
-- Safe provider-key deletion/rotation and Vault cleanup are not yet implemented.
+## Known limitations
+- New user sign-ups still need to be disabled manually in Supabase Auth settings. The NOVA backend already rejects all identities except the owner.
+- Supabase's leaked-password protection is currently disabled; enable it if the project plan exposes the setting.
+- No real provider key is currently stored in NOVA, so live model discovery and AI chat have not been end-to-end tested.
+- Browser-based Android/desktop UI testing, microphone behavior and real-provider testing remain outstanding.
+- Conversation history is currently page-session memory only. The owner-only `nova_memories` table exists, but the memory engine is not connected to chat yet.
+- The 3D robot is a procedural prototype, not the final authored/licensed character.
+- Provider-key deletion/rotation and Vault cleanup are not implemented yet.
 
-## Supabase cleanup
-The existing project contains reusable SULY AI routing, model synchronization, memory, conversation and agent infrastructure. Do not bulk-delete these resources. Review dependencies and remove only confirmed-unused resources through supported APIs after itemized owner approval.
-
-## Project documents
-- [Development plan](plan.md)
+## Security and audit
+- [Security audit and remaining actions](SECURITY_AUDIT.md)
+- [Supabase integration and security details](NOVA_SUPABASE.md)
 - [Execution checklist](TODO.md)
-- [Supabase integration and security](NOVA_SUPABASE.md)
-- Master vision: NOVA_MASTER_VISION.md
-- V1 scope: NOVA_V1_SCOPE.md
-- Execution rules: NOVA_EXECUTION_RULES.md
-- Agent rules: AGENTS.md
+- [Development plan](plan.md)
+- Master vision: `NOVA_MASTER_VISION.md`
+- V1 scope: `NOVA_V1_SCOPE.md`
+- Execution rules: `NOVA_EXECUTION_RULES.md`
+- Agent rules: `AGENTS.md`
+
+## Supabase resource preservation
+The existing Supabase project also contains older SULY AI routing, model synchronization, memory, conversation and agent infrastructure. Do not bulk-delete these resources. Review dependencies and obtain explicit owner approval before destructive cleanup.
