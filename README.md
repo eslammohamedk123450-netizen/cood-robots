@@ -19,7 +19,6 @@ NOVA is a private, voice-first digital companion for Islam. The first release fo
 - Gemini and Anthropic use native API adapters; OpenRouter, OpenAI and custom providers use OpenAI-compatible endpoints.
 - Saving a key automatically triggers model discovery; individual models can be enabled/disabled.
 - Chat requests try enabled models in sequence and return the first successful response.
-- Provider adapters use the native Gemini and Anthropic APIs plus OpenAI-compatible endpoints for OpenRouter, OpenAI and custom providers.
 - Full details and security boundaries: [NOVA_SUPABASE.md](NOVA_SUPABASE.md).
 
 ## Run locally
