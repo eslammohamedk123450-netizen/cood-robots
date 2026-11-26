@@ -613,7 +613,7 @@ if (speechEngineSelect) {
     localStorage.setItem("nova.speech.engine", speechEngineSelect.value);
     setFeedback("speechEngineFeedback", speechEngineSelect.value === "device"
       ? "تم اختيار صوت الجهاز. تأكد من تثبيت صوت عربي في إعدادات أندرويد."
-      : "تم اختيار صوت السيرفر الحالي للمقارنة.");
+      : "تم اختيار Sonex Labs عبر Supabase لتوليد الصوت.");
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   });
 }
