@@ -207,18 +207,22 @@ function renderProviders() {
     models.forEach((model) => {
       const row = document.createElement("div"); row.className = "model-row";
       const label = document.createElement("span"); label.textContent = model.model_id;
-      const toggle = document.createElement("button");
-      toggle.type = "button";
-      toggle.textContent = model.enabled ? "تعطيل" : "تفعيل";
-      if (!model.enabled) toggle.classList.add("disabled-model");
-      toggle.addEventListener("click", async () => {
+      const toggle = document.createElement("input");
+      toggle.type = "checkbox";
+      toggle.checked = model.enabled === true;
+      toggle.setAttribute("aria-label", "تفعيل النموذج " + model.model_id);
+      toggle.addEventListener("change", async () => {
         toggle.disabled = true;
+        const nextEnabled = toggle.checked;
         try {
-          await invokeNova("toggle_model", { model_id: model.id, enabled: !model.enabled });
-          model.enabled = !model.enabled;
+          await invokeNova("toggle_model", { model_id: model.id, enabled: nextEnabled });
+          model.enabled = nextEnabled;
           renderProviders();
-        } catch (error) { setFeedback("settingsFeedback", error.message, true); }
-        finally { toggle.disabled = false; }
+          setFeedback("settingsFeedback", nextEnabled ? "تم تفعيل النموذج." : "تم إيقاف النموذج.");
+        } catch (error) {
+          toggle.checked = !nextEnabled;
+          setFeedback("settingsFeedback", error.message, true);
+        } finally { toggle.disabled = false; }
       });
       row.append(label, toggle); list.append(row);
     });
