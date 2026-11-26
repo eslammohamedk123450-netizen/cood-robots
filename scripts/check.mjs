@@ -28,7 +28,7 @@ assert.doesNotMatch(pin, /PBKDF2|nova.owner.pin.hash/, "PIN hash must not be sto
 assert.match(edge, /deriveServerPinHash/, "PIN must be hashed on the server with PBKDF2");
 assert.match(edge, /PIN_ITERATIONS = 310000/, "Server-side PIN hashing must use a high iteration count");
 assert.match(edge, /nova_record_pin_failure/, "Failed PIN attempts must be counted atomically on the server");
-assert.match(edge, /10 minutes/, "Six failed PIN attempts must trigger a ten-minute lockout");
+assert.match(edge, /10 دقائق/, "Six failed PIN attempts must trigger a ten-minute lockout");
 assert.match(edge, /nova_owner_sessions/, "PIN login must issue a server-validated session");
 assert.match(app, /nova:authenticated/, "The app must receive the authenticated server session");
 assert.match(html, /id="pinSetupForm"/, "First-use PIN setup form must exist");
