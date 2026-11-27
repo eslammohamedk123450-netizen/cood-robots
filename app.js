@@ -61,9 +61,84 @@ function inferFaceEmotion(reply) {
 }
 function extractReplyEmotion(rawReply) {
   const raw = String(rawReply || "");
-  const marker = raw.match(/\[NOVA_EMOTION:(neutral|happy|sad|surprised|curious|caring|playful|concerned|thinking)\]/i);
-  const emotion = marker ? marker[1].toLowerCase() : inferFaceEmotion(raw);
-  return { text: raw.replace(/\s*\[NOVA_EMOTION:[a-z]+\]\s*/ig, "").trim(), emotion };
+  const markerPattern = /\[NOVA_EMOTION:(neutral|happy|sad|surprised|curious|caring|playful|concerned|thinking)\]/ig;
+  const markers = [...raw.matchAll(markerPattern)];
+  const cleanText = raw.replace(markerPattern, "").replace(/\s+/g, " ").trim();
+  if (!markers.length) {
+    const emotion = inferFaceEmotion(cleanText);
+    return { text: cleanText, emotion, segments: [{ text: cleanText, emotion }] };
+  }
+  if (markers.length === 1 && !raw.slice(markers[0].index + markers[0][0].length).trim()) {
+    const emotion = markers[0][1].toLowerCase();
+    return { text: cleanText, emotion, segments: [{ text: cleanText, emotion }] };
+  }
+  let currentEmotion = "neutral";
+  let cursor = 0;
+  const segments = [];
+  for (const marker of markers) {
+    const part = raw.slice(cursor, marker.index).replace(/\s+/g, " ").trim();
+    if (part) segments.push({ text: part, emotion: currentEmotion });
+    currentEmotion = marker[1].toLowerCase();
+    cursor = marker.index + marker[0].length;
+  }
+  const tail = raw.slice(cursor).replace(/\s+/g, " ").trim();
+  if (tail) segments.push({ text: tail, emotion: currentEmotion });
+  const usable = segments.length ? segments : [{ text: cleanText, emotion: currentEmotion }];
+  return { text: cleanText, emotion: usable[0].emotion, segments: usable };
+}
+function updateFaceSpeechProgress(segments, progress) {
+  if (!Array.isArray(segments) || !segments.length) return;
+  const total = segments.reduce((sum, segment) => sum + Math.max(1, segment.text.length), 0);
+  let position = Math.max(0, Math.min(0.999, progress)) * total;
+  for (const segment of segments) {
+    const weight = Math.max(1, segment.text.length);
+    if (position < weight) { setFaceEmotion(segment.emotion); return; }
+    position -= weight;
+  }
+  setFaceEmotion(segments[segments.length - 1].emotion);
+}
+function setSpeechMouthLevel(level) {
+  const mouth = $("faceMouth");
+  if (!mouth) return;
+  const amount = Math.max(0, Math.min(1, level));
+  mouth.style.height = (5 + amount * 29).toFixed(1) + "px";
+  mouth.style.opacity = String(0.72 + amount * 0.28);
+}
+function resetSpeechMouth() {
+  const mouth = $("faceMouth");
+  if (mouth) { mouth.style.height = ""; mouth.style.opacity = ""; }
+}
+function trackAudioElementFace(audio, segments) {
+  audio.addEventListener("timeupdate", () => {
+    if (state.speaking && Number.isFinite(audio.duration) && audio.duration > 0) {
+      updateFaceSpeechProgress(segments, audio.currentTime / audio.duration);
+    }
+  });
+  try {
+    if (!speechAudioContext) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      speechAudioContext = new AudioContextClass();
+    }
+    const source = speechAudioContext.createMediaElementSource(audio);
+    const analyser = speechAudioContext.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+    analyser.connect(speechAudioContext.destination);
+    const samples = new Uint8Array(analyser.fftSize);
+    const animate = () => {
+      if (!state.speaking || state.audio?.element !== audio) return;
+      analyser.getByteTimeDomainData(samples);
+      let energy = 0;
+      for (const sample of samples) { const centered = (sample - 128) / 128; energy += centered * centered; }
+      setSpeechMouthLevel(Math.min(1, Math.sqrt(energy / samples.length) * 5.5));
+      requestAnimationFrame(animate);
+    };
+    if (speechAudioContext.state === "suspended") void speechAudioContext.resume().catch(() => {});
+    requestAnimationFrame(animate);
+  } catch (error) {
+    console.warn("NOVA speech waveform tracking unavailable.", error);
+  }
 }
 function setPersona(persona) {
   if (!personas[persona]) return;
@@ -159,7 +234,7 @@ function getDeviceArabicVoice(persona) {
   const hints = persona === "soleen" ? /female|woman|salma|zira|sara/i : /male|man|shakir|hamed|tariq/i;
   return pool.find((voice) => hints.test(voice.name || "")) || pool[0];
 }
-function speakWithDevice(text, persona) {
+function speakWithDevice(text, persona, segments = []) {
   return new Promise((resolve, reject) => {
     if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
       reject(new Error("محرك النطق غير متاح في المتصفح ده. افتح NOVA من Chrome على أندرويد."));
@@ -173,34 +248,45 @@ function speakWithDevice(text, persona) {
     const voice = getDeviceArabicVoice(persona);
     if (voice) utterance.voice = voice;
     utterance.onstart = () => setStatus(personas[persona].name + " بيتكلم...", "speaking");
+    utterance.onboundary = (event) => {
+      if (Number.isFinite(event.charIndex) && text.length) {
+        updateFaceSpeechProgress(segments, event.charIndex / text.length);
+        setSpeechMouthLevel(0.25 + Math.random() * 0.65);
+      }
+    };
     utterance.onend = resolve;
     utterance.onerror = (event) => reject(new Error("محرك الجهاز فشل في النطق: " + (event.error || "unknown")));
     window.speechSynthesis.speak(utterance);
   });
 }
-async function speak(text) {
+async function speak(text, segments = []) {
   const spokenText = cleanSpeechText(text);
   if (!spokenText) return;
   const persona = state.persona;
+  const speechSegments = segments.length ? segments : [{ text: spokenText, emotion: state.replyEmotion || "neutral" }];
   state.speaking = true;
   try { state.recognition?.stop(); } catch (_) {}
   if (state.audio) { try { state.audio.pause(); } catch (_) {} state.audio = null; }
   if (speechAudioElement) { try { speechAudioElement.pause(); } catch (_) {} speechAudioElement = null; }
   if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
   const engine = $("speechEngine")?.value || localStorage.getItem("nova.speech.engine") || "auto";
+  let finished = false;
   const finish = () => {
+    if (finished) return;
+    finished = true;
     state.speaking = false;
     state.audio = null;
+    resetSpeechMouth();
+    setFaceEmotion("neutral");
     setStatus(state.listening ? "سامعك، كمل كلامك" : "مستنيك تبدأ", state.listening ? "listening" : "idle");
     if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
   };
+  setFaceEmotion(speechSegments[0]?.emotion || state.replyEmotion || "neutral");
+  setStatus(personas[persona].name + " بيتكلم...", "speaking");
   try {
-    setStatus(personas[persona].name + (engine === "device" ? " بيستخدم صوت الجهاز..." : " بيجهز صوته..."), "thinking");
     if (engine === "device") {
-      await speakWithDevice(spokenText, persona);
+      await speakWithDevice(spokenText, persona, speechSegments);
       finish();
-      setStatus(personas[persona].name + " بيتكلم بصوت الجهاز", "speaking");
-      animateCharacter("happy");
       return;
     }
     if (engine === "auto" && !localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
@@ -209,7 +295,7 @@ async function speak(text) {
     const result = await invokeNova(speechProvider, { text: spokenText, persona, voice_id: voiceId });
     if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
     const mime = String(result.mime_type || "").split(";")[0].trim().toLowerCase();
-    if (mime !== "audio/mpeg" && mime !== "audio/mp3" && mime !== "audio/wav" && mime !== "audio/x-wav") {
+    if (!["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav"].includes(mime)) {
       throw new Error("الخادم رجّع صيغة صوت غير مدعومة: " + (mime || "غير معروفة"));
     }
     const binary = atob(result.audio);
@@ -226,43 +312,27 @@ async function speak(text) {
     speechAudioElement = audio;
     audio.addEventListener("ended", finish, { once: true });
     audio.addEventListener("error", () => { finish(); showToast("المتصفح رفض ملف الصوت (خطأ تشغيل " + (audio.error?.code || "غير معروف") + ")."); }, { once: true });
-    state.audio = { pause: () => { audio.pause(); finish(); } };
-    try {
-      await audio.play();
-    } catch (playError) {
-      // Android browsers can reject delayed HTMLAudio playback after a network round-trip.
-      // Reuse the AudioContext unlocked by the original send/microphone tap.
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass || !["NotSupportedError", "NotAllowedError"].includes(playError?.name)) throw playError;
-      if (!speechAudioContext) speechAudioContext = new AudioContextClass();
-      if (speechAudioContext.state === "suspended") await speechAudioContext.resume();
-      const buffer = await speechAudioContext.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
-      const source = speechAudioContext.createBufferSource();
-      source.buffer = buffer; source.connect(speechAudioContext.destination); source.onended = finish;
-      state.audio = { pause: () => { try { source.stop(); } catch (_) {} finish(); } };
-      source.start(0);
-    }
-    setStatus(personas[persona].name + " بيتكلم بصوت السيرفر", "speaking");
-    animateCharacter("happy");
+    state.audio = { pause: () => { audio.pause(); finish(); }, element: audio };
+    await audio.play();
+    trackAudioElementFace(audio, speechSegments);
   } catch (error) {
-    state.speaking = false; state.audio = null;
+    state.speaking = false;
+    state.audio = null;
+    resetSpeechMouth();
     if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
-    setStatus("حصلت مشكلة في تشغيل الصوت", "error");
     const reason = error?.name ? error.name + ": " + (error.message || "") : (error.message || "خطأ غير معروف");
     if (engine !== "device") {
       try {
         setStatus(personas[persona].name + " بيتحول لصوت الجهاز...", "thinking");
-        await speakWithDevice(spokenText, persona);
-        setStatus(personas[persona].name + " بيتكلم بصوت الجهاز (بديل تلقائي)", "speaking");
-        animateCharacter("happy");
-        state.speaking = false;
-        if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
+        state.speaking = true;
+        await speakWithDevice(spokenText, persona, speechSegments);
+        finish();
         return;
       } catch (deviceError) {
         showToast("فشل الصوت السحابي والجهاز: " + (deviceError.message || reason).slice(0, 150));
       }
     } else showToast("تعذر تشغيل صوت الجهاز: " + reason.slice(0, 150));
-    if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
+    finish();
   }
 }
 function showToast(message) {
@@ -575,12 +645,14 @@ async function requestAIReply(text) {
   state.messages = [state.messages[0], ...state.messages.slice(1).slice(-23)];
   try {
     const result = await invokeNova("chat", { messages: state.messages });
+    const rawReply = String(result.reply || result.text || result.content || "");
     if (result.memory_saved) {
       await loadOwnerMemory();
       if ($("memoryFeedback")) $("memoryFeedback").textContent = "NOVA حفظ معلومة جديدة من كلامك تلقائيًا، وتقدر تراجعها أو تعدلها من الإعدادات."; 
     }
     const parsedReply = extractReplyEmotion(rawReply);
     setFaceEmotion(parsedReply.emotion);
+    state.replySegments = parsedReply.segments;
     state.messages.push({ role: "assistant", content: parsedReply.text });
     return parsedReply.text;
   } catch (error) {
@@ -617,7 +689,7 @@ async function handleRecognizedText(text, voiceTurn = false) {
     setFaceEmotion(state.replyEmotion || inferFaceEmotion(reply));
     addConversationLine(reply, "nova");
     $("liveTranscript").textContent = reply;
-    await speak(reply);
+    await speak(reply, state.replySegments || []);
   } finally {
     state.processing = false;
   }
