@@ -66,6 +66,7 @@ assert.match(app, /invokeNova\(speechAction/, "Client must dispatch TTS to the s
 assert.match(app, /engine === "gemini" \? "tts_gemini" : "tts"/, "Gemini TTS selection must route to its dedicated server action");
 assert.match(app, /SpeechSynthesisUtterance/, "The optional on-device speech engine must remain available");
 assert.match(app, /speechAudioCache/, "Gemini speech reuse cache must stay memory-only");
+assert.match(app, /rememberSpeechAudio/, "Generated Gemini audio must be cached for exact repeats in the current session");
 assert.match(app, /Gemini receives the complete reply in ONE request/, "Gemini TTS must not create a request for every sentence");
 assert.match(app, /rememberSpeechAudio\(geminiCacheKey, result\)/, "Valid Gemini audio must be reused during the current session");
 assert.match(html, /لا يستهلك طلبات Gemini TTS/, "The UI must explain that device TTS does not use Gemini quota");
@@ -151,9 +152,9 @@ assert.match(edge, /سياق مسترجع من محادثات سابقة للش�
 assert.match(edge, /oldRowsResult\.error/, "Parallel history retrieval errors must be handled explicitly");
 assert.match(edge, /const \[\{ data: memoryRow, error: memoryReadError \}, \{ data: models, error \}, oldRowsResult\] = await Promise\.all\(/, "Independent memory, model, and history reads must run concurrently");
 assert.match(edge, /const secretEntries = await Promise\.all\(/, "Provider secrets must be fetched concurrently instead of serially");
-assert.match(html, /nova-quick-conversation-v57/, "Client cache version must be refreshed after UX changes");
+assert.match(html, /nova-smart-tts-cache-v58/, "Client cache version must be refreshed after UX changes");
 assert.match(css, /NOVA responsive voice-first polish/, "Responsive voice-first visual polish must be present");
 
 assert.match(app, /Keep the dedicated interrupt listener alive during playback/, "Voice interruption listener must remain active while NOVA speaks");
 assert.doesNotMatch(app, /if \(state\.listening\) startInterruptRecognition\(\);\s*stopInterruptRecognition\(\)/, "Speech playback must not immediately disable the interrupt listener");
-assert.match(html, /nova-quick-conversation-v57/, "Client bundle cache must refresh after the interrupt fix");
+assert.match(html, /nova-smart-tts-cache-v58/, "Client bundle cache must refresh after the interrupt fix");
