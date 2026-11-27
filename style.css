@@ -728,3 +728,32 @@ body{background:radial-gradient(ellipse at 50% 43%,rgba(28,51,86,.46),transparen
   44.5%,79.5%{transform:scaleY(.08)}
 }
 @media(prefers-reduced-motion:reduce){.holo-eye{animation:none!important}}
+
+
+/* NOVA visibility and readable holographic anatomy */
+.character-stage{height:clamp(460px,62svh,600px)!important;min-height:460px!important;overflow:visible!important}
+.nova-audio-orb.nova-hologram{inset:0!important;width:100%!important;height:100%!important;overflow:visible!important;transform:none!important}
+.holo-person{display:block!important;width:min(100%,520px)!important;height:100%!important;max-height:590px!important;object-fit:contain;overflow:visible!important;opacity:1!important;filter:drop-shadow(0 0 22px #168cffaa) drop-shadow(0 0 48px #168cff55)!important;animation:holo-float 4.2s ease-in-out infinite}
+.holo-body{opacity:1!important;transform-origin:50% 30%;animation:holo-body-idle 4.8s ease-in-out infinite}
+.holo-head{opacity:1!important;transform-origin:50% 78%;animation:holo-head-idle 4.2s ease-in-out infinite}
+.holo-head>path:first-child{fill-opacity:1}
+.holo-shoulders{fill-opacity:.78!important;stroke-width:4!important}
+.holo-face{filter:drop-shadow(0 0 7px #8beaff)}
+.holo-eye{filter:drop-shadow(0 0 7px #a8f3ff)}
+.holo-mouth{stroke-width:5!important}
+.holo-aura{width:48%;opacity:.3;filter:blur(60px)}
+.nova-hologram[data-mood="listening"] .holo-person{animation:holo-listen-body 2.1s ease-in-out infinite}
+.nova-hologram[data-mood="thinking"] .holo-person{animation:holo-think-body 2.6s ease-in-out infinite}
+.nova-hologram[data-mood="speaking"] .holo-body{animation:holo-speaking-body .62s ease-in-out infinite alternate}
+.nova-hologram[data-mood="speaking"] .holo-person{filter:drop-shadow(0 0 28px #37caffcc) drop-shadow(0 0 60px #168cff88)!important}
+.nova-hologram[data-expression="happy"] .holo-head{transform:translateY(-5px) rotate(2deg)}
+.nova-hologram[data-expression="curious"] .holo-head{transform:rotate(5deg) translateY(-2px)}
+.nova-hologram[data-expression="sad"] .holo-head{transform:translateY(5px) rotate(-2deg)}
+@keyframes holo-body-idle{0%,100%{transform:translateY(1px) rotate(0)}50%{transform:translateY(-3px) rotate(.7deg)}}
+@keyframes holo-listen-body{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-7px) rotate(1deg)}}
+@keyframes holo-think-body{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-4px) rotate(-1deg)}}
+@keyframes holo-speaking-body{from{transform:translateY(0) scale(1)}to{transform:translateY(-3px) scale(1.012)}}
+@keyframes holo-listen-body{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-8px) rotate(1deg)}}
+@media(max-width:700px){.character-stage{height:clamp(440px,60svh,540px)!important;min-height:440px!important}.holo-person{width:100%!important;height:100%!important}}
+@media(max-width:390px){.character-stage{height:440px!important;min-height:440px!important}.holo-person{width:100%!important}}
+@media(prefers-reduced-motion:reduce){.holo-person,.holo-body,.holo-head{animation:none!important}}
