@@ -215,6 +215,7 @@ function setPersona(persona) {
     // system prompt or chat history to the other persona.
     state.messagesByPersona[state.persona] = state.messages.slice();
     state.persona = persona;
+    state.conversationIds[persona] = localStorage.getItem("nova.activeConversation." + persona) || null;
     state.messages = (state.messagesByPersona[persona] || []).slice();
     state.replySegments = [];
     state.replyEmotion = "neutral";
@@ -230,6 +231,7 @@ function setPersona(persona) {
     if (speechAudioElement) { try { speechAudioElement.pause(); } catch (_) {} speechAudioElement = null; }
     if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
     state.speaking = false;
+    void loadConversationHistory(true);
   }
   const current = personas[persona];
   document.documentElement.style.setProperty("--persona", current.color);
@@ -915,7 +917,7 @@ async function handleRecognizedText(text, voiceTurn = false) {
     if (controller.signal.aborted || requestId !== state.requestSequence || (voiceTurn && !state.listening)) return;
     setFaceEmotion(state.replyEmotion || inferFaceEmotion(reply));
     addConversationLine(reply, "nova"); $("liveTranscript").textContent = reply;
-    void persistConversationTurn(clean, reply);
+    await persistConversationTurn(clean, reply);
     await speak(reply, state.replySegments || []);
   } catch (error) { if (error?.name !== "AbortError") console.error("NOVA turn failed:", error); }
   finally { if (state.requestController === controller) state.requestController = null; if (requestId === state.requestSequence) state.processing = false; }
