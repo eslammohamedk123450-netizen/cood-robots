@@ -163,8 +163,8 @@ public class MainActivity extends Activity {
                 }
                 JSONObject saved = new JSONObject().put("id", id).put("type", type).put("title", title).put("at", at);
                 try {
-                    AlarmScheduler.schedule(activity, saved);
                     TaskStore.upsert(activity, saved);
+                    AlarmScheduler.schedule(activity, saved);
                 } catch (Exception error) {
                     TaskStore.remove(activity, id);
                     throw error;
