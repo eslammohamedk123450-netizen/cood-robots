@@ -44,7 +44,9 @@ function setFaceEmotion(emotion) {
   const safe = NOVA_EMOTIONS.has(emotion) ? emotion : "neutral";
   state.replyEmotion = safe;
   const face = $("faceScreen");
+  const robot = $("novaRobot");
   if (face) face.dataset.emotion = safe;
+  if (robot) robot.dataset.emotion = safe;
 }
 function inferFaceEmotion(reply) {
   const value = String(reply || "").toLowerCase();
