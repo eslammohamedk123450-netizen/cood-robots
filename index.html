@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#080B14">
-  <meta name="description" content="NOVA — رفيقك الرقمي الشخصي.">
+  <meta name="description" content="سولينا — مساعدتك الصوتية الذكية.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' blob: https://esm.sh https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; connect-src 'self' https://razvryvazmqvvqkzetuo.supabase.co https://*.google.com; img-src 'self' data: blob:; upgrade-insecure-requests">
-  <title>NOVA — معاك دايمًا</title>
+  <title>سولينا — مساعدتك الصوتية</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=nova-original-avatar-v61">
-  <link rel="stylesheet" href="nova-avatar.css?v=1">
+  <link rel="stylesheet" href="style.css?v=solina-voice-orb-v1">
+  <link rel="stylesheet" href="solina-voice.css?v=1">
 </head>
 <body>
   <div class="auth-gate" id="authGate">
@@ -29,99 +29,42 @@
       <p class="invite-note">سيظل تسجيل الدخول محفوظًا على هذا المتصفح لمدة 30 يومًا مع تجديد المدة تلقائيًا عند العودة.</p>
     </section>
   </div>
-  <div class="app-shell">
-    <header class="topbar">
-      <a class="brand" href="#home" aria-label="NOVA home">
-        <span class="brand-mark"><i></i><i></i><i></i></span>
-        <span><b>NOVA</b><small>YOUR DIGITAL COMPANION</small></span>
-      </a>
-      <div class="topbar-actions">
-        <span class="connection-pill"><i></i><span id="connectionLabel">جاهز أقابلك</span></span>
-        <button class="icon-button" id="settingsButton" aria-label="الإعدادات" title="الإعدادات">⚙</button>
-      </div>
+  <div class="app-shell solina-shell">
+    <header class="topbar solina-topbar">
+      <button class="icon-button menu-button" id="transcriptToggle" aria-label="فتح القائمة"><span></span><span></span><span></span></button>
+      <a class="brand solina-brand" href="#home"><span class="solina-wordmark">SOLINA</span></a>
+      <button class="icon-button settings-top-button" id="settingsButton" aria-label="الإعدادات">⚙</button>
     </header>
-
-    <main id="home" class="meeting-screen">
-      <section class="character-area" aria-label="مؤشر NOVA الصوتي">
-        <div class="character-heading">
-          <span class="eyebrow">YOUR PERSONAL COMPANION</span>
-          <p id="greeting">أهلاً يا إسلام، نورتني.</p>
-        </div>
-
-        <div class="character-stage" id="characterStage">
-          <div class="stage-glow"></div>
-          <div class="stage-orbit orbit-one"></div>
-          <div class="stage-orbit orbit-two"></div>
-          <div class="nova-audio-orb nova-hologram" id="novaAudioOrb" data-mood="idle" role="img" aria-label="شخصية NOVA الافتراضية المضيئة">
-<div class="holo-aura"></div><div class="holo-grid"></div>
-<canvas id="novaAvatarCanvas" class="holo-person nova-avatar-canvas" aria-hidden="true"></canvas>
-<div class="holo-scan"></div><div class="holo-caption">NOVA <span>•</span> AI COMPANION</div>
-</div><div class="character-caption">
-            <span class="caption-dot"></span>
-            <span id="characterStatus">سولي معاك</span>
-          </div>
-        </div>
-
-        <div class="persona-name">
-          <h1 id="personaName">سولي</h1>
-          <span id="personaDescription">صاحبك الأزرق 💙</span>
-        </div>
+    <main id="home" class="solina-main">
+      <section class="solina-orb-stage" aria-label="موجات صوت سولينا">
+        <div class="orb-halo"></div><canvas id="solinaWaveCanvas" class="solina-wave-canvas" aria-label="موجات صوتية تفاعلية"></canvas>
+        <div class="solina-status" id="voiceState" aria-live="polite">أنا هنا، ناديني سولينا</div>
+        <div class="solina-transcript" id="liveTranscript" aria-live="polite">اضغط على الميكروفون وابدأ كلامك</div>
       </section>
-
-      <section class="voice-area" aria-label="المحادثة الصوتية">
-        <div class="voice-feedback" aria-live="polite">
-          <span class="voice-state" id="voiceState">أنا سامعك لما تحب تبدأ</span>
-          <span class="voice-transcript" id="liveTranscript">اضغط على الميكروفون واتكلم براحتك</span>
-        </div>
-
-        <div class="voice-controls">
-          <button class="mic-button" id="micButton" aria-label="ابدأ المحادثة الصوتية" aria-pressed="false">
-            <span class="mic-halo"></span><span class="mic-symbol">🎙</span>
-          </button>
-          <button class="subtle-button" id="cancelTurnButton" aria-label="إلغاء الرد أو إيقاف الكلام" title="إيقاف / إلغاء">■</button>
-          <button class="subtle-button" id="textToggle" aria-label="اكتب رسالة بدل الكلام" title="الكتابة">⌨</button>
-          <button class="subtle-button" id="transcriptToggle" aria-label="عرض المحادثة" title="المحادثة">☰</button>
-        </div>
-        <p class="voice-hint" id="voiceHint">اضغط مرة وابدأ كلامك · اضغط تاني عشان توقف</p>
-
-        <form class="text-entry hidden" id="textForm">
-          <input id="textInput" type="text" autocomplete="off" placeholder="اكتب لسولي هنا..." aria-label="اكتب رسالة">
-          <button type="submit" aria-label="إرسال">➤</button>
-        </form>
+      <section class="solina-controls">
+        <button class="mic-button solina-mic" id="micButton" aria-label="ابدأ المحادثة الصوتية" aria-pressed="false"><span class="mic-halo"></span><span class="mic-symbol">🎙</span></button>
+        <button class="subtle-button solina-cancel" id="cancelTurnButton" aria-label="إلغاء أو إيقاف">×</button>
       </section>
-
-      <aside class="conversation-panel hidden" id="conversationPanel" aria-label="سجل المحادثة">
-        <div class="conversation-head">
-          <div><span class="eyebrow">OUR CONVERSATION</span><h2>كلامنا سوا</h2></div>
-          <button class="text-button" id="clearConversation">مسح السجل</button>
-        </div>
-        <label class="history-picker-label" for="conversationHistorySelect">افتح محادثة سابقة</label>
+      <p class="solina-hint" id="voiceHint">قولي «سولينا» عشان أرد عليكي · اضغطي الميكروفون لبدء الاستماع</p>
+      <form class="text-entry solina-text-entry hidden" id="textForm"><input id="textInput" type="text" autocomplete="off" placeholder="اكتب رسالة لسولينا..." aria-label="اكتب رسالة"><button type="submit" aria-label="إرسال">➤</button></form>
+      <aside class="conversation-panel solina-drawer hidden" id="conversationPanel" aria-label="القائمة والمحادثة">
+        <div class="conversation-head"><div><span class="eyebrow">SOLINA</span><h2>محادثتنا</h2></div><button class="icon-button" id="closeDrawer" type="button" aria-label="إغلاق القائمة">×</button></div>
+        <button class="drawer-action" id="drawerTextButton" type="button">✎ <span>اكتبي رسالة</span></button>
+        <button class="drawer-action" id="drawerHistoryButton" type="button">☰ <span>سجل المحادثات</span></button>
+        <button class="text-button" id="clearConversation" type="button">مسح المحادثة الحالية</button>
+        <label class="history-picker-label" for="conversationHistorySelect">محادثات سابقة</label>
         <select id="conversationHistorySelect" class="history-picker" aria-label="المحادثات السابقة"><option value="">المحادثات السابقة</option></select>
-        <div class="conversation-log" id="conversationLog" aria-live="polite">
-          <p class="empty-conversation">لسه مفيش كلام بينا. ابدأ أول محادثة ❤️</p>
-        </div>
+        <div class="conversation-log" id="conversationLog" aria-live="polite"><p class="empty-conversation">ابدأ أول حديث بينا 💗</p></div>
       </aside>
     </main>
-
-    <footer class="footer">
-      <span>NOVA <i>•</i> مساحة خاصة بإسلام</span>
-      <span id="runtimeNote">المحادثة الصوتية تعمل أثناء بقاء الصفحة مفتوحة</span>
-    </footer>
+    <div class="solina-drawer-backdrop hidden" id="drawerBackdrop"></div>
   </div>
-
   <dialog class="settings-dialog" id="settingsDialog">
     <form method="dialog" class="dialog-top">
       <div><span class="eyebrow">MAKE NOVA YOURS</span><h2>إعدادات NOVA</h2></div>
       <button class="icon-button close-button" aria-label="إغلاق">×</button>
     </form>
     <div class="settings-content">
-      <section class="settings-section">
-        <h3>الشخصية</h3>
-        <div class="persona-options">
-          <button type="button" class="persona-option selected" data-persona="soly"><span class="persona-swatch blue"></span><span><b>سولي</b><small>الشخصية الزرقاء</small></span><span class="option-check">✓</span></button>
-          <button type="button" class="persona-option" data-persona="soleen"><span class="persona-swatch pink"></span><span><b>سولينا</b><small>الشخصية الوردية</small></span><span class="option-check">✓</span></button>
-        </div>
-      </section>
       <section class="settings-section">
         <h3>بيانات المالك</h3>
         <label class="field-label">الاسم اللي أناديك بيه<input id="ownerName" value="إسلام" maxlength="40"></label>
@@ -167,9 +110,6 @@
           <input id="speechApiKey" type="password" maxlength="4096" autocomplete="new-password" placeholder="الصق مفتاح ElevenLabs هنا" dir="ltr">
         </label>
         <button type="button" class="save-button enabled-button" id="saveSpeechSettings">اختبار المفتاح وحفظه بأمان</button>
-        <label class="field-label">صوت سولي (رجالي)
-          <select id="speechMaleVoice" dir="rtl"><option value="">احفظ المفتاح وحمّل الأصوات أولًا</option></select>
-        </label>
         <label class="field-label">صوت سولينا (نسائي)
           <select id="speechFemaleVoice" dir="rtl"><option value="">احفظ المفتاح وحمّل الأصوات أولًا</option></select>
         </label>
@@ -210,6 +150,6 @@
 
   <div class="toast" id="toast" role="status"></div>
   <script src="pin.js?v=persistent-owner-session-v23"></script>
-  <script type="module" src="app.js?v=nova-smart-tts-cache-v61"></script>
+  <script type="module" src="app.js?v=solina-voice-orb-v1"></script>
 </body>
 </html>
