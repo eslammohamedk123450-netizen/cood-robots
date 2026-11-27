@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.provider.AlarmClock;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -28,8 +29,12 @@ public final class AlarmScheduler {
         PendingIntent pending = PendingIntent.getBroadcast(context, requestCode(id, stage), receiver,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         if ("due".equals(stage) || "followup".equals(stage)) {
-            Intent showIntent = new Intent(context, MainActivity.class)
+            Intent showIntent = new Intent(AlarmClock.ACTION_SHOW_ALARMS)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            if (showIntent.resolveActivity(context.getPackageManager()) == null) {
+                showIntent = new Intent(context, AlarmActivity.class)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            }
             PendingIntent show = PendingIntent.getActivity(context, requestCode(id, stage + "_show"), showIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             manager.setAlarmClock(new AlarmManager.AlarmClockInfo(at, show), pending);
@@ -49,8 +54,14 @@ public final class AlarmScheduler {
                     .putExtra("task_id", id).putExtra("stage", "alarm");
             PendingIntent pending = PendingIntent.getBroadcast(context, requestCode(id, "alarm"), receiver,
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            Intent showClock = new Intent(AlarmClock.ACTION_SHOW_ALARMS)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            if (showClock.resolveActivity(context.getPackageManager()) == null) {
+                showClock = new Intent(context, AlarmActivity.class)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            }
             PendingIntent show = PendingIntent.getActivity(context, requestCode(id, "show"),
-                    new Intent(context, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                    showClock, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             manager.setAlarmClock(new AlarmManager.AlarmClockInfo(at, show), pending);
             return;
         }
@@ -86,12 +97,12 @@ public final class AlarmScheduler {
             }
         }
         for (String stage : new String[]{"due", "followup"}) {
-            Intent stageShow = new Intent(context, MainActivity.class);
+            Intent stageShow = new Intent(AlarmClock.ACTION_SHOW_ALARMS);
             PendingIntent stageShowPending = PendingIntent.getActivity(context, requestCode(id, stage + "_show"), stageShow,
                     PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
             if (stageShowPending != null) stageShowPending.cancel();
         }
-        Intent show = new Intent(context, MainActivity.class);
+        Intent show = new Intent(AlarmClock.ACTION_SHOW_ALARMS);
         PendingIntent showPending = PendingIntent.getActivity(context, requestCode(id, "show"), show,
                 PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
         if (showPending != null) showPending.cancel();
