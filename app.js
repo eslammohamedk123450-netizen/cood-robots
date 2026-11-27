@@ -1234,38 +1234,8 @@ function activateOwnerSession(token) {
 }
 window.addEventListener("nova:authenticated", (event) => activateOwnerSession(event.detail?.token || null));
 
-// Recover the saved owner session here as well as in pin.js. This independent
-// bootstrap prevents the UI from silently entering its old local/demo reply
-// path if the authentication event is delayed or missed during page startup.
-async function restoreOwnerSession() {
-  const saved = localStorage.getItem("nova.owner.session.v2");
-  if (!saved) {
-    $("authGate").hidden = false;
-    setStatus("سجّلي دخولك لتفعيل خدمات سولينا", "idle");
-    return;
-  }
-  try {
-    const response = await fetch("https://razvryvazmqvvqkzetuo.supabase.co/functions/v1/nova-ai", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": "sb_publishable_t5xrzZNN6Uj9zhhBLUYQVg_mj7qPjQL"
-      },
-      body: JSON.stringify({ action: "check_session", token: saved })
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || !data.valid) {
-      localStorage.removeItem("nova.owner.session.v2");
-      $("authGate").hidden = false;
-      setStatus("انتهت جلسة الدخول. سجّل دخولك لتفعيل الخدمات", "idle");
-      return;
-    }
-    activateOwnerSession(saved);
-  } catch (error) {
-    console.warn("Solina cloud session restore failed:", error);
-    setStatus("تعذر الوصول للخادم حاليًا. تحقق من اتصال الإنترنت", "concerned");
-  }
-}
+// Owner session restoration is handled only by pin.js to avoid two
+// competing startup checks clearing a freshly authenticated session.
 applyProviderDefaults();
 // Solina is the only assistant persona.
 setPersona("soleen");
