@@ -284,7 +284,54 @@ function getDeviceArabicVoice() {
   // Prefer an Egyptian female voice, but never block speech because gender metadata is missing.
   return female(egyptian) || egyptian[0] || female(arabic) || arabic[0] || voices[0] || null;
 }
+function speakWithNativeDevice(text, segments = []) {
+  return new Promise((resolve, reject) => {
+    const bridge = window.SolinaNative;
+    if (!bridge || typeof bridge.speakText !== "function") { reject(new Error("محرك الصوت الأصلي غير متاح في نسخة التطبيق.")); return; }
+    let settled = false, rafId = 0, startedAt = 0;
+    const estimatedDuration = Math.max(1800, text.length * 75);
+    const cleanup = () => {
+      window.removeEventListener("solina-native-tts", onTtsEvent);
+      if (rafId) cancelAnimationFrame(rafId);
+      resetSpeechMouth();
+    };
+    const finish = (error) => {
+      if (settled) return;
+      settled = true; cleanup();
+      if (error) reject(error); else resolve();
+    };
+    const animate = (now) => {
+      if (settled || !state.speaking) return;
+      const elapsed = Math.max(0, now - startedAt);
+      const progress = Math.min(.995, elapsed / estimatedDuration);
+      updateSpeechSegmentProgress(segments, progress);
+      const pulse = Math.abs(Math.sin(elapsed / 1000 * Math.PI * 5.8));
+      setSpeechMouthLevel(.12 + pulse * .55, .2 + pulse * .4);
+      rafId = requestAnimationFrame(animate);
+    };
+    const onTtsEvent = (event) => {
+      const detail = event.detail || {};
+      if (detail.event === "start") {
+        startedAt = performance.now();
+        setStatus(personas[state.persona].name + " بيتكلم...", "speaking");
+        rafId = requestAnimationFrame(animate);
+      } else if (detail.event === "done") finish();
+      else if (detail.event === "error") finish(new Error(detail.message || "تعذر تشغيل صوت سولينا على الجهاز."));
+    };
+    window.addEventListener("solina-native-tts", onTtsEvent);
+    try {
+      const result = JSON.parse(bridge.speakText(text));
+      if (!result?.ok) finish(new Error(result?.error || "تعذر إرسال النص لمحرك الصوت."));
+    } catch (error) { finish(error); }
+    window.setTimeout(() => {
+      if (!settled) finish(new Error("محرك الصوت لم يؤكد بدء الكلام. تأكد من تثبيت بيانات تحويل النص إلى كلام."));
+    }, 65000);
+  });
+}
 function speakWithDevice(text, segments = []) {
+  if (window.SolinaNative && typeof window.SolinaNative.speakText === "function") {
+    return speakWithNativeDevice(text, segments);
+  }
   return new Promise((resolve, reject) => {
     if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
       reject(new Error("محرك النطق غير متاح في المتصفح ده. افتح NOVA من Chrome على أندرويد."));
@@ -382,7 +429,7 @@ async function speak(text, segments = [], signal) {
   try {
     if (engine === "mute") { finish(); return; }
     if (engine === "device") {
-      state.audio = { pause: () => { window.speechSynthesis.cancel(); finish(); } };
+      state.audio = { pause: () => { window.SolinaNative?.stopSpeaking?.(); window.speechSynthesis?.cancel?.(); finish(); } };
       await speakWithDevice(spokenText, speechSegments);
       finish();
       return;
@@ -465,15 +512,17 @@ async function speak(text, segments = [], signal) {
       try {
         state.speaking = true;
         setStatus(personas[persona].name + " بيتكلم...", "speaking");
-        state.audio = { pause: () => { window.speechSynthesis?.cancel?.(); finish(); } };
+        state.audio = { pause: () => { window.SolinaNative?.stopSpeaking?.(); window.speechSynthesis?.cancel?.(); finish(); } };
         await speakWithDevice(spokenText, speechSegments);
         finish();
         return;
       } catch (deviceError) {
-        console.warn("All speech outputs unavailable; keeping the text reply visible.", error, deviceError);
+        console.error("All speech outputs unavailable; keeping the text reply visible.", error, deviceError);
+        showToast("الرد ظهر مكتوب، لكن الصوت فشل: " + (deviceError?.message || error?.message || "تحقق من محرك الصوت وإعدادات الجهاز"));
       }
     } else {
-      console.warn("Selected device speech output is unavailable.", error);
+      console.error("Selected device speech output is unavailable.", error);
+      showToast("تعذر تشغيل صوت سولينا: " + (error?.message || "تحقق من تثبيت صوت عربي على الجهاز"));
     }
     finish();
   }
@@ -1516,7 +1565,7 @@ function cancelCurrentTurn(showMessage = true) {
   if (state.audio) { try { state.audio.pause(); } catch (_) {} state.audio = null; }
   if (speechAudioElement) { try { speechAudioElement.pause(); speechAudioElement.removeAttribute("src"); speechAudioElement.load(); } catch (_) {} speechAudioElement = null; }
   if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
-  if ("speechSynthesis" in window) window.speechSynthesis.cancel(); state.speaking = false;
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel(); window.SolinaNative?.stopSpeaking?.(); state.speaking = false;
   if (showMessage) { setStatus("اتلغى، أنا سامعك", state.listening ? "listening" : "idle"); showToast("وقفت الرد فورًا."); }
   if (state.listening && state.recognition) window.setTimeout(() => { if (state.listening && !state.processing) { try { state.recognition.start(); } catch (_) {} } }, 250);
 }
