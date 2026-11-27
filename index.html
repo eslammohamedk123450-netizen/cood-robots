@@ -47,6 +47,7 @@
         <button class="subtle-button solina-cancel" id="cancelTurnButton" aria-label="إلغاء أو إيقاف">×</button>
       </section>
       <p class="solina-hint" id="voiceHint">قولي «سولينا» عشان أرد عليكي · اضغطي الميكروفون لبدء الاستماع</p>
+      <div class="conversation-log solina-conversation-feed" id="conversationLog" aria-live="polite"><p class="empty-conversation">ابدأ أول حديث بينا 💗</p></div>
       <form class="text-entry solina-text-entry hidden" id="textForm"><input id="textInput" type="text" autocomplete="off" placeholder="اكتب رسالة لسولينا..." aria-label="اكتب رسالة"><button type="submit" aria-label="إرسال">➤</button></form>
       <aside class="conversation-panel solina-drawer hidden" id="conversationPanel" aria-label="القائمة والمحادثة">
         <div class="conversation-head"><div><span class="eyebrow">SOLINA</span><h2>محادثتنا</h2></div><button class="icon-button" id="closeDrawer" type="button" aria-label="إغلاق القائمة">×</button></div>
@@ -55,7 +56,7 @@
         <button class="text-button" id="clearConversation" type="button">مسح المحادثة الحالية</button>
         <label class="history-picker-label" for="conversationHistorySelect">محادثات سابقة</label>
         <select id="conversationHistorySelect" class="history-picker" aria-label="المحادثات السابقة"><option value="">المحادثات السابقة</option></select>
-        <div class="conversation-log" id="conversationLog" aria-live="polite"><p class="empty-conversation">ابدأ أول حديث بينا 💗</p></div>
+        
       </aside>
     </main>
     <div class="solina-drawer-backdrop hidden" id="drawerBackdrop"></div>
@@ -70,7 +71,14 @@
 <button type="button" class="settings-nav-card paper" data-open-settings-page="memory"><span class="settings-card-icon">▤</span><span class="settings-card-copy"><strong>دفتر سولينا</strong><small>الذاكرة والملاحظات المحفوظة</small></span><span class="settings-card-arrow">‹</span></button>
 <button type="button" class="settings-nav-card amber" data-open-settings-page="reminders"><span class="settings-card-icon">◷</span><span class="settings-card-copy"><strong>التذكيرات والمنبهات</strong><small>المواعيد والتنبيهات وإدارتها</small></span><span class="settings-card-arrow">‹</span></button>
 <button type="button" class="settings-nav-card rose" data-open-settings-page="voice"><span class="settings-card-icon">♫</span><span class="settings-card-copy"><strong>الصوت والتفاعل</strong><small>الصوت وطريقة الاستجابة</small></span><span class="settings-card-arrow">‹</span></button>
-<button type="button" class="settings-nav-card blue" data-open-settings-page="ai"><span class="settings-card-icon">✳</span><span class="settings-card-copy"><strong>مركز الذكاء الاصطناعي</strong><small>المزودون والنماذج والاتصال</small></span><span class="settings-card-arrow">‹</span></button></div><p class="settings-home-foot">SOLINA · PERSONAL ASSISTANT</p></section>
+<button type="button" class="settings-nav-card blue" data-open-settings-page="ai"><span class="settings-card-icon">✳</span><span class="settings-card-copy"><strong>مركز الذكاء الاصطناعي</strong><small>المزودون والنماذج والاتصال</small></span><span class="settings-card-arrow">‹</span></button>
+<button type="button" class="settings-nav-card permissions" data-open-settings-page="permissions"><span class="settings-card-icon">⛨</span><span class="settings-card-copy"><strong>صلاحيات الجهاز</strong><small>الميكروفون والمنبه والإشعارات</small></span><span class="settings-card-arrow">‹</span></button></div><p class="settings-home-foot">SOLINA · PERSONAL ASSISTANT</p></section>
+<section class="settings-page" data-settings-page="permissions" hidden><div class="settings-page-intro"><span class="settings-page-kicker">SOLINA DEVICE ACCESS</span><h3>صلاحيات الجهاز</h3><p>تحكم في أذونات سولينا من مكان واحد، وافتح صفحة الإعداد المطلوبة مباشرة.</p></div><section class="settings-section"><h3>الصلاحيات الأساسية</h3><p class="security-note">الميكروفون للمحادثة الصوتية، والإشعارات للتذكيرات، والتنبيهات الدقيقة لتشغيل المنبه في معاده، والسماح بملء الشاشة لإظهار شاشة الاستيقاظ. بعض صلاحيات أندرويد بتتفعّل من صفحة إعدادات خاصة بدل نافذة سماح عادية.</p><div class="permission-list" id="permissionList">
+<div class="permission-row"><div><strong>الميكروفون</strong><small>الاستماع لأوامرك الصوتية</small><span data-permission-status="microphone">جاري التحقق...</span></div><button type="button" class="secondary-button" data-permission-action="microphone">تفعيل</button></div>
+<div class="permission-row"><div><strong>الإشعارات</strong><small>التذكيرات والتنبيهات</small><span data-permission-status="notifications">جاري التحقق...</span></div><button type="button" class="secondary-button" data-permission-action="notifications">تفعيل</button></div>
+<div class="permission-row"><div><strong>التنبيهات الدقيقة والمنبه</strong><small>تشغيل المنبه في الوقت المحدد حتى لو التطبيق مقفول</small><span data-permission-status="exactAlarms">جاري التحقق...</span></div><button type="button" class="secondary-button" data-permission-action="exactAlarms">فتح الإعداد</button></div>
+<div class="permission-row"><div><strong>عرض المنبه على كامل الشاشة</strong><small>إظهار شاشة الاستيقاظ فوق شاشة القفل</small><span data-permission-status="fullScreenIntent">جاري التحقق...</span></div><button type="button" class="secondary-button" data-permission-action="fullScreenIntent">فتح الإعداد</button></div>
+</div><p class="settings-feedback" id="permissionDeviceNote" role="status">جاري قراءة حالة الجهاز...</p><button type="button" class="save-button enabled-button" id="refreshPermissionsButton">تحديث حالة الصلاحيات</button></section></section>
 <section class="settings-page" data-settings-page="profile" hidden><div class="settings-page-intro"><span class="settings-page-kicker">SOLINA CONTROL CENTER</span><h3>الملف الشخصي</h3><p>بياناتك الأساسية وحساب المالك.</p></div><section class="settings-section">
         <h3>بيانات المالك</h3>
         <label class="field-label">الاسم اللي أناديك بيه<input id="ownerName" class="owner-code-input" value="إسلام" maxlength="40" autocomplete="nickname" spellcheck="false"></label>
