@@ -121,3 +121,11 @@ assert.match(app, /messagesByPersona: \{ soly: \[\], soleen: \[\] \}/, "Soly and
 assert.match(app, /state\.messagesByPersona\[state\.persona\] = state\.messages\.slice\(\)/, "Current persona history must be saved independently");
 assert.match(app, /state\.messages = \(state\.messagesByPersona\[persona\] \|\| \[\]\)\.slice\(\)/, "Switching persona must restore only that persona's history");
 assert.match(app, /ابدأ محادثة جديدة مع /, "Persona switch must visually separate the conversation");
+
+assert.match(html, /face-pupil/, "The robot face must include animated eye pupils");
+assert.match(css, /nova-eye-blink/, "The robot face must blink with animated eyelids");
+assert.match(css, /data-emotion="surprised".*face-eye/, "Expressions must visibly change eye shape");
+assert.match(css, /data-emotion="happy".*face-mouth/, "Happy and playful expressions must shape the mouth into a smile");
+assert.match(app, /إفيهات مصرية ذكية ومواقف يومية/, "The AI persona must use natural Egyptian humor");
+assert.match(app, /الصدق أساسي/, "The AI persona must explicitly prioritize honesty and uncertainty");
+assert.match(app, /--face-talk-energy/, "Speech energy must animate facial details beyond the mouth");
