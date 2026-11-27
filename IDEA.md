@@ -6,7 +6,7 @@ The long-term vision is documented in NOVA_MASTER_VISION.md. The currently appro
 
 Current V1 priorities:
 - Voice-first, natural conversation in Egyptian Arabic.
-- Soly (blue) and Soleen (pink), with distinct visual identity and personality.
+- Solina is the only character, with one consistent feminine identity, appearance, and voice.
 - Full-body 3D character integration, expressive animations, gestures, and lip sync.
 - Persistent, owner-controlled memory organized into notebooks/categories.
 - Minimal settings for persona, owner display name, voice, and secure AI provider configuration.
