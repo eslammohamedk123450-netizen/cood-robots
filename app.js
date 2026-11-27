@@ -111,7 +111,7 @@ async function speak(text) {
   if (state.audio) { try { state.audio.pause(); } catch (_) {} state.audio = null; }
   if (speechAudioElement) { try { speechAudioElement.pause(); } catch (_) {} speechAudioElement = null; }
   if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
-  const engine = $("speechEngine")?.value || localStorage.getItem("nova.speech.engine") || "device";
+  const engine = $("speechEngine")?.value || localStorage.getItem("nova.speech.engine") || "auto";
   const finish = () => {
     state.speaking = false;
     state.audio = null;
@@ -127,6 +127,7 @@ async function speak(text) {
       animateCharacter("happy");
       return;
     }
+    if (engine === "auto" && !localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
     const voiceId = localStorage.getItem(persona === "soleen" ? "nova.sonex.voice.female" : "nova.sonex.voice.male") || "";
     const result = await invokeNova("tts", { text: spokenText, persona, voice_id: voiceId });
     if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
@@ -171,7 +172,19 @@ async function speak(text) {
     if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
     setStatus("حصلت مشكلة في تشغيل الصوت", "error");
     const reason = error?.name ? error.name + ": " + (error.message || "") : (error.message || "خطأ غير معروف");
-    showToast("تعذر تشغيل الصوت: " + reason.slice(0, 150));
+    if (engine !== "device") {
+      try {
+        setStatus(personas[persona].name + " بيتحول لصوت الجهاز...", "thinking");
+        await speakWithDevice(spokenText, persona);
+        setStatus(personas[persona].name + " بيتكلم بصوت الجهاز (بديل تلقائي)", "speaking");
+        animateCharacter("happy");
+        state.speaking = false;
+        if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
+        return;
+      } catch (deviceError) {
+        showToast("فشل الصوت السحابي والجهاز: " + (deviceError.message || reason).slice(0, 150));
+      }
+    } else showToast("تعذر تشغيل صوت الجهاز: " + reason.slice(0, 150));
     if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
   }
 }
@@ -434,11 +447,11 @@ async function loadSpeechSettings() {
   try {
     const result = await invokeNova("speech_get");
     if (result.configured) {
-      // The credential is stored centrally, so newly installed clients must also select the server engine.
-      if ($("speechEngine")) $("speechEngine").value = "server";
-      localStorage.setItem("nova.speech.engine", "server");
-      setFeedback("speechEngineFeedback", "Sonex Labs متصل عبر Supabase وجاهز لتوليد الصوت.");
-      setFeedback("speechFeedback", "مفتاح Sonex Labs محفوظ بأمان في Supabase Vault. تم تفعيل الصوت السحابي تلقائيًا.");
+      const savedEngine = localStorage.getItem("nova.speech.engine") || "auto";
+      if ($("speechEngine")) $("speechEngine").value = savedEngine;
+      if (!localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
+      setFeedback("speechEngineFeedback", savedEngine === "device" ? "صوت الجهاز محدد يدويًا." : savedEngine === "server" ? "Sonex Labs محدد؛ وعند الفشل سيتم الرجوع لصوت الجهاز." : "الوضع التلقائي: Sonex أولًا، ثم صوت الجهاز عند الحاجة.");
+      setFeedback("speechFeedback", "المفتاح محفوظ في Vault. الأصوات يتم جلبها تلقائيًا في الخلفية عند توفر الاتصال.");
       try { await loadSonexVoices(); }
       catch (voiceError) { setFeedback("speechFeedback", "المفتاح محفوظ، لكن تعذر تحميل الأصوات: " + voiceError.message, true); }
     } else setFeedback("speechFeedback", "أضف مفتاح Sonex Labs الذي يبدأ بـ vsk_ لتفعيل الصوت.");
@@ -630,12 +643,15 @@ $("speechFemaleVoice")?.addEventListener("change", (event) => localStorage.setIt
 
 const speechEngineSelect = $("speechEngine");
 if (speechEngineSelect) {
-  speechEngineSelect.value = localStorage.getItem("nova.speech.engine") || "device";
+  speechEngineSelect.value = localStorage.getItem("nova.speech.engine") || "auto";
   speechEngineSelect.addEventListener("change", () => {
     localStorage.setItem("nova.speech.engine", speechEngineSelect.value);
-    setFeedback("speechEngineFeedback", speechEngineSelect.value === "device"
-      ? "تم اختيار صوت الجهاز. تأكد من تثبيت صوت عربي في إعدادات أندرويد."
-      : "تم اختيار Sonex Labs عبر Supabase لتوليد الصوت.");
+    const selected = speechEngineSelect.value;
+    setFeedback("speechEngineFeedback", selected === "device"
+      ? "صوت الجهاز فقط. تأكد من توفر صوت عربي على أندرويد."
+      : selected === "server"
+        ? "Sonex Cloud أولًا، مع الرجوع لصوت الجهاز عند فشل الصوت السحابي."
+        : "تلقائي: Sonex Cloud إذا كان متاحًا، وإلا صوت الجهاز. التحميل يتم بالخلفية.");
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   });
 }
