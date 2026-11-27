@@ -26,7 +26,8 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.UUID;
 
-// Device task commands and alarm dismissal are handled natively by the Android app.\npublic class MainActivity extends Activity {
+// Device task commands and alarm dismissal are handled natively by the Android app. 
+public class MainActivity extends Activity {
     private WebView webView;
     private SpeechRecognizer speechRecognizer;
     private final String appUrl = "https://eslammohamedk123450-netizen.github.io/cood-robots/?solina=command-router-v2";
