@@ -2,7 +2,7 @@ import { parseTaskCommand, formatTaskDate } from "./task-manager.js";
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soleen", emotion: "idle", listening: false, speaking: false,
-  recognition: null, restartRecognition: false, processing: false, voiceSessionActive: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
+  recognition: null, restartRecognition: false, processing: false, nativeSpeech: false, voiceSessionActive: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
   messages: [], voiceAlternatives: [], messagesByPersona: { soleen: [] }, conversationIds: { soleen: null }, historyQueues: { soleen: Promise.resolve() }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: ""
 };
 const VOICE_TURN_PAUSE_MS = 480;
@@ -928,7 +928,9 @@ function stopInterruptRecognition() {
 }
 function startInterruptRecognition() {
   if (!state.listening || state.interruptRecognition || (!state.processing && !state.speaking)) return;
-  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition; if (!Recognition) return;
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Recognition && state.nativeSpeech && window.SolinaNative?.startSpeechRecognition) { startNativeSpeechCapture(); return; }
+  if (!Recognition) return;
   const recognition = new Recognition(); state.interruptRecognition = recognition;
   recognition.lang = "ar-EG"; recognition.continuous = true; recognition.interimResults = true; recognition.maxAlternatives = 3;
   recognition.onresult = (event) => {
@@ -1201,7 +1203,13 @@ async function handleRecognizedText(text, voiceTurn = false, voiceAlternatives =
       showToast(message);
     }
   }
-  finally { if (state.requestController === controller) state.requestController = null; if (requestId === state.requestSequence) state.processing = false; }
+  finally {
+    if (state.requestController === controller) state.requestController = null;
+    if (requestId === state.requestSequence) state.processing = false;
+    if (state.listening && state.nativeSpeech && !state.processing && !state.speaking) {
+      window.setTimeout(() => { if (state.listening && state.nativeSpeech && !state.processing && !state.speaking) startNativeSpeechCapture(); }, 350);
+    }
+  }
 }
 function cancelCurrentTurn(showMessage = true) {
   state.requestSequence += 1;
@@ -1227,12 +1235,52 @@ function stopListening() {
   $("micButton").setAttribute("aria-label", "ابدأ المحادثة الصوتية");
   $("voiceHint").textContent = "اضغط على الميكروفون عشان تبدأ محادثة صوتية";
   try { state.recognition?.stop(); } catch (_) {}
+  if (state.nativeSpeech) window.SolinaNative?.stopSpeechRecognition?.();
+  state.nativeSpeech = false;
   if (state.audio) { state.audio.pause(); state.audio = null; }
   if (speechAudioElement) { try { speechAudioElement.pause(); speechAudioElement.removeAttribute("src"); speechAudioElement.load(); } catch (_) {} speechAudioElement = null; }
   if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
   state.speaking = false;
   setStatus("أنا موجود، لما تحب نتكلم", "idle");
 }
+function startNativeSpeechCapture() {
+  try { window.SolinaNative?.startSpeechRecognition?.(); }
+  catch (error) { console.warn("Native speech recognition could not start.", error); }
+}
+window.addEventListener("solina-native-speech-result", (event) => {
+  const transcripts = Array.isArray(event.detail?.transcripts) ? event.detail.transcripts : [];
+  const alternatives = transcripts.map((text) => ({ text: String(text || ""), confidence: 0 }));
+  const transcript = alternatives[0]?.text?.trim();
+  if (!state.listening || !transcript) return;
+  if (state.processing || state.speaking) {
+    if (isStopVoiceCommand(transcript)) {
+      window.SolinaNative?.stopSpeechRecognition?.();
+      stopInterruptRecognition();
+      state.voiceDraft = "";
+      if (state.voicePauseTimer) { clearTimeout(state.voicePauseTimer); state.voicePauseTimer = null; }
+      cancelCurrentTurn(false);
+      setStatus("حاضر، سكت. سامعاك", "listening");
+      $("liveTranscript").textContent = "حاضر، سكت.";
+      void playStopAcknowledgement();
+    } else {
+      window.setTimeout(() => { if (state.listening && (state.processing || state.speaking)) startNativeSpeechCapture(); }, 350);
+    }
+    return;
+  }
+  queueVoiceFinal(transcript, alternatives);
+});
+window.addEventListener("solina-native-speech-error", (event) => {
+  const code = Number(event.detail?.code);
+  if (!state.listening) return;
+  if (code === 5 || code === 9) {
+    stopListening();
+    showToast(code === 9 ? "اسمح لسولينا باستخدام الميكروفون." : "خدمة التعرف على الكلام غير متاحة على الجهاز.");
+    return;
+  }
+  window.setTimeout(() => {
+    if (state.listening && !state.processing && !state.speaking) startNativeSpeechCapture();
+  }, 650);
+});
 function startListening() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (AudioContextClass && !speechAudioContext) {
@@ -1240,11 +1288,23 @@ function startListening() {
   }
   if (speechAudioContext?.state === "suspended") void speechAudioContext.resume().catch(() => {});
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (state.listening) return;
+  if (!Recognition && window.SolinaNative?.startSpeechRecognition) {
+    state.nativeSpeech = true;
+    state.listening = true; state.restartRecognition = true; state.processing = false;
+    $("micButton").classList.add("active");
+    $("micButton").setAttribute("aria-pressed", "true");
+    $("micButton").setAttribute("aria-label", "إيقاف المحادثة الصوتية");
+    $("voiceHint").textContent = "أنا سامعك — اضغط الميكروفون مرة تانية للإيقاف";
+    setStatus("سامعك يا " + state.ownerName, "listening");
+    startNativeSpeechCapture();
+    return;
+  }
   if (!Recognition) {
     $("liveTranscript").textContent = "المتصفح ده مش بيدعم التعرف على الكلام. جرّب Chrome أو استخدم الكتابة.";
     showToast("التعرف الصوتي غير متاح في المتصفح الحالي"); return;
   }
-  if (state.listening) return;
+  state.nativeSpeech = false;
   state.listening = true; state.restartRecognition = true; state.processing = false;
   $("micButton").classList.add("active");
   $("micButton").setAttribute("aria-pressed", "true");
