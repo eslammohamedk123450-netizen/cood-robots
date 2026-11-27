@@ -280,7 +280,7 @@ function getDeviceArabicVoice(persona) {
   const hints = persona === "soleen" ? /female|woman|salma|zira|sara/i : /male|man|shakir|hamed|tariq/i;
   return pool.find((voice) => hints.test(voice.name || "")) || pool[0];
 }
-function speakWithDevice(text, persona, segments = []) {
+function speakWithDevice(text, persona, segments = [], retryWithoutVoice = false) {
   return new Promise((resolve, reject) => {
     if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
       reject(new Error("محرك النطق غير متاح في المتصفح ده. افتح NOVA من Chrome على أندرويد."));
@@ -289,9 +289,10 @@ function speakWithDevice(text, persona, segments = []) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "ar-EG";
-    utterance.rate = persona === "soleen" ? 0.98 : 0.92;
-    utterance.pitch = persona === "soleen" ? 1.16 : 0.82;
-    const voice = getDeviceArabicVoice(persona);
+    // First attempt keeps persona settings; retry uses Android's default voice.
+    utterance.rate = retryWithoutVoice ? 1 : (persona === "soleen" ? 0.98 : 0.92);
+    utterance.pitch = retryWithoutVoice ? 1 : (persona === "soleen" ? 1.16 : 0.82);
+    const voice = retryWithoutVoice ? null : getDeviceArabicVoice(persona);
     if (voice) utterance.voice = voice;
 
     // Android's SpeechSynthesis often emits no boundary events and exposes no audio
@@ -340,7 +341,15 @@ function speakWithDevice(text, persona, segments = []) {
       }
     };
     utterance.onend = () => { stopVisuals(); resolve(); };
-    utterance.onerror = (event) => { stopVisuals(); reject(new Error("محرك الجهاز فشل في النطق: " + (event.error || "unknown"))); };
+    utterance.onerror = (event) => {
+      stopVisuals();
+      const errorCode = event.error || "unknown";
+      if (!retryWithoutVoice && !["canceled", "interrupted"].includes(errorCode)) {
+        speakWithDevice(text, persona, segments, true).then(resolve, reject);
+        return;
+      }
+      reject(new Error("محرك الجهاز فشل في النطق: " + errorCode));
+    };
     utterance.onpause = () => { if (rafId) cancelAnimationFrame(rafId); };
     utterance.onresume = () => { if (!ended) rafId = requestAnimationFrame(tick); };
     window.speechSynthesis.speak(utterance);
