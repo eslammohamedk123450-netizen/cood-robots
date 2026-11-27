@@ -161,12 +161,12 @@ assert.match(edge, /سياق مسترجع من محادثات سابقة للش�
 assert.match(edge, /oldRowsResult\.error/, "Parallel history retrieval errors must be handled explicitly");
 assert.match(edge, /const \[\{ data: memoryRow, error: memoryReadError \}, \{ data: models, error \}, oldRowsResult\] = await Promise\.all\(/, "Independent memory, model, and history reads must run concurrently");
 assert.match(edge, /const secretEntries = await Promise\.all\(/, "Provider secrets must be fetched concurrently instead of serially");
-assert.match(html, /nova-smart-tts-cache-v60/, "Client cache version must be refreshed after UX changes");
+assert.match(html, /nova-smart-tts-cache-v61/, "Client cache version must be refreshed after UX changes");
 assert.match(css, /NOVA responsive voice-first polish/, "Responsive voice-first visual polish must be present");
 
 assert.match(app, /Keep the dedicated interrupt listener alive during playback/, "Voice interruption listener must remain active while NOVA speaks");
 assert.doesNotMatch(app, /if \(state\.listening\) startInterruptRecognition\(\);\s*stopInterruptRecognition\(\)/, "Speech playback must not immediately disable the interrupt listener");
-assert.match(html, /nova-smart-tts-cache-v60/, "Client bundle cache must refresh after the interrupt fix");
+assert.match(html, /nova-smart-tts-cache-v61/, "Client bundle cache must refresh after the interrupt fix");
 
 assert.match(app, /راجع ردك مرة أخيرة بصمت من ناحية الإملاء واختيار الكلمات واتساق المعنى/, "NOVA must proofread Egyptian Arabic contextually before replying");
 assert.match(app, /كلمة «بكير» تظل كما هي إذا كان معناها مقصودًا/, "Contextual proofreading must preserve valid words instead of blanket replacements");
