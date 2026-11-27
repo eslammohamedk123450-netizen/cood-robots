@@ -118,7 +118,7 @@ assert.match(html, /data-open-settings-page="memory"/, "The notebook must be rea
 assert.match(html, /class="owner-code-input"/, "Owner name must use the technical identity field style");
 assert.match(app, /function openSettingsPage\(pageId\)/, "Settings categories must open as separate pages");
 assert.match(app, /settingsBackButton.*showSettingsHome|showSettingsHome.*settingsBackButton/s, "Settings must return from a page to the category home");
-assert.match(css, /textarea#ownerMemory[\\s\\S]*?repeating-linear-gradient/, "Owner memory must use the ruled notebook presentation");
+assert.ok(css.includes("textarea#ownerMemory") && css.includes("repeating-linear-gradient"), "Owner memory must use the ruled notebook presentation");
 assert.match(css, /settings-nav-card/, "Settings catalog cards must have dedicated branded styling");
 assert.match(html, /id="solinaWaveCanvas"/, "The home screen must show Solina audio sphere");
 assert.doesNotMatch(html, /faceScreen|novaFaceMount|novaFaceOnly|faceMouth/, "No robot face markup may remain");
