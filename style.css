@@ -241,6 +241,55 @@ body[data-mood="happy"] .face-mouth{width:86px;height:24px;border-bottom:4px sol
 @media(max-width:700px){.character-stage{height:315px}.character-fallback.face-avatar{height:230px}.face-screen{height:190px;width:min(88vw,340px)}.face-eyes{top:48px;gap:63px}.face-eye{width:40px;height:52px}.face-mouth{top:128px}body[data-mood="speaking"] .face-mouth{top:115px}body[data-mood="thinking"] .face-mouth{top:121px}}
 @media(prefers-reduced-motion:reduce){.face-screen,.face-eye,.face-spark,.face-mouth{animation:none!important}}
 
+
+/* NOVA animated floating screen companion — no mannequin / doll body */
+#character3dMount{overflow:visible!important}
+#character3dMount:not(.has-3d) #characterFallback.face-avatar{
+  width:100%!important;height:100%!important;max-width:none!important;
+  display:grid!important;place-items:center!important;transform:none!important;
+}
+#character3dMount:not(.has-3d) #characterFallback.face-avatar>.face-screen{
+  width:min(78vw,350px)!important;height:250px!important;
+  border-radius:34px!important;
+  border:3px solid color-mix(in srgb,var(--persona) 78%,#dffaff)!important;
+  background:radial-gradient(ellipse at 50% 38%,#102d50 0%,#061426 58%,#020711 100%)!important;
+  box-shadow:0 0 22px color-mix(in srgb,var(--persona) 80%,transparent),0 0 85px color-mix(in srgb,var(--persona) 34%,transparent),inset 0 0 35px #167ac455, inset 0 0 0 8px #091a2b!important;
+  transform:translate3d(var(--look-x,0px),var(--look-y,0px),0) rotate(var(--tilt,0deg));
+  transform-origin:center;
+  animation: nova-face-hover 4.4s ease-in-out infinite, nova-face-turn 8s ease-in-out infinite;
+  transition:transform .24s ease,border-color .3s,box-shadow .3s;
+  overflow:hidden;
+}
+.face-eyes{transform:translate3d(var(--look-x,0px),var(--look-y,0px),0);transition:transform .18s ease}
+.face-eye{border-radius:45% 45% 40% 40%;box-shadow:0 0 12px #51d5ff,0 0 32px #168bff,0 0 58px #168bff88}
+.face-mouth{min-width:56px}
+body[data-mood="speaking"] #characterFallback.face-avatar .face-mouth{animation:nova-mouth-speech .17s ease-in-out infinite alternate!important}
+body[data-mood="speaking"] #characterFallback.face-avatar .face-screen{animation:nova-face-talking .8s ease-in-out infinite alternate,nova-face-hover 4.4s ease-in-out infinite!important}
+body[data-mood="listening"] #characterFallback.face-avatar .face-screen{animation:nova-face-listen 1.8s ease-in-out infinite alternate,nova-face-hover 4.4s ease-in-out infinite!important}
+.face-screen.face-gesture-face-gesture-wave{animation:nova-face-wave .7s ease-in-out 2!important}
+.face-screen.face-gesture-happy{animation:nova-face-bounce .42s ease-in-out 3!important}
+.face-screen.face-gesture-thinking{animation:nova-face-think .8s ease-in-out 2!important}
+.face-screen.face-gesture-nod{animation:nova-face-nod .42s ease-in-out 3!important}
+@keyframes nova-face-hover{0%,100%{translate:0 0}50%{translate:0 -13px}}
+@keyframes nova-face-turn{0%,100%{rotate:0deg}25%{rotate:1.2deg}75%{rotate:-1.2deg}}
+@keyframes nova-face-talking{from{scale:1}to{scale:1.025}}
+@keyframes nova-face-listen{from{translate:0 0}to{translate:0 -5px}}
+@keyframes nova-mouth-speech{from{transform:translateX(-50%) scaleY(.2) scaleX(.82)}to{transform:translateX(-50%) scaleY(1.25) scaleX(1.13)}}
+@keyframes nova-face-wave{0%,100%{transform:translate3d(var(--look-x,0px),var(--look-y,0px),0) rotate(0)}25%{transform:translate3d(-18px,-8px,0) rotate(-5deg)}75%{transform:translate3d(18px,-8px,0) rotate(5deg)}}
+@keyframes nova-face-bounce{0%,100%{translate:0 0}50%{translate:0 -24px;scale:1.04}}
+@keyframes nova-face-think{0%,100%{rotate:0deg}50%{rotate:-4deg;translate:-8px 0}}
+@keyframes nova-face-nod{0%,100%{translate:0 0}35%{translate:0 12px}70%{translate:0 -4px}}
+@media(max-width:700px){
+ #character3dMount:not(.has-3d) #characterFallback.face-avatar>.face-screen{width:min(82vw,320px)!important;height:218px!important;border-radius:29px!important}
+ .face-eyes{top:54px!important;gap:58px!important}
+ .face-eye{width:39px!important;height:53px!important}
+ .face-mouth{top:151px!important}
+ body[data-mood="speaking"] .face-mouth{top:139px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #character3dMount:not(.has-3d) #characterFallback.face-avatar>.face-screen{animation:none!important}
+}
+
 /* Hard override: never show the legacy doll over the OLED face */
 #character3dMount:not(.has-3d) #characterFallback.face-avatar{display:grid!important;visibility:visible!important;opacity:1!important;z-index:5!important}
 #character3dMount:not(.has-3d) #characterFallback.face-avatar .robot-body,
