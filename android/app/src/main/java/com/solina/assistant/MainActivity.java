@@ -248,7 +248,7 @@ public class MainActivity extends Activity {
                 TaskStore.remove(activity, id);
                 return new JSONObject().put("ok", true).toString();
             } catch (Exception error) {
-                return new JSONObject().put("ok", false).put("error", "complete_failed").toString();
+                return "{\"ok\":false,\"error\":\"complete_failed\"}";
             }
         }
 
@@ -265,7 +265,7 @@ public class MainActivity extends Activity {
                 ((NotificationManager) activity.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(id.hashCode());
                 return new JSONObject().put("ok", true).put("nextAt", next).toString();
             } catch (Exception error) {
-                return new JSONObject().put("ok", false).put("error", "snooze_failed").toString();
+                return "{\"ok\":false,\"error\":\"snooze_failed\"}";
             }
         }
 
