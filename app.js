@@ -1,15 +1,12 @@
 const $ = (id) => document.getElementById(id);
 // Always enforce the new screen-face avatar, even if an older cached HTML shell is opened.
 function enforceScreenFaceAvatar() {
-  const mount = $("character3dMount");
-  let fallback = $("characterFallback");
+  const mount = $("novaFaceMount");
+  let fallback = $("novaFaceAvatar");
   if (!mount) return;
-  // Remove every legacy robot/doll node, including nodes left by an older cached layout.
-  mount.classList.remove("has-3d");
-  mount.querySelectorAll("canvas,.robot-body,.robot-head,.robot-torso,.robot-shadow,.antenna,.ear,.hair,.bow,.brow,.arm,.leg,.torso-core").forEach((node) => node.remove());
   if (!fallback) {
     fallback = document.createElement("div");
-    fallback.id = "characterFallback";
+    fallback.id = "novaFaceAvatar";
   }
   fallback.className = "character-fallback face-avatar";
   fallback.innerHTML = '<div class="face-screen" id="faceScreen" data-emotion="neutral"><div class="face-scanline"></div><div class="face-eyes"><span class="face-eye left"></span><span class="face-eye right"></span></div><div class="face-mouth" id="faceMouth"><i></i></div><span class="face-spark spark-one"></span><span class="face-spark spark-two"></span></div>';
@@ -17,7 +14,7 @@ function enforceScreenFaceAvatar() {
   fallback.style.display = "grid";
   fallback.style.visibility = "visible";
   fallback.style.opacity = "1";
-  // The mount must contain only the screen-face avatar, never the former mannequin.
+  // The mount contains one OLED face and no other character elements.
   mount.replaceChildren(fallback);
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", enforceScreenFaceAvatar, { once: true });
