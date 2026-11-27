@@ -400,7 +400,7 @@ function speakWithDevice(text, persona, segments = []) {
     window.speechSynthesis.speak(utterance);
   });
 }
-async function speak(text, segments = []) {
+async function speak(text, segments = [], signal) {
   const spokenText = cleanSpeechText(text);
   if (!spokenText) return;
   const persona = state.persona;
@@ -436,7 +436,7 @@ async function speak(text, segments = []) {
     const voicePrefix = speechVendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
     const voiceId = engine === "chatterbox" ? "" : (localStorage.getItem(voicePrefix + (persona === "soleen" ? "female" : "male")) || "");
     const speechAction = engine === "chatterbox" ? "tts_chatterbox" : engine === "gemini" ? "tts_gemini" : "tts";
-    const result = await invokeNova(speechAction, { text: spokenText, persona, voice_id: voiceId, provider: speechVendor });
+    const result = await invokeNova(speechAction, { text: spokenText, persona, voice_id: voiceId, provider: speechVendor }, { signal });
     if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
     const mime = String(result.mime_type || "").split(";")[0].trim().toLowerCase();
     if (!["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav"].includes(mime)) {
@@ -496,6 +496,7 @@ async function speak(text, segments = []) {
     state.audio = null;
     resetSpeechMouth();
     if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
+    if (error?.name === "AbortError" || signal?.aborted) { resetSpeechMouth(); return; }
     const reason = error?.name ? error.name + ": " + (error.message || "") : (error.message || "خطأ غير معروف");
     const selectedProvider = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
     if (engine !== "device" && engine !== "chatterbox") {
@@ -918,7 +919,7 @@ async function handleRecognizedText(text, voiceTurn = false) {
     setFaceEmotion(state.replyEmotion || inferFaceEmotion(reply));
     addConversationLine(reply, "nova"); $("liveTranscript").textContent = reply;
     await persistConversationTurn(clean, reply);
-    await speak(reply, state.replySegments || []);
+    await speak(reply, state.replySegments || [], controller.signal);
   } catch (error) { if (error?.name !== "AbortError") console.error("NOVA turn failed:", error); }
   finally { if (state.requestController === controller) state.requestController = null; if (requestId === state.requestSequence) state.processing = false; }
 }
