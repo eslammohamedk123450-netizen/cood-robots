@@ -428,10 +428,11 @@ async function speak(text, segments = []) {
       return;
     }
     if (engine === "auto" && !localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
-    const speechVendor = $("speechProvider")?.value || "elevenlabs";
-    const voiceId = localStorage.getItem((speechVendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.") + (persona === "soleen" ? "female" : "male")) || "";
+    const speechVendor = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
+    const voicePrefix = speechVendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
+    const voiceId = speechVendor === "chatterbox" ? "" : (localStorage.getItem(voicePrefix + (persona === "soleen" ? "female" : "male")) || "");
     const speechAction = engine === "gemini" ? "tts_gemini" : "tts";
-    const result = await invokeNova(speechAction, { text: spokenText, persona, voice_id: voiceId });
+    const result = await invokeNova(speechAction, { text: spokenText, persona, voice_id: voiceId, provider: speechVendor });
     if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
     const mime = String(result.mime_type || "").split(";")[0].trim().toLowerCase();
     if (!["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav"].includes(mime)) {
@@ -741,6 +742,20 @@ async function saveOwnerMemory() {
   finally { button.disabled = false; }
 }
 async function loadSpeechVoices() {
+  if (($("speechProvider")?.value || "") === "chatterbox") {
+    for (const id of ["speechMaleVoice", "speechFemaleVoice"]) {
+      const select = $(id);
+      select.replaceChildren();
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = "الصوت الافتراضي لـ Chatterbox";
+      select.appendChild(option);
+      select.closest(".field-label").hidden = true;
+    }
+    setFeedback("speechFeedback", "Chatterbox جاهز بدون مفتاح API. الصوت الافتراضي نفسه للشخصيتين حاليًا.");
+    return;
+  }
+  for (const id of ["speechMaleVoice", "speechFemaleVoice"]) $(id).closest(".field-label").hidden = false;
   const result = await invokeNova("speech_voices");
   const voices = Array.isArray(result.voices) ? result.voices : [];
   const provider = result.provider || $("speechProvider")?.value || "elevenlabs";
@@ -769,7 +784,7 @@ async function loadSpeechSettings() {
   try {
     const result = await invokeNova("speech_get");
     if (result.configured) {
-      if ($("speechProvider")) $("speechProvider").value = result.provider || "elevenlabs";
+      if ($("speechProvider")) $("speechProvider").value = localStorage.getItem("nova.speech.provider") === "chatterbox" ? "chatterbox" : (result.provider || "elevenlabs");
       const savedEngine = localStorage.getItem("nova.speech.engine") || "auto";
       if ($("speechEngine")) $("speechEngine").value = savedEngine;
       if (!localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
@@ -786,7 +801,14 @@ async function saveSpeechSettings() {
   const button = $("saveSpeechSettings");
   const api_key = $("speechApiKey")?.value.trim() || "";
   const provider = $("speechProvider")?.value || "elevenlabs";
+  if (provider === "chatterbox") {
+    localStorage.setItem("nova.speech.provider", "chatterbox");
+    await loadSpeechVoices();
+    setFeedback("speechFeedback", "تم اختيار Chatterbox. لا يحتاج مفتاح API؛ جرّب التحدث الآن.");
+    return;
+  }
   if (!api_key) { setFeedback("speechFeedback", "الصق مفتاح " + provider + " أولًا.", true); return; }
+  localStorage.setItem("nova.speech.provider", provider);
   button.disabled = true;
   button.textContent = "جاري اختبار المفتاح وحفظه في Vault...";
   try {
@@ -1005,9 +1027,16 @@ $("speechFemaleVoice")?.addEventListener("change", (event) => {
   localStorage.setItem(prefix + "female", event.target.value);
 });
 $("speechProvider")?.addEventListener("change", () => {
-  const label = $("speechProvider").value === "elevenlabs" ? "ElevenLabs" : "Sonex Labs";
-  $("speechApiKey").placeholder = "الصق مفتاح " + label + " هنا";
-  setFeedback("speechFeedback", "بعد تغيير المزود، أدخل مفتاحه واضغط اختبار المفتاح وحفظه.");
+  const provider = $("speechProvider").value;
+  localStorage.setItem("nova.speech.provider", provider);
+  const chatterbox = provider === "chatterbox";
+  $("speechApiKey").disabled = chatterbox;
+  $("speechApiKey").placeholder = chatterbox ? "Chatterbox لا يحتاج مفتاح API" : "الصق مفتاح " + (provider === "elevenlabs" ? "ElevenLabs" : "Sonex Labs") + " هنا";
+  $("speechApiKey").closest(".field-label").hidden = chatterbox;
+  $("saveSpeechSettings").hidden = chatterbox;
+  $("chatterboxNote").hidden = !chatterbox;
+  void loadSpeechVoices().catch(error => setFeedback("speechFeedback", error.message, true));
+  if (!chatterbox) setFeedback("speechFeedback", "بعد تغيير المزود، أدخل مفتاحه واضغط اختبار المفتاح وحفظه.");
 });
 
 const speechEngineSelect = $("speechEngine");
