@@ -146,6 +146,8 @@ assert.match(app, /function sanitizeInternalReply\(/, "Client must sanitize inte
 assert.match(app, /sanitizeInternalReply/, "Client reply sanitizer must be used");
 assert.match(edge, /function sanitizeInternalReplyText\(/, "Server must sanitize internal memory metadata");
 assert.match(edge, /sanitizeInternalReplyText/, "Server reply sanitizer must be used");
+assert.match(edge, /ordinary words/, "Server sanitizer must remove plain-text NOVA MEMORY leaks");
+assert.match(edge, /NOVA_PROVIDER_TIMING/, "Provider latency must be logged per model without logging prompts or credentials");
 
 
 assert.match(app, /}, 950\);/, "Voice turn should use a shorter but non-zero end-of-speech pause");
