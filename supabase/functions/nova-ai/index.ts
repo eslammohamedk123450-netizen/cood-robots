@@ -135,7 +135,7 @@ async function requestGeminiTTS(apiKey: string, text: string, persona: string): 
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: "Speak naturally in Egyptian Arabic, friendly and conversational. Text: " + text }] }],
+      contents: [{ parts: [{ text }] }],
       generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } }
     }),
     signal: AbortSignal.timeout(60000), redirect: "error",
