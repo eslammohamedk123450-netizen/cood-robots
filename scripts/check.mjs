@@ -229,7 +229,7 @@ assert.match(app, /ناديني: سولينا/, "The wake prompt must use Solina
 assert.doesNotMatch(app, /مستني تناديني: نوفا|مستني تناديني يا نوفا/, "No stale NOVA wake prompt may remain");
 assert.match(app, /state\.voiceSessionActive = false;\s*cancelCurrentTurn/, "Stopping the microphone must close the armed voice session");
 
-assert.match(app, /function openSettings\(\) \{ \$\("settingsDialog"\)\.showModal\(\); void loadProviders\(\); \}/, "Opening settings must refresh saved API keys from the server");
+assert.match(app, /function openSettings\(\) \{ \$\("settingsDialog"\)\.showModal\(\); void Promise\.allSettled\(\[loadProviders\(\), loadOwnerMemory\(\), loadSpeechSettings\(\)\]\); \}/, "Opening settings must refresh providers, owner memory, and speech settings");
 assert.match(app, /جاري تحميل مفاتيح API المحفوظة/, "Provider list must show a loading state instead of a false empty state");
 assert.match(app, /تعذر تحميل المفاتيح من الخادم:/, "Provider list failures must be shown as errors, not as an empty key list");
 assert.match(html, /id="reloadProvidersButton"/, "Settings must provide a manual API key list refresh control");
@@ -247,3 +247,10 @@ assert.match(app, /await window\.novaEnsureOwnerSession\(\)/, "Protected API cal
 assert.match(pin, /if \(result\.valid\) \{ openApp\(saved\); return saved; \}/, "Validated owner session restoration must return the token to callers");
 assert.doesNotMatch(pin, /payload\.token \? \{ "Authorization": "Bearer "/, "Session validation must send the custom owner token in its JSON body, not as a Supabase JWT");
 assert.match(app, /const restoredToken = await window\.novaEnsureOwnerSession\(\);\s*if \(typeof restoredToken === "string" && restoredToken\) state\.session = restoredToken/, "Protected calls must receive the validated owner token directly");
+
+assert.match(app, /localStorage.getItem\("solina.owner.name"\)/, "Owner display name must persist across reloads on this device");
+assert.match(app, /localStorage.setItem\("solina.owner.name", state.ownerName\)/, "Owner display name changes must be saved");
+assert.match(app, /function updateMemoryMeta\(updatedAt = null\)/, "Memory settings must show last update and saved item count");
+assert.match(app, /result.updated_at/, "Memory timestamps returned by the server must be displayed");
+assert.match(html, /id="reloadOwnerMemory"/, "Owner must be able to refresh saved memory manually");
+assert.match(html, /id="memoryUpdated"/, "Memory panel must display its saved status and timestamp");
