@@ -285,13 +285,12 @@ function speakWithDevice(text, persona, segments = [], retryWithoutVoice = false
     if (voice) utterance.voice = voice;
 
     // Android's SpeechSynthesis often emits no boundary events and exposes no audio
-    // waveform. Drive the OLED face from a speech-timed syllable envelope instead.
+    // waveform. Drive the Solina audio orb from a speech-timed syllable envelope instead.
     let rafId = 0;
     let startedAt = 0;
     let estimatedDuration = Math.max(1800, (text.length / 13.5) * 1000 / utterance.rate);
     let lastBoundaryProgress = 0;
     let ended = false;
-    const orb = $("novaAudioOrb");
     const tick = (now) => {
       if (ended || !state.speaking) return;
       const elapsed = Math.max(0, now - startedAt);
@@ -307,13 +306,11 @@ function speakWithDevice(text, persona, segments = [], retryWithoutVoice = false
       const emphasis = /[اويىةآ]/.test(currentChar) ? 1 : 0.72;
       const mouthLevel = isPause ? 0.035 : 0.12 + pulse * emphasis * 0.72;
       setSpeechMouthLevel(mouthLevel, isPause ? 0.08 : 0.22 + pulse * 0.55);
-      if (orb) orb.style.setProperty("--speech-phase", (Math.sin(elapsed / 190) * .5 + .5).toFixed(3));
       rafId = requestAnimationFrame(tick);
     };
     const stopVisuals = () => {
       ended = true;
       if (rafId) cancelAnimationFrame(rafId);
-      if (orb) orb.style.removeProperty("--speech-phase");
       resetSpeechMouth();
     };
     utterance.onstart = () => {
