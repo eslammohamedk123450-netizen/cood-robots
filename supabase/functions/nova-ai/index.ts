@@ -128,6 +128,30 @@ function escapeXml(value: string): string {
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;",
   }[char]!));
 }
+async function requestGeminiTTS(apiKey: string, text: string, persona: string): Promise<{data:string; mimeType:string; voice:string}> {
+  const voiceName = persona === "soleen" ? "Kore" : "Puck";
+  const model = "gemini-2.5-flash-preview-tts";
+  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: "Speak naturally in Egyptian Arabic, friendly and conversational. Text: " + text }] }],
+      generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } }
+    }),
+    signal: AbortSignal.timeout(60000), redirect: "error",
+  });
+  if (!response.ok) {
+    const detail = (await response.text().catch(() => "")).slice(0, 240);
+    throw new Error("Gemini TTS request failed (HTTP " + response.status + "). " + detail);
+  }
+  const payload = await response.json();
+  const part = payload?.candidates?.[0]?.content?.parts?.find((p: any) => p?.inlineData?.data);
+  if (!part?.inlineData?.data) throw new Error("Gemini TTS returned no audio payload.");
+  const pcm = decodeBase64Audio(part.inlineData.data);
+  const wav = pcm16Mono24kToWav(pcm);
+  return { data: encodeBase64Audio(wav), mimeType: "audio/wav", voice: voiceName };
+}
+
 async function requestSonexSpeech(apiKey: string, text: string, voiceId: string): Promise<{data:string; mimeType:string; voice:string}> {
   const response = await fetch("https://api.sonexlabs.com/v1/speech", {
     method: "POST",
@@ -375,6 +399,7 @@ Deno.serve(async (req: Request) => {
       delete_provider: 5,
       chat: 20,
       tts: 12,
+      tts_gemini: 12,
     };
     const requestLimit = actionLimits[action];
     if (!requestLimit) return json({ error: "Unknown action" }, 400, origin);
@@ -516,6 +541,21 @@ Deno.serve(async (req: Request) => {
         .eq("id", modelId).eq("user_id", userId).select("id,enabled").maybeSingle();
       if (error || !data) return json({ error: "تعذر تحديث النموذج" }, 404, origin);
       return json({ model: data }, 200, origin);
+    }
+
+    if (action === "tts_gemini") {
+      const text = typeof body?.text === "string" ? body.text.trim() : "";
+      const persona = body?.persona === "soleen" ? "soleen" : body?.persona === "soly" ? "soly" : "";
+      if (!text || text.length > 2600 || !persona) return json({ error: "نص الصوت أو الشخصية غير صالح." }, 400, origin);
+      const { data: providers, error: providerError } = await admin.from("nova_api_keys")
+        .select("id,secret_id").eq("user_id", userId).eq("provider", "gemini").eq("is_active", true).limit(1);
+      if (providerError) throw providerError;
+      const provider = providers?.[0];
+      if (!provider?.secret_id) return json({ error: "أضف أو فعّل مفتاح Gemini في إعدادات المزودين أولًا." }, 409, origin);
+      const { data: apiKey, error: keyError } = await admin.rpc("nova_read_api_secret", { p_secret_id: provider.secret_id });
+      if (keyError || typeof apiKey !== "string" || !apiKey) throw new Error("Gemini credential unavailable");
+      const audio = await requestGeminiTTS(apiKey, text, persona);
+      return json({ audio: audio.data, mime_type: audio.mimeType, voice: audio.voice, provider: "gemini" }, 200, origin);
     }
 
     if (action === "speech_voices") {
