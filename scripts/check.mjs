@@ -313,7 +313,7 @@ const fiveMinuteReminder = parseTaskCommand("فكريني بعد خمس وراي
 assert.equal(fiveMinuteReminder?.action, "create", "A noisy colloquial five-minute reminder must be parsed");
 assert.equal(new Date(fiveMinuteReminder.scheduledAt).getTime(), fixedNow.getTime() + 300000,
   "A five-minute reminder must be scheduled exactly five minutes from now");
-assert.match(fiveMinuteReminder?.title || "", /حاجه مهمه/, "The reminder title must retain the task and omit the duration");
+assert.match(fiveMinuteReminder?.title || "", /حاجة مهمة/, "The reminder title must retain the task and omit the duration");
 
 assert.equal(new Date(parseTaskCommand("فكريني بعد شوية أذاكر", fixedNow).scheduledAt).getTime(), fixedNow.getTime() + 300000, "After a little while should default to five minutes");
 assert.equal(parseTaskCommand("الغى كل التذكيرات", fixedNow)?.all, true, "Bulk task cancellation should be recognized");
