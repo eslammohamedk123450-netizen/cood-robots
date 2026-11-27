@@ -36,6 +36,13 @@ public final class TaskStore {
         return null;
     }
 
+    public static synchronized void setNextFollowUp(Context context, String id, long at) {
+        JSONObject task = find(context, id);
+        if (task == null) return;
+        try { task.put("nextFollowUpAt", at); upsert(context, task); }
+        catch (Exception ignored) { }
+    }
+
     public static synchronized void remove(Context context, String id) {
         JSONArray old = all(context);
         JSONArray next = new JSONArray();
