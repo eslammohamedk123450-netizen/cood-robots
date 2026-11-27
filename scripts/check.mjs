@@ -273,6 +273,10 @@ assert.equal(parseTaskCommand("صحيني الفجر", fixedNow)?.action, "needs
 assert.equal(parseTaskCommand("صحيني بعد دقيقتين", fixedNow)?.action, "create", "Two-minute wake-up command should be recognized");
 assert.equal(new Date(parseTaskCommand("صحيني بعد دقيقتين", fixedNow).scheduledAt).getTime(), fixedNow.getTime() + 120000, "Two-minute alarm should preserve the relative delay");
 assert.equal(parseTaskCommand("ظبطيلي منبه بعد دقيقتين", fixedNow)?.type, "alarm", "Colloquial alarm setup command should be recognized");
+assert.equal(parseTaskCommand("صحييني بعد دقيقتين", fixedNow)?.action, "create", "Alternate Egyptian wake-up pronunciation should be recognized");
+assert.equal(parseTaskCommand("فوقيني بعد خمس دقايق", fixedNow)?.type, "alarm", "Wake-up synonyms should route to the alarm engine");
+assert.equal(parseTaskCommand("افتحي تطبيق واتساب", fixedNow)?.action, "open_app", "Opening an installed app must route to the native command engine");
+assert.equal(parseTaskCommand("افتح الإعدادات", fixedNow)?.action, "open_settings", "Phone settings command must route natively");
 
 assert.equal(parseTaskCommand("وريني المنبهات", fixedNow)?.action, "list", "Task list command should be recognized");
 assert.equal(parseTaskCommand("إيه معنى المنبه؟", fixedNow), null, "Ordinary questions about alarms must go to the AI");
