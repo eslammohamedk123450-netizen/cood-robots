@@ -3,7 +3,7 @@ export function normalizeTaskText(value) {
   return String(value || "")
     .replace(/[٠-٩]/g, digit => String(ARABIC_DIGITS.indexOf(digit)))
     .replace(/[ًٌٍَُِّْـ]/g, "")
-    .replace(/[،.!؟?؛,:]/g, " ")
+    .replace(/[،.!؟?؛,]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .toLocaleLowerCase("ar");
