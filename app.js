@@ -5,6 +5,14 @@ const state = {
   messages: [], voiceAlternatives: [], messagesByPersona: { soleen: [] }, conversationIds: { soleen: null }, historyQueues: { soleen: Promise.resolve() }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: ""
 };
 const personas = { soleen: { name: "سولينا", description: "مساعدتك الصوتية 💗", color: "#b9a5ff", accent: "#7959d6", intro: "سولينا معاكي" } };
+// Remove saved settings and audio generated for retired character/voice paths.
+for (const key of ["nova.persona", "nova.activeConversation.soly", "nova.elevenlabs.voice.male", "nova.sonex.voice.male"]) {
+  localStorage.removeItem(key);
+}
+for (let index = localStorage.length - 1; index >= 0; index--) {
+  const key = localStorage.key(index);
+  if (key && key.startsWith("nova.stopAudio.cache.v1.")) localStorage.removeItem(key);
+}
 let speechAudioContext = null;
 
 // Reuse identical Gemini TTS output during this page session. This cache is
