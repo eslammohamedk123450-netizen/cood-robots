@@ -129,7 +129,8 @@ async function speak(text) {
     }
     if (engine === "auto" && !localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
     const voiceId = localStorage.getItem(persona === "soleen" ? "nova.sonex.voice.female" : "nova.sonex.voice.male") || "";
-    const result = await invokeNova("tts", { text: spokenText, persona, voice_id: voiceId });
+    const speechProvider = engine === "gemini" ? "tts_gemini" : "tts";
+    const result = await invokeNova(speechProvider, { text: spokenText, persona, voice_id: voiceId });
     if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
     const mime = String(result.mime_type || "").split(";")[0].trim().toLowerCase();
     if (mime !== "audio/mpeg" && mime !== "audio/mp3" && mime !== "audio/wav" && mime !== "audio/x-wav") {
