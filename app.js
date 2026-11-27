@@ -850,7 +850,7 @@ function isStopVoiceCommand(value) {
 }
 async function getStopAudioCache() {
   const engine = $("speechEngine")?.value || localStorage.getItem("nova.speech.engine") || "auto";
-  if (engine === "device") return null;
+  if (engine === "device" || engine === "mute") return null;
   const vendor = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
   const voicePrefix = vendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
   const voiceId = localStorage.getItem(voicePrefix + "female") || "";
