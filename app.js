@@ -36,7 +36,7 @@ function setStatus(label, mood = "idle") {
   $("characterStatus").textContent = label;
   $("voiceState").textContent = label;
   document.body.dataset.mood = mood;
-  const robot = $("novaRobot");
+  const robot = $("novaFaceOnly");
   if (robot) robot.dataset.mood = mood;
   const avatar = $("novaFaceOnly");
   if (avatar) avatar.dataset.mood = mood;
@@ -46,7 +46,7 @@ function setFaceEmotion(emotion) {
   const safe = NOVA_EMOTIONS.has(emotion) ? emotion : "neutral";
   state.replyEmotion = safe;
   const face = $("faceScreen");
-  const robot = $("novaRobot");
+  const robot = $("novaFaceOnly");
   if (face) face.dataset.emotion = safe;
   if (robot) robot.dataset.emotion = safe;
   const avatar = $("novaFaceOnly");
@@ -249,7 +249,7 @@ function setPersona(persona) {
 function animateCharacter(kind) {
   const stage = $("characterStage");
   const face = $("faceScreen");
-  const robot = $("novaRobot");
+  const robot = $("novaFaceOnly");
   const className = "gesture-" + kind;
   stage.classList.remove("gesture-wave", "gesture-happy", "gesture-thinking", "gesture-nod");
   robot?.classList.remove("gesture-wave", "gesture-happy", "gesture-thinking", "gesture-nod");
