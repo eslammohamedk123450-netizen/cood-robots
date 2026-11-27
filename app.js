@@ -1096,7 +1096,7 @@ async function executeTaskIntent(intent) {
   if (intent.action === "list") {
     const tasks = readNativeTasks().sort((a, b) => Number(a.at) - Number(b.at));
     if (!tasks.length) return "راجعت قائمة الهاتف، ومفيش تذكيرات أو منبهات محفوظة.";
-    return "دي مواعيدك المحفوظة:\n" + tasks.map((task, index) => (index + 1) + ". " + (task.type === "alarm" ? "منبه" : "تذكير") + ": " + task.title + " — " + formatTaskDate(Number(task.at))).join("\n");
+    return "دي مواعيدك المحفوظة:" + String.fromCharCode(10) + tasks.map((task, index) => (index + 1) + ". " + (task.type === "alarm" ? "منبه" : "تذكير") + ": " + task.title + " — " + formatTaskDate(Number(task.at))).join(String.fromCharCode(10));
   }
   if (intent.action === "cancel") {
     const tasks = readNativeTasks().filter(task => !intent.type || task.type === intent.type);
