@@ -2,15 +2,18 @@ package com.solina.assistant;
 
 import android.app.Activity;
 import android.app.NotificationManager;
-import android.media.Ringtone;
-import android.media.RingtoneManager;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.view.Gravity;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import java.util.ArrayList;
 
 public class AlarmActivity extends Activity {
     private SpeechRecognizer speechRecognizer;
@@ -45,11 +48,11 @@ public class AlarmActivity extends Activity {
         message.setPadding(0, 32, 0, 48);
         layout.addView(message);
         Button stop = new Button(this);
-        stop.setText("إيقاف المنبه");
+        stop.setText("أنا قمت — إيقاف المنبه");
         stop.setOnClickListener(view -> stopAlarm());
         layout.addView(stop);
         TextView voiceHint = new TextView(this);
-        voiceHint.setText("قولي: أنا قمت — لإيقاف المنبه بالصوت");
+        voiceHint.setText("قولي: أنا قمت، أو خلاص، أو أوقفي المنبه");
         voiceHint.setTextSize(16);
         voiceHint.setGravity(Gravity.CENTER);
         layout.addView(voiceHint);
@@ -60,8 +63,11 @@ public class AlarmActivity extends Activity {
     }
 
     private void stopAlarm() {
-        if (ringtone != null) ringtone.stop();
+        stopWakeWordRecognition();
+        stopService(new Intent(this, AlarmPlaybackService.class));
         ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(taskId.hashCode());
+        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(74102);
+        AlarmScheduler.cancel(this, taskId);
         TaskStore.remove(this, taskId);
         finish();
     }
@@ -71,22 +77,22 @@ public class AlarmActivity extends Activity {
         try {
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
             speechRecognizer.setRecognitionListener(new RecognitionListener() {
-                @Override public void onReadyForSpeech(android.os.Bundle params) { }
+                @Override public void onReadyForSpeech(Bundle params) { }
                 @Override public void onBeginningOfSpeech() { }
                 @Override public void onRmsChanged(float rmsdB) { }
                 @Override public void onBufferReceived(byte[] buffer) { }
                 @Override public void onEndOfSpeech() { }
                 @Override public void onError(int error) { restartWakeRecognition(); }
-                @Override public void onResults(android.os.Bundle results) {
+                @Override public void onResults(Bundle results) {
                     ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                     if (matches != null) for (String phrase : matches) if (isStopPhrase(phrase)) { runOnUiThread(() -> stopAlarm()); return; }
                     restartWakeRecognition();
                 }
-                @Override public void onPartialResults(android.os.Bundle partial) {
+                @Override public void onPartialResults(Bundle partial) {
                     ArrayList<String> matches = partial.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                     if (matches != null) for (String phrase : matches) if (isStopPhrase(phrase)) { runOnUiThread(() -> stopAlarm()); return; }
                 }
-                @Override public void onEvent(int eventType, android.os.Bundle params) { }
+                @Override public void onEvent(int eventType, Bundle params) { }
             });
             launchWakeRecognition();
         } catch (Exception ignored) { }
@@ -94,7 +100,7 @@ public class AlarmActivity extends Activity {
 
     private boolean isStopPhrase(String phrase) {
         String clean = phrase == null ? "" : phrase.toLowerCase(java.util.Locale.ROOT)
-                .replaceAll("[\\\\p{Punct}\\\\s]", "").replace("أ", "ا").replace("إ", "ا");
+                .replaceAll("[\\p{Punct}\\s]", "").replace("أ", "ا").replace("إ", "ا");
         return clean.contains("انا قمت") || clean.contains("قمت") || clean.contains("خلاص")
                 || clean.contains("وقفت") || clean.contains("اوقفي المنبه") || clean.contains("بطلي");
     }
@@ -111,7 +117,7 @@ public class AlarmActivity extends Activity {
 
     private void restartWakeRecognition() {
         if (speechRecognizer == null || isFinishing()) return;
-        new android.os.Handler(getMainLooper()).postDelayed(() -> launchWakeRecognition(), 650);
+        new android.os.Handler(getMainLooper()).postDelayed(this::launchWakeRecognition, 700);
     }
 
     private void stopWakeWordRecognition() {
