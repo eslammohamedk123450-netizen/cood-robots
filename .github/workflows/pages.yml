@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: pages
+  group: solina-pages-account-sync
   cancel-in-progress: true
 
 jobs:
