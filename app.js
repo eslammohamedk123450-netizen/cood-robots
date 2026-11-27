@@ -432,8 +432,8 @@ async function speak(text, segments = []) {
     if (engine === "auto" && !localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
     const speechVendor = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
     const voicePrefix = speechVendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
-    const voiceId = speechVendor === "chatterbox" ? "" : (localStorage.getItem(voicePrefix + (persona === "soleen" ? "female" : "male")) || "");
-    const speechAction = speechVendor === "chatterbox" ? "tts_chatterbox" : engine === "gemini" ? "tts_gemini" : "tts";
+    const voiceId = engine === "chatterbox" ? "" : (localStorage.getItem(voicePrefix + (persona === "soleen" ? "female" : "male")) || "");
+    const speechAction = engine === "chatterbox" ? "tts_chatterbox" : engine === "gemini" ? "tts_gemini" : "tts";
     const result = await invokeNova(speechAction, { text: spokenText, persona, voice_id: voiceId, provider: speechVendor });
     if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
     const mime = String(result.mime_type || "").split(";")[0].trim().toLowerCase();
@@ -496,7 +496,7 @@ async function speak(text, segments = []) {
     if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
     const reason = error?.name ? error.name + ": " + (error.message || "") : (error.message || "خطأ غير معروف");
     const selectedProvider = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
-    if (engine !== "device" && selectedProvider !== "chatterbox") {
+    if (engine !== "device" && engine !== "chatterbox") {
       try {
         setStatus(personas[persona].name + " بيتحول لصوت الجهاز...", "thinking");
         state.speaking = true;
@@ -506,7 +506,7 @@ async function speak(text, segments = []) {
       } catch (deviceError) {
         showToast("فشل الصوت السحابي والجهاز: " + (deviceError.message || reason).slice(0, 150));
       }
-    } else showToast((selectedProvider === "chatterbox" ? "Chatterbox: " : "تعذر تشغيل صوت الجهاز: ") + reason.slice(0, 150));
+    } else showToast((engine === "chatterbox" ? "Chatterbox: " : "تعذر تشغيل صوت الجهاز: ") + reason.slice(0, 150));
     finish();
   }
 }
@@ -745,7 +745,7 @@ async function saveOwnerMemory() {
   finally { button.disabled = false; }
 }
 async function loadSpeechVoices() {
-  if (($("speechProvider")?.value || "") === "chatterbox") {
+  if (($("speechEngine")?.value || localStorage.getItem("nova.speech.engine")) === "chatterbox") {
     for (const id of ["speechMaleVoice", "speechFemaleVoice"]) {
       const select = $(id);
       select.replaceChildren();
@@ -787,15 +787,15 @@ async function loadSpeechSettings() {
   try {
     const result = await invokeNova("speech_get");
     if (result.configured) {
-      if ($("speechProvider")) $("speechProvider").value = localStorage.getItem("nova.speech.provider") === "chatterbox" ? "chatterbox" : (result.provider || "elevenlabs");
-      const savedEngine = localStorage.getItem("nova.speech.engine") || "auto";
+      if ($("speechProvider")) $("speechProvider").value = result.provider || localStorage.getItem("nova.speech.provider") || "elevenlabs";
+      const savedEngine = localStorage.getItem("nova.speech.engine") || (localStorage.getItem("nova.speech.provider") === "chatterbox" ? "chatterbox" : "auto");
       if ($("speechEngine")) $("speechEngine").value = savedEngine;
       if (!localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
       setFeedback("speechEngineFeedback", savedEngine === "device" ? "صوت الجهاز محدد يدويًا." : savedEngine === "server" ? "Sonex Labs محدد؛ وعند الفشل سيتم الرجوع لصوت الجهاز." : "الوضع التلقائي: Sonex أولًا، ثم صوت الجهاز عند الحاجة.");
       setFeedback("speechFeedback", "مفتاح " + result.provider + " محفوظ في Vault. جاري تحميل الأصوات.");
       try { await loadSpeechVoices(); }
       catch (voiceError) { setFeedback("speechFeedback", "المفتاح محفوظ، لكن تعذر تحميل الأصوات: " + voiceError.message, true); }
-    } else setFeedback("speechFeedback", "أدخل مفتاح ElevenLabs أو Sonex Labs لتفعيل الصوت.");
+    } else setFeedback("speechFeedback", "لا يوجد مزود سحابي محفوظ. يمكنك اختيار Chatterbox من محرك إخراج الصوت دون مفتاح API.");
   } catch (error) {
     setFeedback("speechFeedback", "تعذر قراءة إعدادات الصوت: " + error.message, true);
   }
@@ -805,9 +805,7 @@ async function saveSpeechSettings() {
   const api_key = $("speechApiKey")?.value.trim() || "";
   const provider = $("speechProvider")?.value || "elevenlabs";
   if (provider === "chatterbox") {
-    localStorage.setItem("nova.speech.provider", "chatterbox");
-    await loadSpeechVoices();
-    setFeedback("speechFeedback", "تم اختيار Chatterbox. لا يحتاج مفتاح API؛ جرّب التحدث الآن.");
+    setFeedback("speechFeedback", "Chatterbox لا يحتاج مفتاح API. اختاره من قائمة محرك إخراج الصوت.");
     return;
   }
   if (!api_key) { setFeedback("speechFeedback", "الصق مفتاح " + provider + " أولًا.", true); return; }
@@ -1029,35 +1027,49 @@ $("speechFemaleVoice")?.addEventListener("change", (event) => {
   const prefix = $("speechProvider")?.value === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
   localStorage.setItem(prefix + "female", event.target.value);
 });
+function speechEngineDescription(engine) {
+  return engine === "device" ? "صوت الجهاز فقط."
+    : engine === "chatterbox" ? "Chatterbox عبر الخادم — بدون مفتاح API، وبدون الرجوع التلقائي لصوت الجهاز عند فشله."
+    : engine === "gemini" ? "Gemini AI Studio TTS."
+    : engine === "server" ? "المزود السحابي المحدد (ElevenLabs أو Sonex) مع الرجوع لصوت الجهاز عند تعذر الاتصال."
+    : "تلقائي: يستخدم المزود السحابي المحفوظ، ثم صوت الجهاز عند تعذر الاتصال.";
+}
+function applySpeechEngineVisibility() {
+  const engine = $("speechEngine")?.value || "auto";
+  const chatterbox = engine === "chatterbox";
+  $("speechProvider").closest(".field-label").hidden = chatterbox;
+  $("speechApiKey").closest(".field-label").hidden = chatterbox;
+  $("saveSpeechSettings").hidden = chatterbox;
+  $("speechMaleVoice").closest(".field-label").hidden = chatterbox;
+  $("speechFemaleVoice").closest(".field-label").hidden = chatterbox;
+  $("reloadSpeechVoices").hidden = chatterbox;
+  $("chatterboxNote").hidden = !chatterbox;
+  setFeedback("speechEngineFeedback", speechEngineDescription(engine));
+  if (chatterbox) setFeedback("speechFeedback", "تم اختيار Chatterbox. لا يحتاج مفتاح API؛ جرّب التحدث الآن.");
+}
 $("speechProvider")?.addEventListener("change", () => {
   const provider = $("speechProvider").value;
   localStorage.setItem("nova.speech.provider", provider);
-  const chatterbox = provider === "chatterbox";
-  $("speechApiKey").disabled = chatterbox;
-  $("speechApiKey").placeholder = chatterbox ? "Chatterbox لا يحتاج مفتاح API" : "الصق مفتاح " + (provider === "elevenlabs" ? "ElevenLabs" : "Sonex Labs") + " هنا";
-  $("speechApiKey").closest(".field-label").hidden = chatterbox;
-  $("saveSpeechSettings").hidden = chatterbox;
-  $("chatterboxNote").hidden = !chatterbox;
+  if (($("speechEngine")?.value || "auto") === "chatterbox") return;
   void loadSpeechVoices().catch(error => setFeedback("speechFeedback", error.message, true));
-  if (!chatterbox) setFeedback("speechFeedback", "بعد تغيير المزود، أدخل مفتاحه واضغط اختبار المفتاح وحفظه.");
+  setFeedback("speechFeedback", "بعد تغيير المزود، أدخل مفتاحه واضغط اختبار المفتاح وحفظه.");
 });
 const savedSpeechProvider = localStorage.getItem("nova.speech.provider");
-if (savedSpeechProvider && $("speechProvider")) {
-  $("speechProvider").value = savedSpeechProvider;
-  $("speechProvider").dispatchEvent(new Event("change"));
+if (savedSpeechProvider === "chatterbox") {
+  localStorage.setItem("nova.speech.engine", "chatterbox");
+  localStorage.setItem("nova.speech.provider", "elevenlabs");
 }
-
+if (savedSpeechProvider && savedSpeechProvider !== "chatterbox" && $("speechProvider")) $("speechProvider").value = savedSpeechProvider;
 const speechEngineSelect = $("speechEngine");
 if (speechEngineSelect) {
   speechEngineSelect.value = localStorage.getItem("nova.speech.engine") || "auto";
+  applySpeechEngineVisibility();
   speechEngineSelect.addEventListener("change", () => {
     localStorage.setItem("nova.speech.engine", speechEngineSelect.value);
-    const selected = speechEngineSelect.value;
-    setFeedback("speechEngineFeedback", selected === "device"
-      ? "صوت الجهاز فقط. تأكد من توفر صوت عربي على أندرويد."
-      : selected === "server"
-        ? "Sonex Cloud أولًا، مع الرجوع لصوت الجهاز عند فشل الصوت السحابي."
-        : "تلقائي: Sonex Cloud إذا كان متاحًا، وإلا صوت الجهاز. التحميل يتم بالخلفية.");
+    applySpeechEngineVisibility();
+    if (speechEngineSelect.value !== "chatterbox" && speechEngineSelect.value !== "device") {
+      void loadSpeechVoices().catch(error => setFeedback("speechFeedback", error.message, true));
+    }
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   });
 }
