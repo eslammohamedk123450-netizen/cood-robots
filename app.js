@@ -1328,6 +1328,18 @@ async function executeTaskIntent(intent) {
   }
   return null;
 }
+function stopSpeechPlaybackOnly() {
+  if (state.audio) { try { state.audio.pause(); } catch (_) {} state.audio = null; }
+  if (speechAudioElement) {
+    try { speechAudioElement.pause(); speechAudioElement.removeAttribute("src"); speechAudioElement.load(); } catch (_) {}
+    speechAudioElement = null;
+  }
+  if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  state.speaking = false;
+  resetSpeechMouth();
+}
+
 window.addEventListener("solina-task-permissions-updated", async () => {
   const intent = state.pendingTaskPermissionIntent;
   if (!intent) return;
@@ -1340,7 +1352,8 @@ window.addEventListener("solina-task-permissions-updated", async () => {
     const message = "لسه فيه صلاحية ناقصة. الطلب محفوظ عندي؛ فعّل الإذن المطلوب من إعدادات أندرويد وارجع، ومش هتحتاج تعيد كلامك.";
     addConversationLine(message, "nova");
     $("liveTranscript").textContent = message;
-    await speak(message);
+    // The Android permission/settings screen is already the active prompt.
+    // Keep this status visual only so it cannot speak over the task response.
     return;
   }
   state.pendingTaskPermissionIntent = null;
@@ -1348,6 +1361,9 @@ window.addEventListener("solina-task-permissions-updated", async () => {
   addConversationLine(message, "nova");
   $("liveTranscript").textContent = message;
   void persistConversationMessage("assistant", message).catch(error => console.warn("SOLINA permission task save failed:", error));
+  // Permission callbacks can arrive while the previous spoken response is
+  // still playing. Stop it before announcing the completed task.
+  stopSpeechPlaybackOnly();
   await speak(message);
   renderScheduledTasks();
 });
