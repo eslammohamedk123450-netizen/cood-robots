@@ -1,0 +1,11 @@
+const response = await fetch(new URL("./nova-avatar.payload.txt", import.meta.url), { cache: "force-cache" });
+if (!response.ok) throw new Error("NOVA avatar runtime could not be loaded");
+const encoded = (await response.text()).trim();
+const binary = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
+if (!("DecompressionStream" in window)) throw new Error("This browser does not support the NOVA avatar runtime format");
+const stream = new Blob([binary]).stream().pipeThrough(new DecompressionStream("gzip"));
+const source = await new Response(stream).text();
+const moduleUrl = URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
+const runtime = await import(moduleUrl);
+URL.revokeObjectURL(moduleUrl);
+export const NovaAvatar = runtime.NovaAvatar;
