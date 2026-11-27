@@ -17,6 +17,8 @@ function enforceScreenFaceAvatar() {
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", enforceScreenFaceAvatar, { once: true });
 else enforceScreenFaceAvatar();
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", connectFaceInteractions, { once: true });
+else connectFaceInteractions();
 const state = {
   persona: "soly", emotion: "idle", listening: false, speaking: false,
   recognition: null, restartRecognition: false, processing: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
@@ -54,12 +56,42 @@ function setPersona(persona) {
 }
 function animateCharacter(kind) {
   const stage = $("characterStage");
+  const face = $("faceScreen");
   const className = "gesture-" + kind;
   stage.classList.remove("gesture-wave", "gesture-happy", "gesture-thinking", "gesture-nod");
+  face?.classList.remove("face-gesture-wave", "face-gesture-happy", "face-gesture-thinking", "face-gesture-nod");
   void stage.offsetWidth;
   stage.classList.add(className);
-  window.setTimeout(() => stage.classList.remove(className), 1500);
+  face?.classList.add("face-" + className);
+  window.setTimeout(() => {
+    stage.classList.remove(className);
+    face?.classList.remove("face-" + className);
+  }, 1500);
 }
+function connectFaceInteractions() {
+  const stage = $("characterStage");
+  const face = $("faceScreen");
+  if (!stage || !face || stage.dataset.faceInteractive === "1") return;
+  stage.dataset.faceInteractive = "1";
+  const move = (event) => {
+    const rect = stage.getBoundingClientRect();
+    const x = Math.max(-1, Math.min(1, ((event.clientX - rect.left) / rect.width - .5) * 2));
+    const y = Math.max(-1, Math.min(1, ((event.clientY - rect.top) / rect.height - .5) * 2));
+    face.style.setProperty("--look-x", (x * 9).toFixed(1) + "px");
+    face.style.setProperty("--look-y", (y * 6).toFixed(1) + "px");
+    face.style.setProperty("--tilt", (x * 4).toFixed(1) + "deg");
+  };
+  stage.addEventListener("pointermove", move, { passive: true });
+  stage.addEventListener("pointerleave", () => {
+    face.style.setProperty("--look-x", "0px");
+    face.style.setProperty("--look-y", "0px");
+    face.style.setProperty("--tilt", "0deg");
+  }, { passive: true });
+  stage.addEventListener("click", () => {
+    if (!state.speaking && !state.processing) animateCharacter("happy");
+  });
+}
+
 function escapeHtml(value) {
   return String(value).replace(/[&<>'"]/g, (char) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
