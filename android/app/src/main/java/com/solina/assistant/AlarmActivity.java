@@ -69,6 +69,7 @@ public class AlarmActivity extends Activity {
         ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(taskId.hashCode());
         ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(74102);
         AlarmScheduler.cancel(this, taskId);
+        TaskStore.recordPendingSync(this, new org.json.JSONObject().put("id", taskId).put("status", "completed"));
         TaskStore.remove(this, taskId);
         finish();
     }
