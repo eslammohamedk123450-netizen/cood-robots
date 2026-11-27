@@ -163,3 +163,7 @@ assert.match(css, /NOVA responsive voice-first polish/, "Responsive voice-first 
 assert.match(app, /Keep the dedicated interrupt listener alive during playback/, "Voice interruption listener must remain active while NOVA speaks");
 assert.doesNotMatch(app, /if \(state\.listening\) startInterruptRecognition\(\);\s*stopInterruptRecognition\(\)/, "Speech playback must not immediately disable the interrupt listener");
 assert.match(html, /nova-smart-tts-cache-v58/, "Client bundle cache must refresh after the interrupt fix");
+
+assert.match(app, /راجع ردك مرة أخيرة بصمت من ناحية الإملاء واختيار الكلمات واتساق المعنى/, "NOVA must proofread Egyptian Arabic contextually before replying");
+assert.match(app, /كلمة «بكير» تظل كما هي إذا كان معناها مقصودًا/, "Contextual proofreading must preserve valid words instead of blanket replacements");
+assert.match(app, /اجعل النص الذي تعرضه هو نفسه النص الذي يُرسل للصوت/, "Displayed and spoken replies must use the same corrected text");
