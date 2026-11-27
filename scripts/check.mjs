@@ -385,4 +385,10 @@ assert.match(androidMain, /snoozeTask\(String id, int minutes\)/, "Solina must b
 assert.match(app, /Do not let unrelated conversation be trapped in the confirmation flow|state\.pendingTaskDraft = null;/, "A new question must not be trapped behind an old confirmation");
 assert.match(app, /complete_task/, "The spoken «خلصت» command must complete the active reminder");
 assert.match(app, /snooze_task/, "The spoken snooze command must defer the active reminder");
+assert.match(app, /بالظبط\|بالضبط/, "Affirmations like «أيوه بالظبط» must confirm a pending reminder");
+assert.doesNotMatch(app, /const ready = info\.notifications && info\.exactAlarms/, "Notification permission must not block native task persistence");
+assert.doesNotMatch(app, /if \(!info\.notifications\)/, "Task creation must not wait for optional notification permission");
+assert.equal(parseTaskCommand("ذكريني بعد ثلاث دقائق بالظبط عشان اغسل اسناني", new Date("2026-11-28T00:00:00")).title, "اغسل اسناني", "Three-minute reminder title must exclude timing/filler words");
+assert.equal(parseTaskCommand("سيلينا ذكريني بعد خمس دقائق عشان اغسل سناني", new Date("2026-11-28T00:00:00")).title, "اغسل سناني", "Five-minute reminder title must exclude wake word and filler");
+
 console.log("Native Android speech recognition and reminder follow-up checks passed.");
