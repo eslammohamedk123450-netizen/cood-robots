@@ -223,7 +223,7 @@ function setPersona(persona) {
     if (speechAudioElement) { try { speechAudioElement.pause(); } catch (_) {} speechAudioElement = null; }
     if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
     state.speaking = false;
-    void loadConversationHistory(true);
+    void loadConversationHistory(false);
   }
   const current = personas[persona];
   document.documentElement.style.setProperty("--persona", current.color);
@@ -1629,7 +1629,7 @@ function activateOwnerSession(token) {
   void loadProviders();
   void loadOwnerMemory();
   void loadSpeechSettings();
-  void loadConversationHistory(true);
+  void loadConversationHistory(false);
 }
 window.addEventListener("nova:authenticated", (event) => activateOwnerSession(event.detail?.token || null));
 // Direct callback plus a pending-token handoff makes session restoration independent
