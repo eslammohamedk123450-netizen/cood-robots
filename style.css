@@ -662,3 +662,48 @@ body{background:radial-gradient(ellipse at 50% 43%,rgba(28,51,86,.46),transparen
 .voice-area{width:100%!important;padding:13px 11px!important;border-radius:23px!important;gap:9px!important}.voice-feedback{min-height:39px!important}.voice-controls{gap:14px!important}.mic-button{width:74px!important;height:74px!important}.subtle-button{width:44px!important;height:44px!important}.voice-hint{font-size:10px!important}.footer{font-size:9px!important;padding:10px 0!important}
 }
 @media(max-height:720px) and (min-width:701px){.meeting-screen{min-height:calc(100svh - 145px);gap:7px;padding:5px 0}.character-stage{height:48svh!important}.nova-face-only{scale:1.18!important}.voice-area{padding:12px 20px!important}}
+
+
+/* NOVA holographic digital-human presentation */
+.character-stage{height:clamp(390px,58vh,570px)!important;width:min(100%,720px)!important;max-width:720px!important;overflow:hidden!important;perspective:1100px}
+.stage-glow{width:390px;height:390px;top:28px;left:calc(50% - 195px);opacity:.26;filter:blur(85px)}
+.stage-orbit{border-color:rgba(64,190,255,.24)}
+.orbit-one{width:420px;height:170px}.orbit-two{width:550px;height:225px;border-color:rgba(64,190,255,.15)}
+.nova-audio-orb.nova-hologram{position:absolute;inset:0;width:100%;height:100%;display:grid;place-items:center;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,rgba(15,116,208,.14),transparent 58%);isolation:isolate}
+.holo-aura{position:absolute;width:58%;aspect-ratio:1;border-radius:50%;background:#168cff;filter:blur(90px);opacity:.24;animation:holo-aura-pulse 4s ease-in-out infinite}
+.holo-grid{position:absolute;inset:8% 4% 0;background:linear-gradient(rgba(65,180,255,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(65,180,255,.07) 1px,transparent 1px);background-size:28px 28px;mask-image:radial-gradient(ellipse,black,transparent 72%);opacity:.45;transform:perspective(500px) rotateX(62deg) scale(1.5) translateY(24%)}
+.holo-person{position:relative;z-index:2;width:min(82%,440px);height:94%;overflow:visible;filter:drop-shadow(0 0 16px #168cff88);animation:holo-float 4.8s ease-in-out infinite;transform-origin:50% 75%}
+.holo-body,.holo-head{transform-box:fill-box;transform-origin:50% 50%}
+.holo-head{animation:holo-head-idle 5s ease-in-out infinite}
+.holo-face{transform-origin:50% 50%}
+.holo-mouth{stroke-dasharray:80;stroke-dashoffset:0}
+.holo-back-rings{opacity:.65;transform-origin:210px 474px;animation:holo-ring 8s linear infinite}
+.holo-particles{animation:holo-particles 3.5s ease-in-out infinite alternate}
+.holo-core{filter:drop-shadow(0 0 9px #8cf6ff);animation:holo-core-pulse 1.8s ease-in-out infinite}
+.holo-scan{position:absolute;z-index:3;inset:8% 12% 14%;pointer-events:none;background:repeating-linear-gradient(180deg,transparent 0 8px,rgba(151,235,255,.09) 9px,transparent 10px);mask-image:linear-gradient(transparent,black 20%,black 80%,transparent);animation:holo-scan 5s linear infinite}
+.holo-caption{position:absolute;z-index:4;bottom:9%;font:600 10px 'Space Grotesk',sans-serif;letter-spacing:4px;color:#a6eaff;text-shadow:0 0 14px #168cff}
+.holo-caption span{color:#45caff;padding:0 7px}
+.nova-hologram[data-mood="listening"] .holo-aura{opacity:.42;transform:scale(1.12)}
+.nova-hologram[data-mood="listening"] .holo-head{animation:holo-listen 1.8s ease-in-out infinite alternate}
+.nova-hologram[data-mood="thinking"] .holo-head{animation:holo-think 1.6s ease-in-out infinite alternate}
+.nova-hologram[data-mood="speaking"] .holo-mouth{animation:holo-talk .18s ease-in-out infinite alternate}
+.nova-hologram[data-mood="speaking"] .holo-head{animation:holo-talk-head .55s ease-in-out infinite alternate}
+.nova-hologram[data-mood="speaking"] .holo-core{animation:holo-core-pulse .48s ease-in-out infinite}
+.nova-hologram[data-mood="happy"] .holo-person{animation:holo-happy .55s ease-in-out 3}
+.nova-hologram[data-mood="sad"] .holo-face{transform:translateY(4px)}
+.nova-hologram[data-mood="surprised"] .holo-eye{transform-box:fill-box;transform:scaleY(1.35)}
+@keyframes holo-float{0%,100%{transform:translateY(4px)}50%{transform:translateY(-10px)}}
+@keyframes holo-head-idle{0%,100%{transform:rotate(0)}35%{transform:rotate(1.6deg)}70%{transform:rotate(-1.2deg)}}
+@keyframes holo-listen{from{transform:rotate(-4deg)}to{transform:rotate(4deg)}}
+@keyframes holo-think{from{transform:rotate(0) translateY(0)}to{transform:rotate(-5deg) translateY(-3px)}}
+@keyframes holo-talk{from{d:path("M184 226 Q210 239 236 226")}to{d:path("M184 225 Q210 252 236 225")}}
+@keyframes holo-talk-head{from{transform:translateY(0)}to{transform:translateY(-2px)}}
+@keyframes holo-happy{0%,100%{transform:translateY(0)}50%{transform:translateY(-13px) scale(1.015)}}
+@keyframes holo-aura-pulse{0%,100%{opacity:.18;scale:.92}50%{opacity:.36;scale:1.08}}
+@keyframes holo-core-pulse{0%,100%{opacity:.75;scale:.9}50%{opacity:1;scale:1.2}}
+@keyframes holo-ring{to{transform:rotate(360deg)}}
+@keyframes holo-particles{from{opacity:.45;transform:translateY(4px)}to{opacity:1;transform:translateY(-7px)}}
+@keyframes holo-scan{from{transform:translateY(-15%)}to{transform:translateY(15%)}}
+@media(max-width:700px){.character-stage{height:clamp(350px,53vh,470px)!important}.holo-person{width:min(92%,390px)}.holo-caption{bottom:7%}}
+@media(max-width:390px){.character-stage{height:350px!important}.holo-person{width:100%;height:90%}}
+@media(prefers-reduced-motion:reduce){.nova-hologram *{animation:none!important}}
