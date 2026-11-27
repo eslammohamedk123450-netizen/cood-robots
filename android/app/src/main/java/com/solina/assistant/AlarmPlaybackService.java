@@ -38,8 +38,8 @@ public class AlarmPlaybackService extends Service {
         Intent open = new Intent(this, AlarmActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pending = PendingIntent.getActivity(this, NOTIFICATION_ID, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification.Builder builder = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, "solina_alarm_audio") : new Notification.Builder(this);
-        return builder.setSmallIcon(android.R.drawable.ic_lock_idle_alarm).setContentTitle("سولينا — منبه الاستيقاظ")
-                .setContentText("التنبيه مستمر. قولي: أنا قمت، أو أوقفي المنبه.")
+        return builder.setSmallIcon(android.R.drawable.ic_lock_idle_alarm).setContentTitle("سولينا — تنبيه صوتي")
+                .setContentText("التنبيه مستمر. قولي: خلصت، أو أنا قمت، أو أوقفي التنبيه.")
                 .setCategory(Notification.CATEGORY_ALARM).setOngoing(true).setContentIntent(pending)
                 .setPriority(Notification.PRIORITY_MAX).build();
     }
@@ -48,6 +48,8 @@ public class AlarmPlaybackService extends Service {
         try {
             Uri sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
             if (sound == null) sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+            if (sound == null) sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            if (sound == null) throw new IllegalStateException("No default alarm sound is configured");
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
