@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.app.AlarmManager
 import android.content.Intent
+import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -68,7 +69,7 @@ class MainActivity : Activity() {
             val at = task.optLong("at")
             if (type !in listOf("alarm", "reminder") || title.isBlank() || at <= System.currentTimeMillis()) {
                 JSONObject().put("ok", false).put("error", "invalid_task").toString()
-            } else if (Build.VERSION.SDK_INT >= 31 && !(activity.getSystemService(ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()) {
+            } else if (Build.VERSION.SDK_INT >= 31 && !(activity.getSystemService(Context.ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()) {
                 JSONObject().put("ok", false).put("error", "exact_alarm_permission_required").toString()
             } else if (Build.VERSION.SDK_INT >= 33 && activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 JSONObject().put("ok", false).put("error", "notification_permission_required").toString()
