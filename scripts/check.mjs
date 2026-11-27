@@ -65,6 +65,11 @@ assert.match(edge, /xi-api-key/, "ElevenLabs credentials must only be sent from 
 assert.match(app, /invokeNova\(speechAction/, "Client must dispatch TTS to the selected cloud provider");
 assert.match(app, /engine === "gemini" \? "tts_gemini" : "tts"/, "Gemini TTS selection must route to its dedicated server action");
 assert.match(app, /SpeechSynthesisUtterance/, "The optional on-device speech engine must remain available");
+assert.match(app, /speechAudioCache/, "Gemini speech reuse cache must stay memory-only");
+assert.match(app, /Gemini receives the complete reply in ONE request/, "Gemini TTS must not create a request for every sentence");
+assert.match(app, /rememberSpeechAudio\(geminiCacheKey, result\)/, "Valid Gemini audio must be reused during the current session");
+assert.match(html, /لا يستهلك طلبات Gemini TTS/, "The UI must explain that device TTS does not use Gemini quota");
+assert.match(html, /طلبًا لكل جملة/, "The UI must explain that Gemini TTS synthesizes a whole reply in one request");
 assert.match(app, /audio\/mpeg/, "The client must accept Sonex MP3 audio");
 assert.match(app, /nova:authenticated/, "The app must receive the authenticated server session");
 assert.doesNotMatch(html, /id="pinSetupForm"|إنشاء كود المالك/, "PIN creation screen must be removed after initial setup");
