@@ -495,7 +495,8 @@ const providerDefaults = {
 async function invokeNova(action, payload = {}, options = {}) {
   // Recover a validated owner session on demand before any protected API call.
   if (!state.session && typeof window.novaEnsureOwnerSession === "function") {
-    await window.novaEnsureOwnerSession();
+    const restoredToken = await window.novaEnsureOwnerSession();
+    if (typeof restoredToken === "string" && restoredToken) state.session = restoredToken;
   }
   const token = state.session;
   if (!token) throw new Error("جلسة المالك غير متصلة. تعذر استعادتها تلقائيًا؛ افتح شاشة الدخول وحاول مرة أخرى.");
@@ -535,7 +536,8 @@ function applyProviderDefaults() {
 async function loadProviders() {
   if (!state.session && typeof window.novaEnsureOwnerSession === "function") {
     $("providerList").textContent = "جاري استعادة جلسة المالك والتحقق منها...";
-    await window.novaEnsureOwnerSession();
+    const restoredToken = await window.novaEnsureOwnerSession();
+    if (typeof restoredToken === "string" && restoredToken) state.session = restoredToken;
   }
   if (!state.session) {
     $("providerList").textContent = "جلسة المالك غير متصلة. افتح شاشة الدخول لاستعادتها.";
