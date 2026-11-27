@@ -177,7 +177,10 @@ assert.match(app, /"--mouth-scale", \(0\.48 \+ amount \* 1\.75\)/, "Hologram mou
 assert.match(css, /holo-natural-blink/, "Hologram eyes must blink naturally");
 assert.match(css, /data-expression="happy"/, "Hologram must visually reflect emotional speech segments");
 
-assert.match(html, /stop-opacity="\.62"/, "Hologram face and body fill must be clearly visible");
+assert.match(html, /id="novaAvatarCanvas"/, "The supplied animated NOVA avatar canvas must be mounted on the home screen");
+assert.match(html, /nova-avatar\.css/, "The supplied avatar visual layer must be loaded");
+assert.match(app, /novaAvatar\?\.setSpeechLevel\(amount, energy\)/, "The supplied avatar mouth must follow the live speech analyser");
+assert.match(app, /novaAvatar\?\.setExpression\(state\.replyEmotion\)/, "The supplied avatar must follow live emotional segments");
 assert.match(css, /\.character-stage\{height:clamp\(460px,62svh,600px\)!important/, "Character stage must reserve enough vertical space");
 assert.match(css, /holo-listen-body/, "NOVA body must visibly animate while listening");
 assert.match(css, /holo-speaking-body/, "NOVA body must visibly animate while speaking");
