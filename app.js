@@ -36,6 +36,8 @@ function setStatus(label, mood = "idle") {
   $("characterStatus").textContent = label;
   $("voiceState").textContent = label;
   document.body.dataset.mood = mood;
+  const robot = $("novaRobot");
+  if (robot) robot.dataset.mood = mood;
 }
 const NOVA_EMOTIONS = new Set(["neutral","happy","sad","surprised","curious","caring","playful","concerned","thinking"]);
 function setFaceEmotion(emotion) {
@@ -222,16 +224,20 @@ function setPersona(persona) {
 function animateCharacter(kind) {
   const stage = $("characterStage");
   const face = $("faceScreen");
+  const robot = $("novaRobot");
   const className = "gesture-" + kind;
   stage.classList.remove("gesture-wave", "gesture-happy", "gesture-thinking", "gesture-nod");
+  robot?.classList.remove("gesture-wave", "gesture-happy", "gesture-thinking", "gesture-nod");
   face?.classList.remove("face-gesture-wave", "face-gesture-happy", "face-gesture-thinking", "face-gesture-nod");
   void stage.offsetWidth;
   stage.classList.add(className);
+  robot?.classList.add(className);
   face?.classList.add("face-" + className);
   window.setTimeout(() => {
     stage.classList.remove(className);
+    robot?.classList.remove(className);
     face?.classList.remove("face-" + className);
-  }, 1500);
+  }, 2200);
 }
 function connectFaceInteractions() {
   const stage = $("characterStage");
