@@ -30,7 +30,6 @@ import java.util.UUID;
 public class MainActivity extends Activity {
     private WebView webView;
     private SpeechRecognizer speechRecognizer;
-    private volatile boolean taskPermissionFlowPending = false;
     private final String appUrl = "https://eslammohamedk123450-netizen.github.io/cood-robots/?solina=command-router-v2";
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -130,18 +129,12 @@ public class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
-        if (taskPermissionFlowPending) {
-            taskPermissionFlowPending = false;
-            dispatchTaskPermissionUpdate();
-        }
+        dispatchTaskPermissionUpdate();
     }
 
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 2102) {
-            taskPermissionFlowPending = false;
-            dispatchTaskPermissionUpdate();
-        }
+        if (requestCode == 2102) dispatchTaskPermissionUpdate();
     }
 
     private void dispatchTaskPermissionUpdate() {
@@ -303,7 +296,6 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void requestNotificationPermission() {
-            activity.taskPermissionFlowPending = true;
             activity.runOnUiThread(() -> {
                 if (Build.VERSION.SDK_INT >= 33 && activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                     activity.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 2102);
