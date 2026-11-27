@@ -382,9 +382,11 @@ async function speak(text, segments = [], signal) {
     const speechVendor = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
     const voicePrefix = speechVendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
     const voiceId = localStorage.getItem(voicePrefix + "female") || "";
-    const speechAction = engine === "gemini" ? "tts_gemini" : "tts";
+    const useGeminiTts = engine === "auto" || engine === "gemini";
+    const speechAction = useGeminiTts ? "tts_gemini" : "tts";
+    // Auto uses Gemini's fixed female cloud voice; it never depends on Android's installed voices.
     // Gemini receives the complete reply in ONE request, never one request per sentence.
-    const geminiCacheKey = engine === "gemini" ? JSON.stringify([persona, "gemini-2.5-flash-preview-tts", spokenText]) : "";
+    const geminiCacheKey = useGeminiTts ? JSON.stringify([persona, "gemini-2.5-flash-preview-tts", spokenText]) : "";
     let result = geminiCacheKey ? getSpeechAudioCache(geminiCacheKey) : null;
     if (!result) result = await invokeNova(speechAction, { text: spokenText, persona, voice_id: voiceId, provider: speechVendor }, { signal });
     if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
@@ -449,27 +451,7 @@ async function speak(text, segments = [], signal) {
     if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
     if (error?.name === "AbortError" || signal?.aborted) { resetSpeechMouth(); return; }
     const reason = error?.name ? error.name + ": " + (error.message || "") : (error.message || "خطأ غير معروف");
-    // Automatic local fallback: any selected cloud/external TTS failure should
-    // fall back to Android device speech without changing the current persona.
-    if (engine !== "device" && error?.name !== "AbortError" && !signal?.aborted) {
-      try {
-        setStatus(personas[persona].name + " بيحوّل لصوت الجهاز...", "thinking");
-        state.speaking = true;
-        state.audio = { pause: () => { window.speechSynthesis?.cancel(); finish(); } };
-        await speakWithDevice(spokenText, speechSegments);
-        finish();
-        showToast("الصوت الخارجي مش متاح دلوقتي، كملت بصوت الجهاز.");
-        return;
-      } catch (deviceError) {
-        state.speaking = false;
-        state.audio = null;
-        resetSpeechMouth();
-        showToast("الصوت الخارجي فشل وصوت الجهاز كمان مش متاح: " + (deviceError.message || "خطأ").slice(0, 130));
-        finish();
-        return;
-      }
-    }
-    showToast("تعذر تشغيل صوت الجهاز: " + reason.slice(0, 150));
+    showToast("تعذر تشغيل صوت سولينا السحابي: " + reason.slice(0, 180));
     finish();
   }
 }
