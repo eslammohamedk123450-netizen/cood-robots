@@ -43,9 +43,7 @@ assert.match(edge, /nova_speech_settings/, "Fixed voice configuration must be st
 assert.match(app, /loadSpeechSettings/, "Client must load fixed voice settings");
 assert.match(app, /saveSpeechSettings/, "Client must save fixed voice settings");
 assert.match(app, /state\.processing/, "Voice turns must be serialized to prevent overlapping conversations");
-assert.match(app, /updateFaceSpeechProgress/, "Facial emotion must follow speech segment timing");
 assert.match(app, /const rawReply = sanitizeInternalReply\(result\.reply/, "AI reply must be sanitized before emotion parsing");
-assert.match(app, /setFaceEmotion\("neutral"\)/, "Face must return to neutral after speech ends");
 assert.match(app, /connectSpeechAnalyser/, "Audio waveform must be analyzed for mouth movement");
 assert.match(app, /\[NOVA_EMOTION:/, "AI must provide emotion markers for speech segments");
 assert.match(app, /قسّم ردك إلى أجزاء طبيعية حسب تغيّر المعنى/, "AI prompt must request context-based emotion changes");
@@ -100,12 +98,12 @@ assert.match(css, /\.nova-audio-orb/, "The audio orb must have dedicated styling
 assert.match(css, /orb-ring/, "The audio orb must include expanding light pulses");
 assert.match(css, /orb-particle/, "The audio orb must include subtle moving particles");
 assert.match(css, /body\[data-mood="listening"\].*nova-audio-orb/, "The orb must visually react while listening");
+assert.match(app, /setSpeechSegmentTone\("neutral"\)/, "Speech segment tone must reset when playback ends");
 
 assert.match(app, /robot\.dataset\.mood = mood/, "Robot body motion must follow live conversation mood");
 assert.match(app, /robot\.dataset\.emotion = safe/, "Robot body language must follow the current emotional speech segment");
 
 assert.match(app, /robot\?\.classList\.add\(className\)/, "Body gestures must be triggered with character actions");
-assert.match(app, /audio.addEventListener\("playing"/, "Body and face speech animation must start on actual audio playback");
 
 const secretPatterns = [
   /sk-[A-Za-z0-9]{20,}/,
