@@ -1973,6 +1973,7 @@ function activateOwnerSession(token) {
   void loadOwnerMemory();
   void loadSpeechSettings();
   void loadConversationHistory(false);
+  void loadPersonalItems();
 }
 window.addEventListener("nova:authenticated", (event) => activateOwnerSession(event.detail?.token || null));
 // Direct callback plus a pending-token handoff makes session restoration independent
