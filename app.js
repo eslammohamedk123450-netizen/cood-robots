@@ -321,14 +321,24 @@ async function speak(text, segments = []) {
     const audio = new Audio();
     audio.preload = "auto"; audio.src = currentSpeechUrl; audio.playsInline = true;
     speechAudioElement = audio;
+    let audioPlaybackStarted = false;
     audio.addEventListener("ended", finish, { once: true });
-    audio.addEventListener("error", () => { finish(); showToast("المتصفح رفض ملف الصوت (خطأ تشغيل " + (audio.error?.code || "غير معروف") + ")."); }, { once: true });
+    audio.addEventListener("error", () => {
+      if (audioPlaybackStarted) {
+        finish();
+        showToast("المتصفح أوقف ملف الصوت (خطأ تشغيل " + (audio.error?.code || "غير معروف") + ").");
+      }
+    }, { once: true });
     state.audio = { pause: () => { audio.pause(); finish(); }, element: audio };
     try {
       await audio.play();
+      audioPlaybackStarted = true;
       trackAudioElementFace(audio, speechSegments);
     } catch (playError) {
       // Android can reject delayed HTMLAudio playback; decode through the unlocked AudioContext.
+      try { audio.pause(); audio.removeAttribute("src"); audio.load(); } catch (_) {}
+      speechAudioElement = null;
+      state.audio = null;
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextClass || !["NotSupportedError", "NotAllowedError"].includes(playError?.name)) throw playError;
       if (!speechAudioContext) speechAudioContext = new AudioContextClass();
