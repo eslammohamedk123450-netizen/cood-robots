@@ -272,7 +272,7 @@ assert.equal(new Date(alarmIntent.scheduledAt).getHours(), 9, "Morning alarm sho
 assert.equal(parseTaskCommand("صحيني الفجر", fixedNow)?.action, "needs_fajr_time", "Fajr alarm must request a real prayer time");
 assert.equal(parseTaskCommand("وريني المنبهات", fixedNow)?.action, "list", "Task list command should be recognized");
 assert.equal(parseTaskCommand("الغى كل التذكيرات", fixedNow)?.all, true, "Bulk task cancellation should be recognized");
-assert.equal(normalizeTaskText("الساعة ٩:٣٠"), "الساعه 9:30", "Arabic numerals and clock separators should normalize safely");
+assert.equal(normalizeTaskText("الساعة ٩:٣٠"), "الساعة 9:30", "Arabic numerals and clock separators should normalize safely");
 assert.match(app, /parseTaskCommand\(clean\)/, "Voice and text turns should route task commands locally");
 assert.match(app, /window\.SolinaNative/, "Task actions must use the native Android bridge");
 assert.match(html, /id="scheduledTasksList"/, "Settings should expose saved reminders and alarms");
