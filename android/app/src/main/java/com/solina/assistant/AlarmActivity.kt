@@ -19,6 +19,7 @@ class AlarmActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         taskId = intent.getStringExtra("task_id") ?: ""
+        if (intent.getBooleanExtra("stop_alarm", false)) { stopAlarm(); return }
         if (Build.VERSION.SDK_INT >= 27) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
