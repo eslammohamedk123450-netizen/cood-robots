@@ -106,11 +106,22 @@
         </div>
         <p class="settings-feedback" id="memoryFeedback" role="status">جاري تحميل الذاكرة المحفوظة...</p>
         <p class="settings-feedback memory-meta" id="memoryUpdated" role="status">لم يتم تحميل بيانات الذاكرة بعد.</p>
+      </section>
+      <section class="settings-section">
+        <h3>ملاحظاتي المحفوظة</h3>
+        <p class="security-note">الملاحظات دي محفوظة في حسابك، وهتظهر على المتصفح والتطبيق بعد تسجيل الدخول بنفس كود المالك.</p>
+        <label class="field-label">عنوان الملاحظة<input id="noteTitle" maxlength="160" placeholder="مثلاً: أفكار المشروع"></label>
+        <label class="field-label">تفاصيل الملاحظة<textarea id="noteContent" rows="4" maxlength="12000" placeholder="اكتب أو املي الملاحظة هنا..."></textarea></label>
+        <button type="button" class="save-button enabled-button" id="saveNote">حفظ الملاحظة في الحساب</button>
+        <p class="settings-feedback" id="notesFeedback" role="status">جاري تحميل الملاحظات...</p>
+        <div id="savedNotesList" class="scheduled-tasks-list"></div>
+      </section>
       </section></section>
-<section class="settings-page" data-settings-page="reminders" hidden><div class="settings-page-intro"><span class="settings-page-kicker">SOLINA CONTROL CENTER</span><h3>كتالوج التذكيرات</h3><p>إدارة المواعيد والمنبهات المحفوظة على جهازك.</p></div><section class="settings-section">
-        <h3>التذكيرات والمنبهات</h3>
-        <p class="security-note">قولي لسولينا: «فكريني أراجع المحاضرة الساعة 5» أو «صحيني الساعة 9». المواعيد بتتحفظ على الهاتف وتشتغل من تطبيق APK حتى بعد قفل سولينا. منبه الفجر يحتاج تحديد المدينة أو وقت الصلاة.</p>
-        <button type="button" class="secondary-button" id="refreshScheduledTasks">تحديث قائمة المواعيد</button>
+<section class="settings-page" data-settings-page="reminders" hidden><div class="settings-page-intro"><span class="settings-page-kicker">SOLINA CONTROL CENTER</span><h3>المواعيد والمهام</h3><p>كل المواعيد والمنبهات والمهام محفوظة في حسابك السحابي.</p></div><section class="settings-section">
+        <h3>التذكيرات والمنبهات والمهام</h3>
+        <p class="security-note">قولي لسولينا: «فكريني أراجع المحاضرة الساعة 5» أو «صحيني الساعة 9» أو «ضيفي مهمة أراجع المحاضرة». بياناتك بتتزامن بين المتصفح وتطبيق أندرويد. تشغيل صوت المنبه في الخلفية يعتمد على صلاحيات جهاز أندرويد.</p>
+        <button type="button" class="secondary-button" id="refreshScheduledTasks">مزامنة وتحديث القائمة</button>
+        <p class="settings-feedback" id="tasksFeedback" role="status">جاري تحميل العناصر من الحساب...</p>
         <div id="scheduledTasksList" class="scheduled-tasks-list">جاري تحميل المواعيد...</div>
       </section></section>
 <section class="settings-page" data-settings-page="voice" hidden><div class="settings-page-intro"><span class="settings-page-kicker">SOLINA CONTROL CENTER</span><h3>الصوت والتفاعل</h3><p>اختيار طريقة كلام سولينا ومصدر صوتها.</p></div><section class="settings-section">
@@ -172,6 +183,6 @@
   <div class="toast" id="toast" role="status"></div>
   <script src="pin.js?v=persistent-owner-session-v25"></script>
   <script src="solina-wave.js?v=2"></script>
-  <script type="module" src="app.js?v=solina-native-tts-v1"></script>
+  <script type="module" src="app.js?v=account-synced-items-v1"></script>
 </body>
 </html>
