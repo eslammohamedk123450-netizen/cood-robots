@@ -431,6 +431,7 @@ Deno.serve(async (req: Request) => {
       chat: 20,
       tts: 12,
       tts_gemini: 12,
+      tts_chatterbox: 4,
       speech_get: 30,
       speech_save: 5,
       speech_voices: 10,
@@ -643,6 +644,61 @@ Deno.serve(async (req: Request) => {
         languages: Array.isArray(v?.languages) ? v.languages.slice(0, 20).map((x: any) => cleanString(x, 60)) : [],
         type: cleanString(v?.type, 30),
       })).filter((v: any) => v.id) }, 200, origin);
+    }
+
+    if (action === "tts_chatterbox") {
+      const text = typeof body?.text === "string" ? body.text.trim() : "";
+      const persona = body?.persona === "soleen" ? "soleen" : body?.persona === "soly" ? "soly" : "";
+      if (!text || text.length > 1200 || !persona) return json({ error: "نص Chatterbox غير صالح أو طويل جدًا." }, 400, origin);
+      // This public Space wraps the NAMAA Chatterbox demo. It may sleep or queue on free ZeroGPU.
+      const base = "https://amrori-namaa-egyptian-tts-v2.hf.space";
+      const submit = await fetch(base + "/gradio_api/call/generate_tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ data: [text, 0.5, 0.5] }),
+        signal: AbortSignal.timeout(25000),
+        redirect: "error",
+      });
+      if (!submit.ok) throw new Error("Chatterbox Space رفض الطلب (HTTP " + submit.status + ").");
+      const submitted = await submit.json();
+      const eventId = cleanString(submitted?.event_id, 200);
+      if (!eventId) throw new Error("Chatterbox لم يرجع رقم طلب صالح.");
+      const resultResponse = await fetch(base + "/gradio_api/call/generate_tts/" + encodeURIComponent(eventId), {
+        headers: { "Accept": "text/event-stream" },
+        signal: AbortSignal.timeout(135000),
+        redirect: "error",
+      });
+      if (!resultResponse.ok) throw new Error("تعذر استلام نتيجة Chatterbox (HTTP " + resultResponse.status + ").");
+      const stream = await resultResponse.text();
+      const dataLines = stream.split("\n").filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trim()).filter(Boolean);
+      let output: any = null;
+      for (const line of dataLines.reverse()) {
+        try { output = JSON.parse(line); break; } catch (_) {}
+      }
+      if (!output) throw new Error("Chatterbox لم يرجع نتيجة مفهومة.");
+      if (output.error) throw new Error("Chatterbox: " + cleanString(output.error, 300));
+      const audioItem = Array.isArray(output) ? output.find((item: any) => item && (item.url || item.path || item.data)) : output;
+      if (!audioItem) throw new Error("Chatterbox لم يرجع ملفًا صوتيًا.");
+      let audioBytes: Uint8Array;
+      let mimeType = cleanString(audioItem.mime_type, 80) || "audio/wav";
+      if (typeof audioItem.data === "string" && audioItem.data.startsWith("data:")) {
+        const match = audioItem.data.match(/^data:([^;,]+);base64,(.+)$/);
+        if (!match) throw new Error("بيانات صوت Chatterbox غير صالحة.");
+        mimeType = match[1];
+        const binary = atob(match[2]);
+        audioBytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
+      } else {
+        const audioUrl = cleanString(audioItem.url, 2000) || (audioItem.path ? base + "/gradio_api/file=" + encodeURIComponent(String(audioItem.path)) : "");
+        if (!audioUrl || !audioUrl.startsWith(base + "/")) throw new Error("رابط ملف Chatterbox غير صالح.");
+        const audioResponse = await fetch(audioUrl, { signal: AbortSignal.timeout(25000), redirect: "error" });
+        if (!audioResponse.ok) throw new Error("تعذر تنزيل ملف صوت Chatterbox.");
+        mimeType = audioResponse.headers.get("content-type")?.split(";")[0] || mimeType;
+        audioBytes = new Uint8Array(await audioResponse.arrayBuffer());
+      }
+      if (audioBytes.length < 1000 || audioBytes.length > 15_000_000) throw new Error("حجم ملف صوت Chatterbox غير صالح.");
+      let binary = "";
+      for (let i = 0; i < audioBytes.length; i += 0x8000) binary += String.fromCharCode(...audioBytes.subarray(i, i + 0x8000));
+      return json({ audio: btoa(binary), mime_type: mimeType, provider: "chatterbox", voice: "NAMAA default reference", persona }, 200, origin);
     }
 
     if (action === "tts") {
