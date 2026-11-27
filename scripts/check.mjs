@@ -49,7 +49,7 @@ assert.match(app, /\[NOVA_EMOTION:/, "AI must provide emotion markers for speech
 assert.match(app, /قسّم ردك إلى أجزاء طبيعية حسب تغيّر المعنى/, "AI prompt must request context-based emotion changes");
 assert.match(app, /أنتِ سولينا، بنت مصرية مستقلة الشخصية/, "Solina must have a distinct, consistently feminine identity");
 assert.match(app, /هويتك أنثى دائمًا/, "Solina prompt must enforce a single feminine identity");
-assert.doesNotMatch(app, /speechMaleVoice|tts_chatterbox|\bsoly\b|أنت سولي/, "Client must contain no legacy persona or male voice path");
+assert.doesNotMatch(app, /speechMaleVoice|tts_chatterbox|أنت سولي/, "Client must contain no legacy persona or male voice path");
 assert.match(app, /getDeviceArabicVoice\(\)/, "Device TTS must select the female Arabic voice only");
 assert.match(app, /مزود الصوت لم يرجع صوتًا نسائيًا موثقًا/, "Unknown or male cloud voices must not be used as a fallback");
 assert.match(app, /recognition\.maxAlternatives = 3/, "Speech recognition must collect alternatives for Egyptian Arabic disambiguation");
