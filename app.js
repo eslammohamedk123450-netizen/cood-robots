@@ -1262,7 +1262,7 @@ function handleTaskDialogue(clean) {
   }
   const pending = state.pendingTaskDraft;
   const confirmationText = normalizeTaskText(clean).replace(/^(?:يا\s*)?سولينا\s*/,"").replace(/^(?:طيب|تمام|خلاص|ماشي)\s*/,"").trim();
-  const yes = /^(?:أيوه|ايوه|اه|أه|تمام|موافق|موافقة|احفظيه|احفظي|احفظ|سجليه|سجل|أكد|اكدي|نعم|yes)(?:\s+(?:الموعد|التذكير|ده|دي|ه|ها))?$/i.test(confirmationText);
+  const yes = /^(?:أيوه|ايوه|اه|أه|تمام|موافق|موافقة|احفظيه|احفظي|احفظ|سجليه|سجل|أكد|اكدي|نعم|yes)(?:\s+(?:بالظبط|بالضبط|اكيد|أكيد|الموعد|التذكير|ده|دي|ه|ها))*$/i.test(confirmationText);
   const no = /^(?:لا|لأ|مش دلوقتي|الغيه|الغي|إلغاء|cancel)(?:\s+(?:الموعد|التذكير|ده|دي))?$/i.test(confirmationText);
   if (pending?.stage === "confirm") {
     if (yes) {
@@ -1368,11 +1368,7 @@ async function executeTaskIntent(intent) {
   if (intent.action === "create") {
     let info = {};
     try { info = JSON.parse(bridge.platformInfo()); } catch (_) {}
-    if (!info.notifications) {
-      state.pendingTaskPermissionIntent = intent;
-      bridge.requestNotificationPermission();
-      return "تمام، فهمت الموعد. طلبت إذن الإشعارات من أندرويد، وأول ما تسمح هسجل نفس التذكير تلقائيًا من غير ما تعيد الطلب.";
-    }
+    // Notification permission is optional. The native alarm bridge persists and schedules tasks independently.
     if (intent.type === "alarm" && !info.fullScreenIntent) {
       state.pendingTaskPermissionIntent = intent;
       bridge.requestFullScreenIntentPermission();
@@ -1443,9 +1439,9 @@ window.addEventListener("solina-task-permissions-updated", async () => {
   if (!bridge) return;
   let info = {};
   try { info = JSON.parse(bridge.platformInfo()); } catch (_) {}
-  const ready = info.notifications && info.exactAlarms && (intent.type !== "alarm" || info.fullScreenIntent);
+  const ready = info.exactAlarms && (intent.type !== "alarm" || info.fullScreenIntent);
   if (!ready) {
-    const message = "لسه فيه صلاحية ناقصة. الطلب محفوظ عندي؛ فعّل الإذن المطلوب من إعدادات أندرويد وارجع، ومش هتحتاج تعيد كلامك.";
+    const message = "لسه محتاجة صلاحية التنبيهات الدقيقة" + (intent.type === "alarm" ? " وعرض المنبه على الشاشة" : "") + ". فعّل الصلاحية وارجع، ومش هتحتاج تعيد كلامك.";
     addConversationLine(message, "nova");
     $("liveTranscript").textContent = message;
     // The Android permission/settings screen is already the active prompt.
