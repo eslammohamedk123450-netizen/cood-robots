@@ -301,7 +301,7 @@ function speakWithDevice(text, persona, segments = []) {
       updateFaceSpeechProgress(segments, visualProgress);
       const charIndex = Math.min(text.length - 1, Math.floor(progress * text.length));
       const currentChar = text[charIndex] || "";
-      const isPause = /[،,.!?؟؛\n]/.test(currentChar);
+      const isPause = /[،,.!?؟؛]/.test(currentChar);
       const syllableRate = 5.2 + (currentChar.charCodeAt(0) % 4) * 0.45;
       const pulse = Math.abs(Math.sin(elapsed / 1000 * Math.PI * syllableRate));
       const emphasis = /[اويىةآ]/.test(currentChar) ? 1 : 0.72;
