@@ -282,6 +282,9 @@ public class MainActivity extends Activity {
                     CharSequence label = info.loadLabel(activity.getPackageManager());
                     String candidate = normalizeAppLabel(label == null ? "" : label.toString());
                     if (candidate.isEmpty()) continue;
+                    // Prefer exact app names. Never mistake Facebook Lite for Facebook (or vice versa).
+                    if ("facebook".equals(wanted) && candidate.contains("facebooklite")) continue;
+                    if ("facebooklite".equals(wanted) && !candidate.contains("facebooklite")) continue;
                     int score = candidate.equals(wanted) ? 100 : candidate.contains(wanted) ? 80 : wanted.contains(candidate) ? 60 : 0;
                     if (score > bestScore) { best = info; bestScore = score; }
                 }
@@ -315,6 +318,8 @@ public class MainActivity extends Activity {
             switch (normalized) {
                 case "واتساب": return "whatsapp";
                 case "يوتيوب": return "youtube";
+                case "فيسبوكلايت":
+                case "فيسبوكلايتت": return "facebooklite";
                 case "فيسبوك": return "facebook";
                 case "انستجرام":
                 case "انستغرام": return "instagram";
