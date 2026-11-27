@@ -854,7 +854,8 @@ async function saveSpeechSettings() {
   }
 }
 async function requestAIReply(text, signal, voiceAlternatives = []) {
-  if (!state.session) throw new Error("جلسة سولينا غير متصلة. سجّل دخول المالك لإعادة تفعيل الذكاء الاصطناعي والخدمات السحابية.");
+  // invokeNova owns session recovery; do not reject a turn based on a stale in-memory
+  // session before it has a chance to restore the validated owner token.
   if (!state.messages.length || state.messages[0].role !== "system") {
     state.messages.unshift({
       role: "system",
