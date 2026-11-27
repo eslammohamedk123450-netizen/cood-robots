@@ -66,8 +66,9 @@ export function parseTaskCommand(value, now = new Date()) {
   const isFajr = /الفجر|صلاه الفجر/.test(text);
   const settingsCommand = text.match(/^(?:(?:يا\s*)?سولينا\s*)?(?:افتحي|افتح|شغلي|شغل)\s+(?:(?:لي|لنا)\s+)?(?:تطبيق\s+)?(.+)$/);
   if (settingsCommand) {
-    const appName = settingsCommand[1].replace(/^(?:ال)?(?:اعدادات|إعدادات|ضبط|settings)$/i, "الإعدادات").trim();
-    if (/^(?:ال)?(?:اعدادات|إعدادات|ضبط|settings)$/i.test(appName)) return { action: "open_settings" };
+    const appName = settingsCommand[1].trim();
+    if (/^(?:الإعدادات|الاعدادات|اعدادات|الضبط|ضبط|settings)$/i.test(appName)) return { action: "open_settings" };
+    if (/^(?:ال)?(?:بلوتوث|واي\s*فاي|وايفاي|فلاش|كشاف)$/i.test(appName)) return { action: "unsupported_device", command: text };
     if (appName.length >= 2 && appName.length <= 60) return { action: "open_app", appName };
   }
   const isAlarm = /صحيني|صحييني|اصحيني|اصحى|صحينيلي|صحينى|فوقيني|نبهيني|(?:اعملي|اعمل|سجلي|سجل|اضبطي|اضبط|ظبطي|ظبط|ظبطلي)\s+(?:لي\s+)?منبه|منبه\s+(?:الساعه|الساعة|\d|بعد|بكره|بكرة|الفجر)/.test(text);
@@ -76,6 +77,7 @@ export function parseTaskCommand(value, now = new Date()) {
   const isCancel = /(?:الغي|الغى|احذفي|امسحي|الغاء).*(?:تذكير|منبه|مهمه)|(?:الغى|الغي).*(?:كل|اخر|آخر).*(?:التذكيرات|المنبهات)/.test(text);
   if (isList) return { action: "list" };
   if (isCancel) return { action: "cancel", all: /كل/.test(text), type: /منبه/.test(text) ? "alarm" : /تذكير/.test(text) ? "reminder" : null };
+  if (!isAlarm && !isReminder && /^(?:(?:يا\s*)?سولينا\s*)?(?:شغلي?|اقفلي?|اطفي?|طفي|فعلي?|اتصلي?|اتصل|ابعتي?|ابعت|زودي?|قللي?|وطي|علي)\s+.*(?:البلوتوث|بلوتوث|الواي\s*فاي|وايفاي|الفلاش|الكشاف|الصوت|الموقع|الإنترنت|الانترنت|بيانات الهاتف|الشاشة|رسالة|رسائل|اتصال|مكالمة)/.test(text)) return { action: "unsupported_device", command: text };
   if (!isAlarm && !isReminder) return null;
   if (isFajr && isAlarm) return { action: "needs_fajr_time" };
   const scheduledAt = parseSchedule(text, now);
