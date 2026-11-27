@@ -249,7 +249,7 @@ assert.match(app, /ناديني: سولينا/, "The wake prompt must use Solina
 assert.doesNotMatch(app, /مستني تناديني: نوفا|مستني تناديني يا نوفا/, "No stale NOVA wake prompt may remain");
 assert.match(app, /state\.voiceSessionActive = false;\s*cancelCurrentTurn/, "Stopping the microphone must close the armed voice session");
 
-assert.match(app, /function openSettings\(\) \{[\s\S]*?showSettingsHome\(\);[\s\S]*?\$\("settingsDialog"\)\.showModal\(\);[\s\S]*?Promise\.allSettled\(\[loadProviders\(\), loadOwnerMemory\(\), loadSpeechSettings\(\), refreshPermissionCards\(\)\]\);[\s\S]*?\}/, "Opening settings must show the category home and refresh providers, memory, speech, and device permissions");
+assert.match(app, /function openSettings\(\) \{[\s\S]*?showSettingsHome\(\);[\s\S]*?\$\("settingsDialog"\)\.showModal\(\);[\s\S]*?Promise\.allSettled\(\[loadProviders\(\), loadOwnerMemory\(\), loadPersonalItems\(\), loadSpeechSettings\(\), refreshPermissionCards\(\)\]\);[\s\S]*?\}/, "Opening settings must show the category home and refresh providers, memory, personal items, speech, and device permissions");
 assert.match(app, /جاري تحميل مفاتيح API المحفوظة/, "Provider list must show a loading state instead of a false empty state");
 assert.match(app, /تعذر تحميل المفاتيح من الخادم:/, "Provider list failures must be shown as errors, not as an empty key list");
 assert.match(html, /id="reloadProvidersButton"/, "Settings must provide a manual API key list refresh control");
