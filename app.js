@@ -482,7 +482,7 @@ function setFeedback(id, message, isError = false) {
   node.textContent = message;
   node.style.color = isError ? "#ff9d91" : "";
 }
-function openSettings() { $("settingsDialog").showModal(); void loadProviders(); }
+function openSettings() { $("settingsDialog").showModal(); void Promise.allSettled([loadProviders(), loadOwnerMemory(), loadSpeechSettings()]); }
 function closeSettings() { $("settingsDialog").close(); }
 
 const providerDefaults = {
@@ -707,28 +707,45 @@ async function addProvider() {
   } catch (error) { setFeedback("settingsFeedback", error.message, true); }
   finally { button.disabled = false; button.textContent = "حفظ المفتاح واكتشاف النماذج"; }
 }
+function updateMemoryMeta(updatedAt = null) {
+  const count = state.profile.split(/\\r?\\n/).map((line) => line.trim()).filter(Boolean).length;
+  let timestamp = "لم يتم حفظ الذاكرة بعد";
+  if (updatedAt) {
+    const parsed = new Date(updatedAt);
+    if (!Number.isNaN(parsed.getTime())) timestamp = "آخر تحديث: " + parsed.toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" });
+  }
+  setFeedback("memoryUpdated", timestamp + " · " + count + " بند محفوظ");
+}
 async function loadOwnerMemory() {
-  if (!state.session) return;
+  if (!state.session) {
+    setFeedback("memoryFeedback", "سجّل دخول المالك لتحميل الذاكرة.", true);
+    return;
+  }
+  setFeedback("memoryFeedback", "جاري تحميل الذاكرة المحفوظة...");
   try {
     const result = await invokeNova("profile_get");
     state.profile = result.profile || "";
     if ($("ownerMemory")) $("ownerMemory").value = state.profile;
-    if ($("memoryFeedback")) $("memoryFeedback").textContent = "تم تحميل الذاكرة المحفوظة.";
+    updateMemoryMeta(result.updated_at);
+    setFeedback("memoryFeedback", state.profile ? "تم تحميل الذاكرة من حساب المالك." : "الذاكرة فارغة حاليًا. يمكنك إضافة معلومات دائمة تريد من سولينا تذكرها.");
   } catch (error) {
-    if ($("memoryFeedback")) $("memoryFeedback").textContent = "تعذر تحميل الذاكرة: " + error.message;
+    setFeedback("memoryFeedback", "تعذر تحميل الذاكرة: " + error.message, true);
   }
 }
 async function saveOwnerMemory() {
   const button = $("saveOwnerMemory");
   const profile = $("ownerMemory")?.value.trim() || "";
-  if (!profile) { setFeedback("memoryFeedback", "اكتب معلومات الذاكرة أولًا.", true); return; }
+  if (!profile) { setFeedback("memoryFeedback", "اكتب معلومة واحدة على الأقل.", true); return; }
   button.disabled = true;
+  const originalText = button.textContent;
+  button.textContent = "جاري حفظ الذاكرة...";
   try {
     const result = await invokeNova("profile_save", { profile });
-    state.profile = result.profile;
-    setFeedback("memoryFeedback", "تم حفظ ذاكرة NOVA بنجاح.");
+    state.profile = result.profile || "";
+    updateMemoryMeta(result.updated_at);
+    setFeedback("memoryFeedback", "تم حفظ تعديلات الذاكرة على حساب المالك.");
   } catch (error) { setFeedback("memoryFeedback", error.message, true); }
-  finally { button.disabled = false; }
+  finally { button.disabled = false; button.textContent = originalText; }
 }
 async function loadSpeechVoices() {
   const result = await invokeNova("speech_voices");
@@ -827,7 +844,7 @@ async function requestAIReply(text, signal, voiceAlternatives = []) {
     const rawReply = sanitizeInternalReply(result.reply || result.text || result.content || "");
     if (result.memory_saved) {
       await loadOwnerMemory();
-      if ($("memoryFeedback")) $("memoryFeedback").textContent = "NOVA حفظ معلومة جديدة من كلامك تلقائيًا، وتقدر تراجعها أو تعدلها من الإعدادات."; 
+      if ($("memoryFeedback")) $("memoryFeedback").textContent = "سولينا حفظت معلومة دائمة جديدة من كلامك تلقائيًا. تقدر تراجعها أو تعدلها من الإعدادات."; 
     }
     const parsedReply = extractSpeechSegments(rawReply);
     setSpeechSegmentTone(parsedReply.emotion);
@@ -1179,13 +1196,19 @@ $("clearConversation").addEventListener("click", () => { state.messages = []; st
 $("conversationHistorySelect")?.addEventListener("change", event => { if (event.target.value) void openSavedConversation(event.target.value); });
 $("settingsButton").addEventListener("click", openSettings);
 
+const savedOwnerName = localStorage.getItem("solina.owner.name");
+if (savedOwnerName) state.ownerName = savedOwnerName.slice(0, 40);
+$("ownerName").value = state.ownerName;
 $("ownerName").addEventListener("change", (event) => {
-  state.ownerName = event.target.value.trim() || "إسلام";
+  state.ownerName = event.target.value.trim().slice(0, 40) || "إسلام";
+  event.target.value = state.ownerName;
+  localStorage.setItem("solina.owner.name", state.ownerName);
   if ($("greeting")) $("greeting").textContent = "أهلاً يا " + state.ownerName + "، نورتني.";
 });
 $("addProviderButton").addEventListener("click", () => void addProvider());
 $("reloadProvidersButton")?.addEventListener("click", () => void loadProviders());
 $("saveOwnerMemory")?.addEventListener("click", () => void saveOwnerMemory());
+$("reloadOwnerMemory")?.addEventListener("click", () => void loadOwnerMemory());
 $("saveSpeechSettings")?.addEventListener("click", () => void saveSpeechSettings());
 $("reloadSpeechVoices")?.addEventListener("click", async () => {
   const button = $("reloadSpeechVoices");
