@@ -195,9 +195,8 @@ public class MainActivity extends Activity {
                 if (Build.VERSION.SDK_INT >= 31 && !manager.canScheduleExactAlarms()) {
                     return new JSONObject().put("ok", false).put("error", "exact_alarm_permission_required").toString();
                 }
-                if (Build.VERSION.SDK_INT >= 33 && activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                    return new JSONObject().put("ok", false).put("error", "notification_permission_required").toString();
-                }
+                // Alarm audio is delivered by AlarmManager + a foreground playback service.
+                // Notification permission controls the optional notification UI only.
                 JSONObject saved = new JSONObject().put("id", id).put("type", type).put("title", title).put("at", at);
                 try {
                     TaskStore.upsert(activity, saved);
