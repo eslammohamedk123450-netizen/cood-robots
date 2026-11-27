@@ -98,7 +98,7 @@ assert.doesNotMatch(html, /novaRobot/, "Legacy full avatar must be removed");
 assert.doesNotMatch(html, /robot-neck|robot-torso|robot-arm|robot-leg/, "No robot body parts remain");
 assert.match(html, /id="solinaWaveCanvas"/, "The home screen must show Solina audio sphere");
 assert.doesNotMatch(html, /faceScreen|novaFaceMount|novaFaceOnly|faceMouth/, "No robot face markup may remain");
-assert.match(app, /orb\.dataset\.mood = mood/, "The audio orb must follow live conversation states");
+assert.match(app, /window\.solinaWave\?\.setMood\(mood\)/, "The Solina audio orb must follow live conversation states");
 assert.match(app, /trackAudioElementOrb\(audio, speechSegments\);\s*await audio\.play\(\)/, "The audio analyser must attach before playback");
 assert.match(app, /animateOrbFromAudio/, "The orb must react continuously to actual speech waveform");
 assert.match(app, /getByteFrequencyData/, "The orb must react to audio frequencies as well as amplitude");
@@ -172,7 +172,7 @@ assert.match(app, /راجع ردك مرة أخيرة بصمت من ناحية ا
 assert.match(app, /كلمة «بكير» تظل كما هي إذا كان معناها مقصودًا/, "Contextual proofreading must preserve valid words instead of blanket replacements");
 assert.match(app, /اجعل النص الذي تعرضه هو نفسه النص الذي يُرسل للصوت/, "Displayed and spoken replies must use the same corrected text");
 
-assert.match(app, /orb\.dataset\.expression = state\.replyEmotion/, "Speech emotion must drive the hologram face expression");
+assert.match(app, /window\.solinaWave\?\.setExpression\(state\.replyEmotion\)/, "Speech emotion must reach the Solina waveform");
 assert.match(app, /window\.solinaWave\?\.setLevel\(amount, energy\)/, "Wave motion must follow measured audio amplitude");
 assert.match(css, /solina-wave-canvas/, "Solina audio orb canvas must be styled");
 assert.match(css, /solina-wordmark/, "Solina must be the only visible product identity");
