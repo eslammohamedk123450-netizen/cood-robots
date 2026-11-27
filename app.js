@@ -1154,10 +1154,23 @@ function submitText(text) {
 $("micButton").addEventListener("click", () => { prepareSpeechPlayback(); state.listening ? stopListening() : startListening(); });
 $("cancelTurnButton")?.addEventListener("click", () => cancelCurrentTurn(true));
 
-const toggleDrawer = () => { $("conversationPanel").classList.toggle("hidden"); $("drawerBackdrop").classList.toggle("hidden"); };
-$("transcriptToggle").addEventListener("click", toggleDrawer);
-$("closeDrawer")?.addEventListener("click", toggleDrawer);
-$("drawerBackdrop")?.addEventListener("click", toggleDrawer);
+const conversationDrawer = $("conversationPanel");
+const drawerBackdrop = $("drawerBackdrop");
+const setDrawerOpen = (open) => {
+  if (!conversationDrawer || !drawerBackdrop) return;
+  conversationDrawer.classList.toggle("hidden", !open);
+  drawerBackdrop.classList.toggle("hidden", !open);
+  conversationDrawer.setAttribute("aria-hidden", String(!open));
+  $("transcriptToggle")?.setAttribute("aria-expanded", String(open));
+  document.body.classList.toggle("drawer-open", open);
+};
+// Always start with the drawer closed; never restore an accidental open overlay.
+setDrawerOpen(false);
+$("transcriptToggle").addEventListener("click", () => setDrawerOpen(conversationDrawer.classList.contains("hidden")));
+$("closeDrawer")?.addEventListener("click", () => setDrawerOpen(false));
+drawerBackdrop?.addEventListener("click", () => setDrawerOpen(false));
+conversationDrawer?.addEventListener("click", (event) => event.stopPropagation());
+document.addEventListener("keydown", (event) => { if (event.key === "Escape") setDrawerOpen(false); });
 $("drawerTextButton")?.addEventListener("click", () => { $("textForm").classList.toggle("hidden"); $("textInput").focus(); });
 $("drawerHistoryButton")?.addEventListener("click", () => $("conversationLog").scrollIntoView({behavior:"smooth",block:"end"}));
 $("textForm").addEventListener("submit", (event) => { event.preventDefault(); submitText($("textInput").value); });
