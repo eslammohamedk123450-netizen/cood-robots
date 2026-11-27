@@ -228,7 +228,7 @@ function setPersona(persona) {
     if (speechAudioElement) { try { speechAudioElement.pause(); } catch (_) {} speechAudioElement = null; }
     if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
     state.speaking = false;
-    void loadConversationHistory(false);\n  void loadPersonalItems();
+    void loadConversationHistory(false);
   }
   const current = personas[persona];
   document.documentElement.style.setProperty("--persona", current.color);
@@ -1877,7 +1877,8 @@ $("settingsBackButton")?.addEventListener("click", showSettingsHome);
 document.querySelectorAll("[data-open-settings-page]").forEach(button => {
   button.addEventListener("click", () => openSettingsPage(button.dataset.openSettingsPage));
 });
-$("refreshScheduledTasks")?.addEventListener("click", () => void loadPersonalItems());\n$("saveNote")?.addEventListener("click", () => void saveNoteFromForm());
+$("refreshScheduledTasks")?.addEventListener("click", () => void loadPersonalItems());
+$("saveNote")?.addEventListener("click", () => void saveNoteFromForm());
 $("refreshPermissionsButton")?.addEventListener("click", () => void refreshPermissionCards());
 $("permissionList")?.addEventListener("click", event => {
   const button = event.target.closest("[data-permission-action]");
