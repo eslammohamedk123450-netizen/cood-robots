@@ -333,6 +333,8 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public String listTasks() { return TaskStore.all(activity).toString(); }
+        @JavascriptInterface public String pendingTaskSyncEvents() { return TaskStore.pendingSyncEvents(activity).toString(); }
+        @JavascriptInterface public void acknowledgeTaskSyncEvent(String id) { TaskStore.acknowledgePendingSync(activity, id); }
 
         @JavascriptInterface public String completeTask(String id) {
             try {
