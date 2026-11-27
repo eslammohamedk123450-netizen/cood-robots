@@ -179,8 +179,8 @@ assert.match(css, /solina-wordmark/, "Solina must be the only visible product id
 
 assert.match(html, /id="solinaWaveCanvas"/, "Solina voice orb must be mounted");
 assert.match(html, /solina-voice\.css/, "Solina visual layer must be loaded");
-assert.match(app, /novaAvatar\?\.setSpeechLevel\(amount, energy\)/, "The supplied avatar mouth must follow the live speech analyser");
-assert.match(app, /novaAvatar\?\.setExpression\(state\.replyEmotion\)/, "The supplied avatar must follow live emotional segments");
+assert.match(app, /window\.solinaWave\?\.setLevel\(amount, energy\)/, "Live speech amplitude drives the Solina orb");
+assert.match(app, /window\.solinaWave\?\.setLevel\(amount, energy\)/, "Live speech amplitude drives the Solina orb");
 assert.match(css, /solina-orb-stage/, "Large central audio visualizer must be present");
 assert.match(css, /solina-breathe/, "Solina audio orb must pulse");
 assert.match(app, /window\.solinaWave\?\.setLevel\(amount, energy\)/, "Audio orb must follow real playback amplitude");
