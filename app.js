@@ -823,7 +823,7 @@ async function saveSpeechSettings() {
     setFeedback("speechFeedback", error.message, true);
   } finally {
     button.disabled = false;
-    button.textContent = "حفظ مفتاح Sonex Labs بأمان";
+    button.textContent = "اختبار المفتاح وحفظه بأمان";
   }
 }
 async function requestAIReply(text) {
@@ -1049,6 +1049,7 @@ function applySpeechEngineVisibility() {
 }
 $("speechProvider")?.addEventListener("change", () => {
   const provider = $("speechProvider").value;
+  $("speechApiKey").placeholder = "الصق مفتاح " + (provider === "elevenlabs" ? "ElevenLabs" : "Sonex Labs") + " هنا";
   localStorage.setItem("nova.speech.provider", provider);
   if (($("speechEngine")?.value || "auto") === "chatterbox") return;
   void loadSpeechVoices().catch(error => setFeedback("speechFeedback", error.message, true));
