@@ -82,7 +82,7 @@ assert.match(app, /rememberSpeechAudio/, "Generated Gemini audio must be cached 
 assert.match(app, /Gemini receives the complete reply in ONE request/, "Gemini TTS must not create a request for every sentence");
 assert.match(app, /rememberSpeechAudio\(geminiCacheKey, result\)/, "Valid Gemini audio must be reused during the current session");
 assert.match(html, /الوضع التلقائي يستخدم صوت Gemini السحابي النسائي/, "The UI must explain that automatic speech uses cloud female TTS");
-assert.match(html, /Kore النسائي/, "The UI must identify Gemini's fixed female voice");
+assert.match(html, /صوت Gemini السحابي النسائي \(Kore\)/, "The UI must identify Gemini's fixed female voice");
 assert.match(app, /audio\/mpeg/, "The client must accept Sonex MP3 audio");
 assert.match(app, /nova:authenticated/, "The app must receive the authenticated server session");
 assert.doesNotMatch(html, /id="pinSetupForm"|إنشاء كود المالك/, "PIN creation screen must be removed after initial setup");
