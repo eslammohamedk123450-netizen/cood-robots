@@ -44,7 +44,7 @@ assert.match(app, /loadSpeechSettings/, "Client must load fixed voice settings")
 assert.match(app, /saveSpeechSettings/, "Client must save fixed voice settings");
 assert.match(app, /state\.processing/, "Voice turns must be serialized to prevent overlapping conversations");
 assert.match(app, /const rawReply = sanitizeInternalReply\(result\.reply/, "AI reply must be sanitized before emotion parsing");
-assert.match(app, /connectSpeechAnalyser/, "Audio waveform must be analyzed for mouth movement");
+assert.match(app, /connectSpeechAnalyser/, "Audio waveform must be analyzed for the orb");
 assert.match(app, /\[NOVA_EMOTION:/, "AI must provide emotion markers for speech segments");
 assert.match(app, /قسّم ردك إلى أجزاء طبيعية حسب تغيّر المعنى/, "AI prompt must request context-based emotion changes");
 assert.match(app, /أنتِ سولينا، بنت مصرية مستقلة الشخصية/, "Solina must have a distinct, consistently feminine identity");
@@ -52,7 +52,7 @@ assert.match(app, /ممنوع تمامًا أن تقولي عن نفسك أنا 
 assert.match(app, /تفاصيل النماذج:/, "Provider failures must expose safe model diagnostics to the owner");
 assert.match(html, /سولينا/, "The female persona must be named Solina in the UI");
 assert.doesNotMatch(html, /سولين(?!ا)/, "The old female persona name must not remain in the UI");
-assert.doesNotMatch(app, /Math\.random\(\).*setSpeechMouthLevel/, "Speech mouth movement must not be random");
+assert.doesNotMatch(app, /Math\.random\(\).*setSpeechMouthLevel/, "Orb audio response must not be random");
 assert.match(app, /decodeAudioData/, "Android audio-context playback fallback must remain available");
 assert.match(html, /id="speechApiKey"/, "The UI must provide a secure speech key entry");
 assert.match(html, /id="speechMaleVoice"/, "The UI must provide a male voice selector");
