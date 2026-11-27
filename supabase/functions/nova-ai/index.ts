@@ -75,13 +75,15 @@ function normalizeMessages(value: unknown): Array<{role:"system"|"user"|"assista
 }
 function sanitizeInternalReplyText(input: unknown): string {
   let text = String(input ?? "");
-  const entities: Record<string,string> = { "&lt;":"<", "&gt;":">", "&quot;":"\\\"", "&#91;":"[", "&#93;":"]", "&amp;":"&", "&#60;":"<", "&#62;":">" };
+  const entities: Record<string,string> = { "&lt;":"<", "&gt;":">", "&quot;":"\"", "&#91;":"[", "&#93;":"]", "&amp;":"&", "&#60;":"<", "&#62;":">" };
   for (let pass = 0; pass < 3; pass++) text = text.replace(/&lt;|&gt;|&quot;|&#91;|&#93;|&amp;|&#60;|&#62;/gi, (entity) => entities[entity.toLowerCase()] ?? entity);
-  text = text.replace(/<\\s*\\/?\\s*(?:NOVA|NOA)[_-]?MEMORY\\b[^>]*>/gi, "");
-  text = text.replace(/<\\s*\\/?\\s*(?:OWNER|NOVA)[_-]?(?:MEMORY|MEMORY_DATA)\\b[^>]*>/gi, "");
-  text = text.replace(/\\b(?:NOVA|NOA)[_-]?MEMORY\\b\\s*[:=]?\\s*\\{\\s*["']facts["']\\s*:\\s*\\[[\\s\\S]*?\\]\\s*\\}/gi, "");
-  return text.replace(/\\s{2,}/g, " ").trim();
+  text = text.replace(/<\s*(?:NOVA|NOA)[_-]?MEMORY\b[^>]*>[\s\S]*?<\s*\/\s*(?:NOVA|NOA)[_-]?MEMORY\s*>/gi, "");
+  text = text.replace(/<\s*\/?\s*(?:NOVA|NOA)[_-]?MEMORY\b[^>]*>/gi, "");
+  text = text.replace(/<\s*\/?\s*(?:OWNER|NOVA)[_-]?(?:MEMORY|MEMORY_DATA)\b[^>]*>/gi, "");
+  text = text.replace(/\b(?:NOVA|NOA)[_-]?MEMORY\b\s*[:=]?\s*\{\s*["']facts["']\s*:\s*\[[\s\S]*?\]\s*\}/gi, "");
+  return text.replace(/\s{2,}/g, " ").trim();
 }
+
 function cleanString(v: unknown, max = 120): string {
   return typeof v === "string" ? v.trim().slice(0, max) : "";
 }
