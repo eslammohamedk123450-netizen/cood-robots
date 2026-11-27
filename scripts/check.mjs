@@ -277,6 +277,7 @@ assert.equal(parseTaskCommand("صحييني بعد دقيقتين", fixedNow)?.a
 assert.equal(parseTaskCommand("فوقيني بعد خمس دقايق", fixedNow)?.type, "alarm", "Wake-up synonyms should route to the alarm engine");
 assert.equal(parseTaskCommand("افتحي تطبيق واتساب", fixedNow)?.action, "open_app", "Opening an installed app must route to the native command engine");
 assert.equal(parseTaskCommand("افتح الإعدادات", fixedNow)?.action, "open_settings", "Phone settings command must route natively");
+assert.equal(parseTaskCommand("شغل الفلاش", fixedNow)?.action, "unsupported_device", "Unsupported phone controls must not fall through to AI");
 
 assert.equal(parseTaskCommand("وريني المنبهات", fixedNow)?.action, "list", "Task list command should be recognized");
 assert.equal(parseTaskCommand("إيه معنى المنبه؟", fixedNow), null, "Ordinary questions about alarms must go to the AI");
