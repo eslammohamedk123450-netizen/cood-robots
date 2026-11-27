@@ -1,5 +1,5 @@
 // Android APK build refresh: settings pages + staged native reminder bridge.
-import { parseTaskCommand, formatTaskDate, normalizeTaskText } from "./task-manager.js?v=account-synced-items-v3";
+import { parseTaskCommand, formatTaskDate, normalizeTaskText } from "./task-manager.js?v=account-synced-items-v4";
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soleen", emotion: "idle", listening: false, speaking: false,
