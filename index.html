@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=nova-elevenlabs-v46">
+  <link rel="stylesheet" href="style.css?v=nova-full-body-v47">
 </head>
 <body>
   <div class="auth-gate" id="authGate">
@@ -52,17 +52,38 @@
           <div class="stage-orbit orbit-one"></div>
           <div class="stage-orbit orbit-two"></div>
           <!-- OLED-only NOVA face. -->
-          <div id="novaFaceMount" class="nova-face-mount" aria-label="شاشة وجه NOVA">
-            <div class="nova-face-avatar face-avatar" id="novaFaceAvatar" aria-hidden="true">
-              <div class="face-screen" id="faceScreen">
-                <div class="face-scanline"></div>
-                <div class="face-brows"><i class="face-brow left"></i><i class="face-brow right"></i></div>
-                <div class="face-eyes"><span class="face-eye left"><i class="face-pupil"></i></span><span class="face-eye right"><i class="face-pupil"></i></span></div>
-                <span class="face-cheek left"></span><span class="face-cheek right"></span>
-                <div class="face-mouth" id="faceMouth"><i></i></div>
-                <span class="face-spark spark-one"></span><span class="face-spark spark-two"></span>
+          <div class="nova-robot" id="novaRobot" data-mood="idle" role="img" aria-label="روبوت NOVA متحرك">
+            <div class="robot-shadow"></div>
+            <div class="robot-head-group">
+              <div id="novaFaceMount" class="nova-face-mount" aria-label="شاشة وجه NOVA">
+                <div class="nova-face-avatar face-avatar" id="novaFaceAvatar" aria-hidden="true">
+                  <div class="face-screen" id="faceScreen">
+                    <div class="face-scanline"></div>
+                    <div class="face-brows"><i class="face-brow left"></i><i class="face-brow right"></i></div>
+                    <div class="face-eyes"><span class="face-eye left"><i class="face-pupil"></i></span><span class="face-eye right"><i class="face-pupil"></i></span></div>
+                    <span class="face-cheek left"></span><span class="face-cheek right"></span>
+                    <div class="face-mouth" id="faceMouth"><i></i></div>
+                    <span class="face-spark spark-one"></span><span class="face-spark spark-two"></span>
+                  </div>
+                </div>
               </div>
+              <div class="robot-ear left"></div><div class="robot-ear right"></div>
             </div>
+            <div class="robot-neck"><i></i><i></i><i></i></div>
+            <div class="robot-torso">
+              <div class="robot-chest-core"><span></span></div>
+              <div class="robot-chest-line"></div>
+              <div class="robot-torso-detail left"></div><div class="robot-torso-detail right"></div>
+              <div class="robot-waist"></div>
+            </div>
+            <div class="robot-arm robot-arm-left">
+              <div class="robot-shoulder"></div><div class="robot-upper-arm"></div><div class="robot-elbow"></div><div class="robot-forearm"></div><div class="robot-hand"><i></i><i></i><i></i><i></i></div>
+            </div>
+            <div class="robot-arm robot-arm-right">
+              <div class="robot-shoulder"></div><div class="robot-upper-arm"></div><div class="robot-elbow"></div><div class="robot-forearm"></div><div class="robot-hand"><i></i><i></i><i></i><i></i></div>
+            </div>
+            <div class="robot-leg robot-leg-left"><div class="robot-thigh"></div><div class="robot-knee"></div><div class="robot-shin"></div><div class="robot-foot"></div></div>
+            <div class="robot-leg robot-leg-right"><div class="robot-thigh"></div><div class="robot-knee"></div><div class="robot-shin"></div><div class="robot-foot"></div></div>
           </div>
           <div class="character-caption">
             <span class="caption-dot"></span>
@@ -213,6 +234,6 @@
 
   <div class="toast" id="toast" role="status"></div>
   <script src="pin.js?v=persistent-owner-session-v23"></script>
-  <script type="module" src="app.js?v=nova-elevenlabs-v46"></script>
+  <script type="module" src="app.js?v=nova-full-body-v47"></script>
 </body>
 </html>
