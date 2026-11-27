@@ -67,8 +67,17 @@ function inferFaceEmotion(reply) {
   for (const [emotion, pattern] of patterns) if (pattern.test(value)) return emotion;
   return "neutral";
 }
+function sanitizeInternalReply(rawReply) {
+  let text = String(rawReply || "");
+  const entities = { "&lt;":"<", "&gt;":">", "&quot;":"\\\"", "&#91;":"[", "&#93;":"]", "&amp;":"&", "&#60;":"<", "&#62;":">" };
+  for (let pass = 0; pass < 3; pass++) text = text.replace(/&lt;|&gt;|&quot;|&#91;|&#93;|&amp;|&#60;|&#62;/gi, (entity) => entities[entity.toLowerCase()] || entity);
+  text = text.replace(/<\\s*\\/?\\s*(?:NOVA|NOA)[_-]?MEMORY\\b[^>]*>/gi, "");
+  text = text.replace(/<\\s*\\/?\\s*(?:OWNER|NOVA)[_-]?(?:MEMORY|MEMORY_DATA)\\b[^>]*>/gi, "");
+  text = text.replace(/\\b(?:NOVA|NOA)[_-]?MEMORY\\b\\s*[:=]?\\s*\\{\\s*["']facts["']\\s*:\\s*\\[[\\s\\S]*?\\]\\s*\\}/gi, "");
+  return text.replace(/\\s{2,}/g, " ").trim();
+}
 function extractReplyEmotion(rawReply) {
-  const raw = String(rawReply || "");
+  const raw = sanitizeInternalReply(rawReply);
   const markerPattern = /\[NOVA_EMOTION:(neutral|happy|sad|surprised|curious|caring|playful|concerned|thinking)\]/ig;
   const markers = [...raw.matchAll(markerPattern)];
   const cleanText = raw.replace(markerPattern, "").replace(/\s+/g, " ").trim();
@@ -816,7 +825,7 @@ async function requestAIReply(text) {
   state.messagesByPersona[state.persona] = state.messages.slice();
   try {
     const result = await invokeNova("chat", { messages: state.messages });
-    const rawReply = String(result.reply || result.text || result.content || "");
+    const rawReply = sanitizeInternalReply(result.reply || result.text || result.content || "");
     if (result.memory_saved) {
       await loadOwnerMemory();
       if ($("memoryFeedback")) $("memoryFeedback").textContent = "NOVA حفظ معلومة جديدة من كلامك تلقائيًا، وتقدر تراجعها أو تعدلها من الإعدادات."; 
