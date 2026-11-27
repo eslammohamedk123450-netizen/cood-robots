@@ -44,7 +44,7 @@ function setStatus(label, mood = "idle") {
   window.solinaWave?.setMood(mood);
 }
 const NOVA_EMOTIONS = new Set(["neutral","happy","sad","surprised","curious","caring","playful","concerned","thinking"]);
-function setSpeechSegmentTone(emotion) { state.replyEmotion = NOVA_EMOTIONS.has(emotion) ? emotion : "neutral"; const orb = $("novaAudioOrb"); if (orb) orb.dataset.expression = state.replyEmotion; window.solinaWave?.setMood(state.replyEmotion); }
+function setSpeechSegmentTone(emotion) { state.replyEmotion = NOVA_EMOTIONS.has(emotion) ? emotion : "neutral"; window.solinaWave?.setExpression(state.replyEmotion); }
 function inferReplyTone(reply) {
   const value = String(reply || "").toLowerCase();
   const patterns = [
@@ -113,11 +113,9 @@ function updateSpeechSegmentProgress(segments, progress) {
   setSpeechSegmentTone(segments[segments.length - 1].emotion);
 }
 function setSpeechMouthLevel(level, brightness = 0) {
-  const orb = $("novaAudioOrb"); if (!orb) return;
+  const orb = $("novaAudioOrb");
   const amount = Math.max(0, Math.min(1, level)), energy = Math.max(0, Math.min(1, brightness));
-  orb.style.setProperty("--audio-level", amount.toFixed(3));
-  orb.style.setProperty("--mouth-scale", (0.48 + amount * 1.75).toFixed(3));
-  orb.style.setProperty("--audio-brightness", energy.toFixed(3));
+  if (orb) { orb.style.setProperty("--audio-level", amount.toFixed(3)); orb.style.setProperty("--mouth-scale", (0.48 + amount * 1.75).toFixed(3)); orb.style.setProperty("--audio-brightness", energy.toFixed(3)); }
   window.solinaWave?.setLevel(amount, energy);
 }
 function resetSpeechMouth() {
@@ -1126,7 +1124,7 @@ $("settingsButton").addEventListener("click", openSettings);
 
 $("ownerName").addEventListener("change", (event) => {
   state.ownerName = event.target.value.trim() || "إسلام";
-  $("greeting").textContent = "أهلاً يا " + state.ownerName + "، نورتني.";
+  if ($("greeting")) $("greeting").textContent = "أهلاً يا " + state.ownerName + "، نورتني.";
 });
 $("addProviderButton").addEventListener("click", () => void addProvider());
 $("saveOwnerMemory")?.addEventListener("click", () => void saveOwnerMemory());
