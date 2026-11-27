@@ -9,7 +9,7 @@ function enforceScreenFaceAvatar() {
     fallback.id = "novaFaceAvatar";
   }
   fallback.className = "nova-face-avatar face-avatar";
-  fallback.innerHTML = '<div class="face-screen" id="faceScreen" data-emotion="neutral"><div class="face-scanline"></div><div class="face-eyes"><span class="face-eye left"></span><span class="face-eye right"></span></div><div class="face-mouth" id="faceMouth"><i></i></div><span class="face-spark spark-one"></span><span class="face-spark spark-two"></span></div>';
+  fallback.innerHTML = '<div class="face-screen" id="faceScreen" data-emotion="neutral"><div class="face-scanline"></div><div class="face-brows"><i class="face-brow left"></i><i class="face-brow right"></i></div><div class="face-eyes"><span class="face-eye left"></span><span class="face-eye right"></span></div><span class="face-cheek left"></span><span class="face-cheek right"></span><div class="face-mouth" id="faceMouth"><i></i></div><span class="face-spark spark-one"></span><span class="face-spark spark-two"></span></div>';
   fallback.setAttribute("aria-hidden", "true");
   fallback.style.display = "grid";
   fallback.style.visibility = "visible";
@@ -97,16 +97,25 @@ function updateFaceSpeechProgress(segments, progress) {
   }
   setFaceEmotion(segments[segments.length - 1].emotion);
 }
-function setSpeechMouthLevel(level) {
+function setSpeechMouthLevel(level, brightness = 0) {
   const mouth = $("faceMouth");
-  if (!mouth) return;
+  const face = $("faceScreen");
+  if (!mouth || !face) return;
   const amount = Math.max(0, Math.min(1, level));
-  mouth.style.height = (5 + amount * 29).toFixed(1) + "px";
+  const energy = Math.max(0, Math.min(1, brightness));
+  mouth.style.height = (4 + amount * 34).toFixed(1) + "px";
+  mouth.style.width = (54 + amount * 25).toFixed(1) + "px";
   mouth.style.opacity = String(0.72 + amount * 0.28);
+  mouth.style.borderRadius = amount > 0.62 ? "45%" : "0 0 50px 50px";
+  face.style.setProperty("--voice-energy", energy.toFixed(3));
+  face.style.setProperty("--voice-glow", (0.25 + energy * 0.75).toFixed(3));
+  face.classList.toggle("audio-laugh", state.replyEmotion === "playful" && energy > 0.22);
 }
 function resetSpeechMouth() {
   const mouth = $("faceMouth");
-  if (mouth) { mouth.style.height = ""; mouth.style.opacity = ""; }
+  const face = $("faceScreen");
+  if (mouth) { mouth.style.height = ""; mouth.style.width = ""; mouth.style.opacity = ""; mouth.style.borderRadius = ""; }
+  if (face) { face.style.removeProperty("--voice-energy"); face.style.removeProperty("--voice-glow"); face.classList.remove("audio-laugh"); }
 }
 function connectSpeechAnalyser(source) {
   try {
@@ -120,11 +129,35 @@ function connectSpeechAnalyser(source) {
     return null;
   }
 }
+function animateFaceFromAudio(analyser, isActive, progress) {
+  const samples = new Uint8Array(analyser.fftSize);
+  const frequencies = new Uint8Array(analyser.frequencyBinCount);
+  const animate = () => {
+    if (!state.speaking || !isActive()) return;
+    analyser.getByteTimeDomainData(samples);
+    analyser.getByteFrequencyData(frequencies);
+    let energy = 0, peak = 0, low = 0, high = 0;
+    for (const sample of samples) {
+      const centered = (sample - 128) / 128;
+      energy += centered * centered;
+      peak = Math.max(peak, Math.abs(centered));
+    }
+    for (let i = 2; i < frequencies.length; i++) {
+      if (i < 12) low += frequencies[i];
+      else if (i > 24) high += frequencies[i];
+    }
+    const rms = Math.sqrt(energy / samples.length);
+    const loudness = Math.min(1, rms * 6.5);
+    const spectralEnergy = Math.min(1, (low / 10 + high / 18) / 255);
+    setSpeechMouthLevel(Math.min(1, rms * 8 + peak * 0.12), Math.max(loudness, spectralEnergy * 0.7));
+    if (typeof progress === "function") progress();
+    requestAnimationFrame(animate);
+  };
+  requestAnimationFrame(animate);
+}
 function trackAudioElementFace(audio, segments) {
   audio.addEventListener("timeupdate", () => {
-    if (state.speaking && Number.isFinite(audio.duration) && audio.duration > 0) {
-      updateFaceSpeechProgress(segments, audio.currentTime / audio.duration);
-    }
+    if (state.speaking && Number.isFinite(audio.duration) && audio.duration > 0) updateFaceSpeechProgress(segments, audio.currentTime / audio.duration);
   });
   try {
     if (!speechAudioContext) {
@@ -135,17 +168,10 @@ function trackAudioElementFace(audio, segments) {
     const source = speechAudioContext.createMediaElementSource(audio);
     const analyser = connectSpeechAnalyser(source);
     if (!analyser) return;
-    const samples = new Uint8Array(analyser.fftSize);
-    const animate = () => {
-      if (!state.speaking || state.audio?.element !== audio) return;
-      analyser.getByteTimeDomainData(samples);
-      let energy = 0;
-      for (const sample of samples) { const centered = (sample - 128) / 128; energy += centered * centered; }
-      setSpeechMouthLevel(Math.min(1, Math.sqrt(energy / samples.length) * 5.5));
-      requestAnimationFrame(animate);
-    };
     if (speechAudioContext.state === "suspended") void speechAudioContext.resume().catch(() => {});
-    requestAnimationFrame(animate);
+    animateFaceFromAudio(analyser, () => state.audio?.element === audio, () => {
+      if (Number.isFinite(audio.duration) && audio.duration > 0) updateFaceSpeechProgress(segments, audio.currentTime / audio.duration);
+    });
   } catch (error) {
     console.warn("NOVA speech waveform tracking unavailable.", error);
   }
@@ -350,18 +376,10 @@ async function speak(text, segments = []) {
       const analyser = connectSpeechAnalyser(source);
       state.audio = { pause: () => { try { source.stop(); } catch (_) {} finish(); } };
       if (analyser) {
-        const samples = new Uint8Array(analyser.fftSize);
         const startedAt = performance.now();
-        const animate = () => {
-          if (!state.speaking) return;
+        animateFaceFromAudio(analyser, () => state.audio !== null, () => {
           updateFaceSpeechProgress(speechSegments, Math.min(1, (performance.now() - startedAt) / (buffer.duration * 1000)));
-          analyser.getByteTimeDomainData(samples);
-          let energy = 0;
-          for (const sample of samples) { const centered = (sample - 128) / 128; energy += centered * centered; }
-          setSpeechMouthLevel(Math.min(1, Math.sqrt(energy / samples.length) * 5.5));
-          requestAnimationFrame(animate);
-        };
-        requestAnimationFrame(animate);
+        });
       }
       source.start(0);
     }
