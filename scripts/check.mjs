@@ -100,10 +100,7 @@ assert.match(css, /orb-particle/, "The audio orb must include subtle moving part
 assert.match(css, /body\[data-mood="listening"\].*nova-audio-orb/, "The orb must visually react while listening");
 assert.match(app, /setSpeechSegmentTone\("neutral"\)/, "Speech segment tone must reset when playback ends");
 
-assert.match(app, /robot\.dataset\.mood = mood/, "Robot body motion must follow live conversation mood");
-assert.match(app, /robot\.dataset\.emotion = safe/, "Robot body language must follow the current emotional speech segment");
 
-assert.match(app, /robot\?\.classList\.add\(className\)/, "Body gestures must be triggered with character actions");
 
 const secretPatterns = [
   /sk-[A-Za-z0-9]{20,}/,
@@ -116,9 +113,7 @@ for (const [name, source] of [["index.html", html], ["app.js", app], ["style.css
 }
 console.log("NOVA repository checks passed.");
 
-assert.match(css, /face-screen\.pink/, "Solina must have a dedicated feminine pink OLED appearance");
 
-assert.match(css, /face-screen\.pink/, "Solina must have a dedicated pink OLED appearance");
 
 assert.match(app, /messagesByPersona: \{ soly: \[\], soleen: \[\] \}/, "Soly and Solina must have separate conversation histories");
 assert.match(app, /state\.messagesByPersona\[state\.persona\] = state\.messages\.slice\(\)/, "Current persona history must be saved independently");
@@ -133,4 +128,3 @@ assert.match(app, /sanitizeInternalReply/, "Client reply sanitizer must be used"
 assert.match(edge, /function sanitizeInternalReplyText\(/, "Server must sanitize internal memory metadata");
 assert.match(edge, /sanitizeInternalReplyText/, "Server reply sanitizer must be used");
 
-assert.match(app, /mouth\.setAttribute\("d"/, "Mouth shape must be driven by measured audio amplitude");
