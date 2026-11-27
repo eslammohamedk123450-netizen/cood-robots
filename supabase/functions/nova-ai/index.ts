@@ -82,6 +82,8 @@ function sanitizeInternalReplyText(input: unknown): string {
   text = text.replace(/<\s*\/?\s*(?:NOVA|NOA)[_-]?MEMORY\b[^>]*>/gi, "");
   text = text.replace(/<\s*\/?\s*(?:OWNER|NOVA)[_-]?(?:MEMORY|MEMORY_DATA)\b[^>]*>/gi, "");
   text = text.replace(/\b(?:NOVA|NOA)[_-]?MEMORY\b\s*[:=]?\s*\{\s*["']facts["']\s*:\s*\[[\s\S]*?\]\s*\}/gi, "");
+  // Never expose internal face-emotion control tokens, even if the model omits brackets.
+  text = text.replace(/\[?\s*(?:NOVA|NOA)[\s_-]*EMOTION\s*[:=]\s*(?:neutral|happy|sad|surprised|curious|caring|playful|concerned|thinking)\s*(?:→|->|➜)?\s*\?*\s*\]?/gi, "");
   return text.replace(/\s{2,}/g, " ").trim();
 }
 
