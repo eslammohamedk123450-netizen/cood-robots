@@ -67,7 +67,12 @@ function inferReplyTone(reply) {
     ["curious", /(احكيلي|قولي|نفسي أعرف|خليني أسألك|إيه رأيك|تفتكر|ليه؟|إزاي؟)/],
     ["thinking", /(خليني أفكر|تعالى نفكر|من الناحية|الاحتمال|تحليل|نحسبها|أولًا)/]
   ];
-  for (const [emotion, pattern] of patterns) if (pattern.test(value)) return emotion;
+  for (const entry of patterns) {
+    if (!Array.isArray(entry)) continue;
+    const [emotion, pattern] = entry;
+    // Be defensive if a malformed/partial tone rule is ever introduced.
+    if (pattern && typeof pattern.test === "function" && pattern.test(value)) return emotion;
+  }
   return "neutral";
 }
 function sanitizeInternalReply(rawReply) {
