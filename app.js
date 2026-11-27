@@ -426,7 +426,9 @@ async function invokeNova(action, payload = {}) {
       localStorage.removeItem("nova.owner.session.v2");
       $("authGate").hidden = false;
     }
-    const providerDetails = Array.isArray(data?.failures) ? data.failures.map((item) => String(item)).slice(0, 8).join(" | ") : "";\n    const message = data?.error || "تعذر الاتصال بخادم NOVA (" + response.status + ")";\n    throw new Error(providerDetails ? message + " — تفاصيل النماذج: " + providerDetails : message);
+    const providerDetails = Array.isArray(data?.failures) ? data.failures.map((item) => String(item)).slice(0, 8).join(" | ") : "";
+    const message = data?.error || "تعذر الاتصال بخادم NOVA (" + response.status + ")";
+    throw new Error(providerDetails ? message + " — تفاصيل النماذج: " + providerDetails : message);
   }
   if (data?.error) throw new Error(data.error);
   return data;
