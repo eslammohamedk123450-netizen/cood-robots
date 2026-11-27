@@ -460,8 +460,27 @@ async function speak(text, segments = [], signal) {
     if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
     if (error?.name === "AbortError" || signal?.aborted) { resetSpeechMouth(); return; }
     const reason = error?.name ? error.name + ": " + (error.message || "") : (error.message || "خطأ غير معروف");
-    const selectedProvider = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
-    showToast("تعذر تشغيل الصوت المختار بدون تغيير صوت الشخصية: " + reason.slice(0, 150));
+    // Automatic local fallback: any selected cloud/external TTS failure should
+    // fall back to Android device speech without changing the current persona.
+    if (engine !== "device" && error?.name !== "AbortError" && !signal?.aborted) {
+      try {
+        setStatus(personas[persona].name + " بيحوّل لصوت الجهاز...", "thinking");
+        state.speaking = true;
+        state.audio = { pause: () => { window.speechSynthesis?.cancel(); finish(); } };
+        await speakWithDevice(spokenText, persona, speechSegments);
+        finish();
+        showToast("الصوت الخارجي مش متاح دلوقتي، كملت بصوت الجهاز.");
+        return;
+      } catch (deviceError) {
+        state.speaking = false;
+        state.audio = null;
+        resetSpeechMouth();
+        showToast("الصوت الخارجي فشل وصوت الجهاز كمان مش متاح: " + (deviceError.message || "خطأ").slice(0, 130));
+        finish();
+        return;
+      }
+    }
+    showToast("تعذر تشغيل صوت الجهاز: " + reason.slice(0, 150));
     finish();
   }
 }
