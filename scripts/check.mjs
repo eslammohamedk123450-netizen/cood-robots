@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
-import { parseTaskCommand } from "../task-manager.js";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const html = read("../index.html");
@@ -9,14 +8,6 @@ const pin = read("../pin.js");
 const edge = read("../supabase/functions/nova-ai/index.ts");
 const css = read("../style.css") + read("../solina-voice.css");
 const workflow = read("../.github/workflows/pages.yml");
-
-const reminderNow = new Date("2026-11-27T19:00:00");
-const fiveMinuteReminder = parseTaskCommand("فكريني بعد خمس ورايا حاجة مهمة", reminderNow);
-assert.equal(fiveMinuteReminder?.action, "create", "A colloquial five-minute reminder must be parsed");
-assert.equal(new Date(fiveMinuteReminder.scheduledAt).getTime() - reminderNow.getTime(), 5 * 60 * 1000,
-  "A five-minute reminder must be scheduled exactly five minutes from now");
-assert.match(fiveMinuteReminder.title, /حاجه مهمه/, "The reminder title must not contain the spoken duration");
-
 
 const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map((m) => m[1]);
 const duplicates = ids.filter((id, i) => ids.indexOf(id) !== i);
@@ -318,13 +309,19 @@ const namedAppointment = parseTaskCommand("فكريني بمعاد بكرة ال
 assert.equal(namedAppointment?.action, "create", "Named appointment should be ready for confirmation");
 assert.match(namedAppointment?.title || "", /كشف دكتور/, "Appointment title should be retained");
 assert.equal(parseTaskCommand("فكريني بعد نص ساعة أذاكر", fixedNow)?.action, "create", "Relative reminder durations should be recognized");
+const fiveMinuteReminder = parseTaskCommand("فكريني بعد خمس ورايا حاجة مهمة", fixedNow);
+assert.equal(fiveMinuteReminder?.action, "create", "A noisy colloquial five-minute reminder must be parsed");
+assert.equal(new Date(fiveMinuteReminder.scheduledAt).getTime(), fixedNow.getTime() + 300000,
+  "A five-minute reminder must be scheduled exactly five minutes from now");
+assert.match(fiveMinuteReminder?.title || "", /حاجه مهمه/, "The reminder title must retain the task and omit the duration");
+
 assert.equal(new Date(parseTaskCommand("فكريني بعد شوية أذاكر", fixedNow).scheduledAt).getTime(), fixedNow.getTime() + 300000, "After a little while should default to five minutes");
 assert.equal(parseTaskCommand("الغى كل التذكيرات", fixedNow)?.all, true, "Bulk task cancellation should be recognized");
 assert.equal(normalizeTaskText("الساعة ٩:٣٠"), "الساعة 9:30", "Arabic numerals and clock separators should normalize safely");
 assert.match(app, /parseTaskCommand\(clean\)/, "Voice and text turns should route task commands locally");
 assert.match(app, /function handleTaskDialogue\(clean\)/, "Task setup must support multi-turn conversational slot filling");
-assert.match(app, /beginTaskConfirmation\(intent\)/, "Task details must be confirmed before scheduling");
-assert.match(app, /أفكّرك بـ/, "Reminder confirmation should hide internal reminder schedules");
+assert.match(app, /if \(intent\.action === "create"\) return \{ handled: true, intent \}/, "Clear reminder requests should schedule directly without a second confirmation");
+assert.match(app, /pendingTaskPermissionIntent/, "A reminder must be retained while Android permissions are requested");
 assert.match(app, /pendingTaskDraft/, "Pending task details must remain available between voice turns");
 assert.match(app, /window\.SolinaNative/, "Task actions must use the native Android bridge");
 assert.match(html, /id="scheduledTasksList"/, "Settings should expose saved reminders and alarms");
