@@ -197,7 +197,7 @@ assert.match(css, /solina-breathe/, "Solina audio orb must pulse");
 assert.match(app, /window\.solinaWave\?\.setLevel\(amount, energy\)/, "Audio orb must follow real playback amplitude");
 
 assert.match(app, /wakePattern = .*سولينا/, "Only the Solina wake word should activate voice turns");
-assert.doesNotMatch(app, /wakePattern = .*نوفا|wakePattern = .*سولي(?!نا)|wakePattern = .*سولين/, "Old wake-word aliases must not activate the assistant");
+assert.doesNotMatch(app, /wakePattern = .*نوفا|wakePattern = .*سولي(?!نا)|wakePattern = .*سولين(?!ا)/, "Old wake-word aliases must not activate the assistant");
 
 assert.doesNotMatch(app, /واجهة NOVA مفتوحة حاليًا في الوضع المحلي/, "Cloud AI must never silently fall back to a fake local reply");
 assert.doesNotMatch(app, /async function restoreOwnerSession\(/, "Only pin.js may restore the owner session to prevent competing startup checks");
