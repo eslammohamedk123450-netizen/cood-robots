@@ -152,6 +152,23 @@ async function requestGeminiTTS(apiKey: string, text: string, persona: string): 
   return { data: encodeBase64Audio(wav), mimeType: "audio/wav", voice: voiceName };
 }
 
+async function requestElevenLabsSpeech(apiKey: string, text: string, voiceId: string): Promise<{data:string; mimeType:string; voice:string}> {
+  if (!/^[A-Za-z0-9_-]{8,100}$/.test(voiceId)) throw new Error("اختار صوتًا صالحًا من قائمة ElevenLabs أولًا.");
+  const response = await fetch("https://api.elevenlabs.io/v1/text-to-speech/" + encodeURIComponent(voiceId) + "?output_format=mp3_44100_128", {
+    method: "POST",
+    headers: { "xi-api-key": apiKey, "Content-Type": "application/json", Accept: "audio/mpeg" },
+    body: JSON.stringify({ text, model_id: "eleven_multilingual_v2", voice_settings: { stability: 0.48, similarity_boost: 0.78, style: 0.18, use_speaker_boost: true } }),
+    signal: AbortSignal.timeout(60000), redirect: "error",
+  });
+  if (!response.ok) {
+    const detail = (await response.text().catch(() => "")).slice(0, 220);
+    throw new Error("ElevenLabs رفض توليد الصوت (HTTP " + response.status + "). " + detail);
+  }
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.length < 128) throw new Error("ElevenLabs رجّع ملف صوت فارغًا أو غير صالح.");
+  return { data: encodeBase64Audio(bytes), mimeType: "audio/mpeg", voice: voiceId };
+}
+
 async function requestSonexSpeech(apiKey: string, text: string, voiceId: string): Promise<{data:string; mimeType:string; voice:string}> {
   const response = await fetch("https://api.sonexlabs.com/v1/speech", {
     method: "POST",
@@ -400,6 +417,9 @@ Deno.serve(async (req: Request) => {
       chat: 20,
       tts: 12,
       tts_gemini: 12,
+      speech_get: 30,
+      speech_save: 5,
+      speech_voices: 10,
     };
     const requestLimit = actionLimits[action];
     if (!requestLimit) return json({ error: "Unknown action" }, 400, origin);
@@ -437,20 +457,36 @@ Deno.serve(async (req: Request) => {
       const { data, error } = await admin.from("nova_speech_settings")
         .select("region,secret_id,updated_at").eq("user_id", userId).maybeSingle();
       if (error) throw error;
-      return json({ configured: Boolean(data?.secret_id), provider: "sonexlabs", updated_at: data?.updated_at ?? null }, 200, origin);
+      const provider = data?.region === "elevenlabs" ? "elevenlabs" : "sonexlabs";
+      return json({ configured: Boolean(data?.secret_id), provider, updated_at: data?.updated_at ?? null }, 200, origin);
     }
 
     if (action === "speech_save") {
       const apiKey = typeof body?.api_key === "string" ? body.api_key.trim() : "";
-      if (!/^vsk_[A-Za-z0-9_-]{8,}$/.test(apiKey) || apiKey.length > 4096) {
+      const provider = body?.provider === "elevenlabs" ? "elevenlabs" : body?.provider === "sonexlabs" ? "sonexlabs" : "";
+      if (!provider || apiKey.length < 12 || apiKey.length > 4096 || /\s/.test(apiKey)) {
+        return json({ error: "مفتاح API غير صالح أو مزود الصوت غير محدد." }, 400, origin);
+      }
+      if (provider === "elevenlabs") {
+        const check = await fetch("https://api.elevenlabs.io/v1/models", {
+          headers: { "xi-api-key": apiKey, Accept: "application/json" },
+          signal: AbortSignal.timeout(15000), redirect: "error",
+        });
+        if (!check.ok) {
+          const detail = (await check.text().catch(() => "")).slice(0, 180);
+          return json({ error: "فشل التحقق من مفتاح ElevenLabs (HTTP " + check.status + "). " + detail }, 422, origin);
+        }
+        const models = await check.json().catch(() => null);
+        if (!Array.isArray(models)) return json({ error: "ElevenLabs لم يرجع استجابة تحقق صالحة." }, 422, origin);
+      } else if (!/^vsk_[A-Za-z0-9_-]{8,}$/.test(apiKey)) {
         return json({ error: "مفتاح Sonex Labs غير صالح. تأكد أنه يبدأ بـ vsk_." }, 400, origin);
       }
-      const region = "sonex";
+      const region = provider;
       const { data: previous, error: previousError } = await admin.from("nova_speech_settings")
         .select("secret_id").eq("user_id", userId).maybeSingle();
       if (previousError) throw previousError;
       const { data: secretId, error: secretError } = await admin.rpc("nova_store_api_secret", {
-        p_name: "NOVA Sonex Labs Speech Voice",
+        p_name: "NOVA " + (provider === "elevenlabs" ? "ElevenLabs" : "Sonex Labs") + " Speech Voice",
         p_secret: apiKey,
       });
       if (secretError || !secretId) throw new Error("تعذر حفظ مفتاح Microsoft Speech في Vault.");
@@ -465,7 +501,7 @@ Deno.serve(async (req: Request) => {
         const { error: cleanupError } = await admin.rpc("nova_delete_api_secret", { p_secret_id: previous.secret_id });
         if (cleanupError) console.error("Previous speech credential cleanup failed.");
       }
-      return json({ saved: true, configured: true, provider: "sonexlabs" }, 200, origin);
+      return json({ saved: true, configured: true, provider, message: "تم التحقق من المفتاح وحفظه داخل Supabase Vault." }, 200, origin);
     }
 
     if (action === "list") {
@@ -560,11 +596,26 @@ Deno.serve(async (req: Request) => {
 
     if (action === "speech_voices") {
       const { data: settings, error: settingsError } = await admin.from("nova_speech_settings")
-        .select("secret_id").eq("user_id", userId).maybeSingle();
+        .select("secret_id,region").eq("user_id", userId).maybeSingle();
       if (settingsError) throw settingsError;
-      if (!settings?.secret_id) return json({ error: "احفظ مفتاح Sonex Labs أولًا." }, 409, origin);
+      if (!settings?.secret_id) return json({ error: "احفظ مفتاح مزود الصوت أولًا." }, 409, origin);
       const { data: apiKey, error: keyError } = await admin.rpc("nova_read_api_secret", { p_secret_id: settings.secret_id });
-      if (keyError || typeof apiKey !== "string" || !apiKey) throw new Error("Sonex credential unavailable");
+      if (keyError || typeof apiKey !== "string" || !apiKey) throw new Error("Speech provider credential unavailable");
+      if (settings.region === "elevenlabs") {
+        const response = await fetch("https://api.elevenlabs.io/v1/voices", {
+          headers: { "xi-api-key": apiKey, Accept: "application/json" },
+          signal: AbortSignal.timeout(20000), redirect: "error",
+        });
+        if (!response.ok) throw new Error("تعذر جلب أصوات ElevenLabs (HTTP " + response.status + ").");
+        const payload = await response.json();
+        const voices = Array.isArray(payload?.voices) ? payload.voices : [];
+        return json({ provider: "elevenlabs", voices: voices.slice(0, 300).map((v: any) => ({
+          id: cleanString(v?.voice_id, 100), name: cleanString(v?.name, 100),
+          gender: cleanString(v?.labels?.gender, 20).toLowerCase(),
+          language: cleanString(v?.labels?.accent, 60) || cleanString(v?.labels?.description, 60),
+          languages: [], type: cleanString(v?.category, 30),
+        })).filter((v: any) => v.id) }, 200, origin);
+      }
       const response = await fetch("https://api.sonexlabs.com/v1/voices", {
         headers: { Authorization: "Bearer " + apiKey, Accept: "application/json" },
         signal: AbortSignal.timeout(20000), redirect: "error",
@@ -572,7 +623,7 @@ Deno.serve(async (req: Request) => {
       if (!response.ok) throw new Error("تعذر جلب أصوات Sonex Labs (HTTP " + response.status + ").");
       const voices = await response.json();
       if (!Array.isArray(voices)) throw new Error("قائمة الأصوات من Sonex Labs غير صالحة.");
-      return json({ voices: voices.slice(0, 300).map((v: any) => ({
+      return json({ provider: "sonexlabs", voices: voices.slice(0, 300).map((v: any) => ({
         id: cleanString(v?.id, 100), name: cleanString(v?.name, 100),
         gender: cleanString(v?.gender, 20).toLowerCase(), language: cleanString(v?.language, 60),
         languages: Array.isArray(v?.languages) ? v.languages.slice(0, 20).map((x: any) => cleanString(x, 60)) : [],
@@ -586,13 +637,15 @@ Deno.serve(async (req: Request) => {
       const voiceId = cleanString(body?.voice_id, 100);
       if (!text || text.length > 2600 || !persona) return json({ error: "نص الصوت أو الشخصية غير صالح." }, 400, origin);
       const { data: settings, error: settingsError } = await admin.from("nova_speech_settings")
-        .select("secret_id").eq("user_id", userId).maybeSingle();
+        .select("secret_id,region").eq("user_id", userId).maybeSingle();
       if (settingsError) throw settingsError;
-      if (!settings?.secret_id) return json({ error: "احفظ مفتاح Sonex Labs من إعدادات الصوت أولًا." }, 409, origin);
+      if (!settings?.secret_id) return json({ error: "احفظ مفتاح مزود الصوت من إعدادات الصوت أولًا." }, 409, origin);
       const { data: apiKey, error: keyError } = await admin.rpc("nova_read_api_secret", { p_secret_id: settings.secret_id });
-      if (keyError || typeof apiKey !== "string" || !apiKey) throw new Error("Sonex Labs credential unavailable");
-      const audio = await requestSonexSpeech(apiKey, text, voiceId);
-      return json({ audio: audio.data, mime_type: audio.mimeType, voice: audio.voice, engine: "sonexlabs-panini" }, 200, origin);
+      if (keyError || typeof apiKey !== "string" || !apiKey) throw new Error("Speech provider credential unavailable");
+      const audio = settings.region === "elevenlabs"
+        ? await requestElevenLabsSpeech(apiKey, text, voiceId)
+        : await requestSonexSpeech(apiKey, text, voiceId);
+      return json({ audio: audio.data, mime_type: audio.mimeType, voice: audio.voice, engine: settings.region }, 200, origin);
     }
 
     if (action === "chat") {
