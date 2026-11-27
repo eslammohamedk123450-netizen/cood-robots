@@ -99,6 +99,13 @@ assert.match(css, /orb-ring/, "The audio orb must include expanding light pulses
 assert.match(css, /orb-particle/, "The audio orb must include subtle moving particles");
 assert.match(css, /body\[data-mood="listening"\].*nova-audio-orb/, "The orb must visually react while listening");
 assert.match(app, /setSpeechSegmentTone\("neutral"\)/, "Speech segment tone must reset when playback ends");
+assert.match(app, /function isStopVoiceCommand\(/, "Stop phrases must be detected locally");
+assert.match(app, /history_append/, "Every user and assistant message must be persisted independently");
+assert.match(app, /history_search/, "Both personas must be able to search persistent conversation history");
+assert.match(app, /nova.stopAudio.cache.v1/, "Stop acknowledgement audio must be cached locally");
+assert.doesNotMatch(app, /await speakWithDevice\(spokenText, persona, speechSegments\)/, "Cloud speech failures must not silently switch voice identity");
+assert.match(edge, /action === "history_append"/, "Server must append each conversation message");
+assert.match(edge, /action === "history_search"/, "Server must search both personas' history under owner scope");
 
 
 
