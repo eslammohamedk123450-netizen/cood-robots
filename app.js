@@ -1,5 +1,5 @@
 // Android APK build refresh: settings pages + staged native reminder bridge.
-import { parseTaskCommand, formatTaskDate, normalizeTaskText } from "./task-manager.js?v=solina-permission-intents-v1";
+import { parseTaskCommand, formatTaskDate, normalizeTaskText } from "./task-manager.js?v=solina-task-dialogue-v2";
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soleen", emotion: "idle", listening: false, speaking: false,
@@ -1246,6 +1246,11 @@ function beginTaskConfirmation(intent) {
 }
 function handleTaskDialogue(clean) {
   const normalized = String(clean || "").trim();
+  const clockQuestion = /(?:الساعه|الساعة)\s*(?:كام|كم)|كام\s+(?:الساعه|الساعة)|الوقت\s+كام|الوقت\s+دلوقتي|الساعة\s+دلوقتي/.test(normalizeTaskText(normalized));
+  if (clockQuestion) {
+    state.pendingTaskDraft = null;
+    return { handled: false };
+  }
   const dueReminders = readNativeTasks()
     .filter(task => task.type === "reminder" && Number(task.at) <= Date.now())
     .sort((a, b) => Number(a.at) - Number(b.at));
@@ -1259,32 +1264,35 @@ function handleTaskDialogue(clean) {
   const confirmationText = normalizeTaskText(clean).replace(/^(?:يا\s*)?سولينا\s*/,"").replace(/^(?:طيب|تمام|خلاص|ماشي)\s*/,"").trim();
   const yes = /^(?:أيوه|ايوه|اه|أه|تمام|موافق|موافقة|احفظيه|احفظي|احفظ|سجليه|سجل|أكد|اكدي|نعم|yes)(?:\s+(?:الموعد|التذكير|ده|دي|ه|ها))?$/i.test(confirmationText);
   const no = /^(?:لا|لأ|مش دلوقتي|الغيه|الغي|إلغاء|cancel)(?:\s+(?:الموعد|التذكير|ده|دي))?$/i.test(confirmationText);
-  if (pending && pending.stage === "confirm") {
+  if (pending?.stage === "confirm") {
     if (yes) {
       state.pendingTaskDraft = null;
       return { handled: true, intent: pending.intent };
     }
     if (no) {
       state.pendingTaskDraft = null;
-      return { handled: true, reply: "تمام، مش هحفظ الموعد. لو حبيتي نحدده من جديد قوليلي." };
+      return { handled: true, reply: "تمام، مش هحفظ الموعد. لو عايز تغيّر الوقت أو العنوان، قولي الطلب من جديد." };
     }
-    return { handled: true, reply: "قولي بس «احفظي» أو «إلغاء»." };
-  }
-  if (pending) {
-    if (no) {
+    state.pendingTaskDraft = null;
+  } else if (pending) {
+    const isPeriodAnswer = /^(?:بالليل|ليل|مساء|الصبح|صباح|صباحا|مساءً|بالنهار)$/i.test(confirmationText);
+    const isTimeAnswer = /(?:\d|واحد|واحدة|اتنين|اثنين|تلات|ثلاث|اربعة|أربعة|خمسة|خمس|ستة|سبعة|تمانية|ثمانية|تسعة|عشرة|حداشر|اتناشر|بعد)/.test(confirmationText);
+    if ((pending.stage === "needs_period" && !isPeriodAnswer) ||
+        (pending.stage === "needs_time" && !isTimeAnswer)) {
       state.pendingTaskDraft = null;
-      return { handled: true, reply: "تمام، لغيت إعداد الموعد قبل ما أحفظه." };
+    } else {
+      pending.raw += " " + clean;
+      const parsed = parseTaskCommand(pending.raw);
+      if (!parsed || ["needs_time", "needs_period", "needs_title"].includes(parsed.action)) {
+        pending.stage = parsed?.action || pending.stage;
+        return { handled: true, reply: taskPromptFor(parsed || { action: pending.stage }) };
+      }
+      if (parsed.action === "create") {
+        state.pendingTaskDraft = null;
+        return { handled: true, reply: beginTaskConfirmation(parsed) };
+      }
+      state.pendingTaskDraft = null;
     }
-    pending.raw += " " + clean;
-    const parsed = parseTaskCommand(pending.raw);
-    if (!parsed || ["needs_time", "needs_period", "needs_title"].includes(parsed.action)) {
-      pending.stage = parsed?.action || pending.stage;
-      return { handled: true, reply: taskPromptFor(parsed || { action: pending.stage }) };
-    }
-    if (parsed.action === "create") {
-      return { handled: true, intent: parsed };
-    }
-    return { handled: true, reply: "كمّلي معايا تفاصيل الموعد، وأنا هراجعه معاكي قبل الحفظ." };
   }
   const intent = parseTaskCommand(clean);
   if (!intent) return { handled: false };
@@ -1292,7 +1300,7 @@ function handleTaskDialogue(clean) {
     state.pendingTaskDraft = { stage: intent.action, raw: clean };
     return { handled: true, reply: taskPromptFor(intent) };
   }
-  if (intent.action === "create") return { handled: true, intent };
+  if (intent.action === "create") return { handled: true, reply: beginTaskConfirmation(intent) };
   return { handled: true, intent };
 }
 async function executeTaskIntent(intent) {
@@ -1381,6 +1389,9 @@ async function executeTaskIntent(intent) {
       title: intent.title,
       at: new Date(intent.scheduledAt).getTime()
     };
+    if (!Number.isFinite(task.at) || task.at <= Date.now() || !task.title?.trim()) {
+      return "مش هحفظ الموعد لأن الوقت أو العنوان مش واضح. قولي الموعد تاني بشكل أوضح.";
+    }
     let result;
     try { result = JSON.parse(bridge.scheduleTask(JSON.stringify(task))); }
     catch (_) { return "حصل خطأ وأنا بحاول أحفظ الموعد على الهاتف."; }
@@ -1397,11 +1408,18 @@ async function executeTaskIntent(intent) {
       }
       return "مقدرتش أحفظ الموعد على الهاتف: " + (result.error || "خطأ غير معروف");
     }
+    const stored = readNativeTasks().find(item => String(item.id) === String(task.id));
+    const returned = result.task || stored;
+    if (!stored || !returned || Number(stored.at) !== task.at || String(stored.title) !== task.title ||
+        String(stored.type) !== task.type || Number(returned.at) !== task.at ||
+        String(returned.title) !== task.title || String(returned.type) !== task.type) {
+      return "الهاتف ما أكدليش إن الموعد اتحفظ بنفس الوقت والعنوان، فمش هقولك إنه اتحفظ. افتح قائمة التذكيرات وراجع الحالة.";
+    }
     renderScheduledTasks();
-    const when = formatTaskDate(task.at);
+    const when = formatTaskDate(Number(stored.at));
     return intent.type === "alarm"
-      ? "اتسجل المنبه على الهاتف بنجاح. هصحّيك " + when + "."
-      : "حفظت التذكير على الهاتف بنجاح: " + intent.title + "، " + when + ".";
+      ? "اتسجل المنبه على الهاتف بنجاح، يوم " + when + "."
+      : "اتحفظ تذكير " + stored.title + " على الهاتف بنجاح، يوم " + when + ".";
   }
   return null;
 }
