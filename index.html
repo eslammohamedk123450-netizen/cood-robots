@@ -135,12 +135,13 @@
       </section>
       <section class="settings-section">
         <h3>محرك إخراج الصوت</h3>
-        <p class="security-note">اختار طريقة النطق. الوضع التلقائي يستخدم محرك الصوت السحابي المحفوظ (ElevenLabs أو Sonex)، ويرجع لصوت الجهاز عند تعذر الاتصال.</p>
+        <p class="security-note">اختار محرك إخراج الصوت من القائمة دي فقط. Chatterbox لا يحتاج مفتاح API؛ والوضع التلقائي يستخدم المزود السحابي المحفوظ ثم صوت الجهاز عند تعذر الاتصال.</p>
         <label class="field-label">مصدر الصوت
           <select id="speechEngine" dir="rtl">
-            <option value="auto">تلقائي — Cloud ثم صوت الجهاز</option>
+            <option value="auto">تلقائي — المحرك السحابي ثم صوت الجهاز</option>
+            <option value="chatterbox">Chatterbox — بدون مفتاح API</option>
             <option value="gemini">Gemini AI Studio TTS</option>
-            <option value="server">ElevenLabs / Sonex Cloud — مع بديل الجهاز</option>
+            <option value="server">ElevenLabs / Sonex Cloud</option>
             <option value="device">صوت الجهاز فقط</option>
           </select>
         </label>
@@ -148,12 +149,12 @@
       </section>
       <section class="settings-section">
         <h3>محرك الصوت السحابي</h3>
-        <p class="security-note">اختار مزود الصوت، ثم أدخل مفتاحه. المفتاح يُختبر قبل الحفظ، ويُخزَّن داخل Supabase Vault ولا يظهر في GitHub أو داخل التطبيق.</p>
+        <p class="security-note">هذه الإعدادات خاصة بمزودي ElevenLabs وSonex فقط. Chatterbox له اختيار مستقل بالأعلى ولا يحتاج مفتاح API.</p>
         <label class="field-label">مزود تحويل النص إلى صوت
           <select id="speechProvider" class="provider-select" dir="ltr">
             <option value="elevenlabs" selected>ElevenLabs</option>
             <option value="sonexlabs">Sonex Labs</option>
-            <option value="chatterbox">Chatterbox (Arabic)</option>
+            <option value="sonexlabs">Sonex Labs</option>
           </select>
         </label>
         <label class="field-label">مفتاح API
