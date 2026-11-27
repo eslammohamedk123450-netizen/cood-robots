@@ -2,6 +2,12 @@
 
 NOVA is a private, voice-first digital companion centered on Solina, its only supported character: a friendly Egyptian female assistant with one consistent identity and voice.
 
+## Android companion app
+- A minimal Android WebView shell loads the published Solina experience and exposes a restricted native bridge for scheduled tasks.
+- Reminders and wake-up alarms are stored locally on the device and scheduled with Android AlarmManager; pending schedules are restored after reboot or time-zone changes.
+- Exact-alarm, notification and (on Android 14+) full-screen alarm access must be granted by the device owner. The first debug APK is produced by the `android-apk.yml` workflow as a downloadable workflow artifact.
+- The Android shell requires an internet connection to load the current GitHub Pages app; it is intentionally kept small and does not bundle a second copy of the website.
+
 ## Current experience
 - Character-first meeting screen with optional text entry and voice controls.
 - Conversation transcript is displayed locally in the current page session.
