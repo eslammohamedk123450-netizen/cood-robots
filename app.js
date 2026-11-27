@@ -1251,6 +1251,17 @@ function personalItemDate(item) {
 async function syncNativeTasks() {
   const bridge = nativeTaskBridge();
   if (!bridge) return { scheduled: 0, unavailable: true };
+  let pendingEvents = [];
+  try { pendingEvents = JSON.parse(bridge.pendingTaskSyncEvents?.() || "[]"); } catch (_) {}
+  for (const event of (Array.isArray(pendingEvents) ? pendingEvents : [])) {
+    try {
+      if (event.status === "completed") await updatePersonalItem(String(event.id), "completed");
+      else if (event.status === "active" && Number(event.scheduledAt) > Date.now()) {
+        await updatePersonalItem(String(event.id), "active", new Date(Number(event.scheduledAt)).toISOString());
+      }
+      bridge.acknowledgeTaskSyncEvent?.(String(event.id));
+    } catch (error) { console.warn("SOLINA native task cloud sync pending:", error); }
+  }
   const desired = state.personalItems.filter(item => item.status === "active" &&
     ["alarm", "reminder"].includes(item.item_type) && personalItemDate(item) > Date.now());
   const desiredIds = new Set(desired.map(item => String(item.id)));
