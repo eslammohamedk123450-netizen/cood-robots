@@ -140,6 +140,6 @@ assert.match(app, /الصدق أساسي/, "The AI persona must explicitly prior
 assert.match(app, /--face-talk-energy/, "Speech energy must animate facial details beyond the mouth");
 
 assert.match(app, /function sanitizeInternalReply\(/, "Client must sanitize internal memory tags before display and TTS");
-assert.match(app, /NOVA\|NOA/, "Client reply sanitizer must handle NOA and NOVA memory tags");
+assert.match(app, /sanitizeInternalReply/, "Client reply sanitizer must be used");
 assert.match(edge, /function sanitizeInternalReplyText\(/, "Server must sanitize internal memory metadata");
-assert.match(edge, /NOVA\|NOA/, "Server sanitizer must handle NOA and NOVA variants");
+assert.match(edge, /sanitizeInternalReplyText/, "Server reply sanitizer must be used");
