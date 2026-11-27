@@ -231,7 +231,8 @@ assert.doesNotMatch(app, /void restoreOwnerSession\(\)/, "The app must not call 
 assert.match(app, /حصلت مشكلة ومنعتني من الرد/, "Chat failures must be visible to the owner instead of silently leaving the thinking state");
 assert.match(pin, /check_session/, "The single owner-session bootstrap must validate saved sessions server-side");
 assert.match(pin, /openApp\(saved\)/, "A valid saved owner session must open the app without another PIN prompt");
-assert.match(app, /جلسة سولينا غير متصلة/, "Missing authentication must be surfaced instead of returning a fake assistant reply");
+assert.doesNotMatch(app, /if \(!state\.session\) throw new Error\("جلسة سولينا غير متصلة/, "Chat requests must let invokeNova recover a stale owner session before failing");
+assert.match(app, /await window\.novaEnsureOwnerSession\(\)/, "Chat requests must recover the owner session through the shared API bootstrap");
 
 assert.match(app, /voiceSessionActive: false/, "Voice session must begin disarmed");
 assert.match(app, /if \(!state\.voiceSessionActive && !local\.addressed\)/, "Only Solina wake word may arm a hands-free session");
