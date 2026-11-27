@@ -1061,7 +1061,7 @@ function normalizeVoiceCommand(value) {
   // assistant's name. Canonicalize common phonetic spellings before wake-word
   // and stop-command checks, while keeping the original transcript untouched.
   return normalized
-    .replace(/(?:^|\\s)(?:سو\\s*إلينا|سو\\s*الينا|سوإلينا|سو الينا|سولي\\s*نا|سوليينا|سولينه|سولينا|سيلينه|سيلينا|سلينا|سيليا|solina)(?=$|\\s)/giu, " سولينا ")
+    .replace(/(?:^|\s)(?:سو\s*إلينا|سو\s*الينا|سوإلينا|سو الينا|سولي\s*نا|سوليينا|سولينه|سولينا|سيلينه|سيلينا|سلينا|سيليا|solina)(?=$|\s)/giu, " سولينا ")
     .replace(/\s+/g, " ")
     .trim();
 }
