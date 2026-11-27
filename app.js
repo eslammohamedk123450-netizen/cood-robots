@@ -985,7 +985,7 @@ function queueVoiceFinal(text) {
       $("liveTranscript").textContent = "أيوه، سامعاك. كمّل كلامك.";
       setStatus("سامعاك... كمّل براحتك", "listening");
     }
-  }, 1100);
+  }, 600);
 }
 async function handleRecognizedText(text, voiceTurn = false) {
   const clean = text.trim();
