@@ -602,3 +602,34 @@ body[data-mood="error"] .orb-core{filter:hue-rotate(125deg)}
 @keyframes orb-particle{0%{transform:rotate(0deg) translateX(112px) scale(.65);opacity:0}15%{opacity:.9}85%{opacity:.9}100%{transform:rotate(360deg) translateX(112px) scale(1.1);opacity:0}}
 @media(max-width:700px){.nova-audio-orb{width:min(72vw,260px);height:min(72vw,260px);top:45%}.character-stage{height:315px}}
 @media(prefers-reduced-motion:reduce){.nova-audio-orb *{animation:none!important}}
+
+
+/* NOVA responsive voice-first polish */
+:root{--glass:rgba(18,24,38,.78);--glass-line:rgba(255,255,255,.085);--soft-glow:color-mix(in srgb,var(--persona) 22%,transparent)}
+body{background:radial-gradient(ellipse at 50% 12%,color-mix(in srgb,var(--persona) 13%,transparent),transparent 42%),radial-gradient(ellipse at 50% 82%,rgba(212,175,55,.055),transparent 48%),var(--bg);background-attachment:fixed}
+.app-shell{padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right));padding-bottom:env(safe-area-inset-bottom)}
+.topbar{backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.brand-mark{box-shadow:0 0 22px rgba(212,175,55,.12);transition:transform .35s ease,box-shadow .35s ease}
+.brand:hover .brand-mark{transform:rotate(135deg);box-shadow:0 0 30px rgba(212,175,55,.25)}
+.character-stage{border-radius:32px;background:radial-gradient(ellipse at 50% 55%,color-mix(in srgb,var(--persona) 5%,transparent),transparent 64%)}
+.stage-orbit{transition:border-color .4s ease,opacity .4s ease}
+body[data-mood="listening"] .stage-orbit{border-color:color-mix(in srgb,var(--persona) 28%,transparent);animation:stage-orbit-breathe 3.4s ease-in-out infinite}
+.nova-audio-orb{will-change:filter,transform}
+.orb-core{will-change:transform,box-shadow}
+.voice-feedback{width:min(100%,620px);padding:12px 18px;border:1px solid var(--glass-line);border-radius:18px;background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.012));backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.voice-state{letter-spacing:.1px}
+.voice-transcript{line-height:1.8}
+.mic-button,.subtle-button,.icon-button,.save-button,.persona-option{transition:transform .18s ease,box-shadow .22s ease,border-color .22s ease,background .22s ease}
+.mic-button:active,.subtle-button:active,.icon-button:active,.save-button:active{transform:scale(.94)}
+.mic-button.active{box-shadow:0 0 0 9px color-mix(in srgb,var(--persona) 12%,transparent),0 0 46px color-mix(in srgb,var(--persona) 44%,transparent);border-color:var(--persona)}
+.subtle-button:hover,.icon-button:hover{border-color:color-mix(in srgb,var(--persona) 48%,var(--line));box-shadow:0 0 20px color-mix(in srgb,var(--persona) 10%,transparent)}
+.conversation-panel,.settings-dialog{box-shadow:0 24px 90px rgba(0,0,0,.32);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.conversation-line{padding:10px 13px;border:1px solid var(--glass-line);border-radius:15px;background:rgba(255,255,255,.025);animation:conversation-arrive .24s ease both}
+.conversation-line.owner{border-color:color-mix(in srgb,var(--gold) 16%,transparent);background:rgba(212,175,55,.035)}
+.conversation-line.nova{border-color:color-mix(in srgb,var(--persona) 20%,transparent);background:color-mix(in srgb,var(--persona) 5%,transparent)}
+.conversation-line p{line-height:1.9}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid color-mix(in srgb,var(--persona) 78%,white);outline-offset:3px}
+@keyframes conversation-arrive{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@keyframes stage-orbit-breathe{0%,100%{opacity:.35;transform:translate(-50%,-50%) rotate(-20deg) scale(.98)}50%{opacity:.9;transform:translate(-50%,-50%) rotate(-12deg) scale(1.025)}}
+@media(max-width:700px){.app-shell{padding-left:14px;padding-right:14px}.topbar{height:66px}.meeting-screen{padding-top:16px;gap:13px}.character-stage{height:300px;margin-top:0}.voice-feedback{padding:10px 13px}.voice-controls{gap:14px}.mic-button{width:70px;height:70px}.conversation-panel{max-height:34vh}.conversation-log{max-height:calc(34vh - 66px)}.footer{padding-bottom:max(14px,env(safe-area-inset-bottom))}}
+@media(prefers-reduced-motion:reduce){.brand-mark,.conversation-line,.mic-button,.subtle-button{transition:none;animation:none}}
