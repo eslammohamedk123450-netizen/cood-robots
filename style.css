@@ -633,3 +633,32 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @keyframes stage-orbit-breathe{0%,100%{opacity:.35;transform:translate(-50%,-50%) rotate(-20deg) scale(.98)}50%{opacity:.9;transform:translate(-50%,-50%) rotate(-12deg) scale(1.025)}}
 @media(max-width:700px){.app-shell{padding-left:14px;padding-right:14px}.topbar{height:66px}.meeting-screen{padding-top:16px;gap:13px}.character-stage{height:300px;margin-top:0}.voice-feedback{padding:10px 13px}.voice-controls{gap:14px}.mic-button{width:70px;height:70px}.conversation-panel{max-height:34vh}.conversation-log{max-height:calc(34vh - 66px)}.footer{padding-bottom:max(14px,env(safe-area-inset-bottom))}}
 @media(prefers-reduced-motion:reduce){.brand-mark,.conversation-line,.mic-button,.subtle-button{transition:none;animation:none}}
+
+/* NOVA immersive companion hero — 2026-11-27 */
+body{background:radial-gradient(ellipse at 50% 43%,rgba(28,51,86,.46),transparent 53%),radial-gradient(ellipse at 50% 100%,rgba(16,26,45,.62),transparent 50%),#070a12}
+.app-shell{width:min(100%,1440px);padding-inline:clamp(16px,3vw,48px)}
+.topbar{height:76px;border-bottom-color:rgba(212,175,55,.18)}
+.meeting-screen{min-height:calc(100svh - 155px);justify-content:center;gap:clamp(8px,1.8vh,22px);padding:clamp(10px,2vh,22px) 0 26px}
+.character-area{width:min(100%,1000px)}
+.character-heading .eyebrow{font-size:10px;letter-spacing:3.6px;opacity:.82}
+.character-heading p{font-size:clamp(16px,1.6vw,22px);color:#e1e7f0;margin-top:13px}
+.character-stage{width:min(100%,1000px)!important;height:clamp(420px,60svh,620px)!important;max-width:none!important;margin:0 auto!important;display:grid;place-items:center;overflow:visible!important;border-radius:40px;background:radial-gradient(ellipse at 50% 52%,color-mix(in srgb,var(--persona) 9%,transparent),transparent 64%)}
+.character-stage .stage-glow{width:min(65vw,580px);height:min(65vw,580px);top:50%;left:50%;transform:translate(-50%,-50%);opacity:.22;filter:blur(95px)}
+.character-stage .stage-orbit{display:block!important;opacity:.16!important}
+.nova-face-only{scale:1.32!important;z-index:3}
+.character-caption{bottom:3px!important;font-size:12px!important;letter-spacing:.3px;color:#d3dced!important}
+.persona-name{margin-top:0!important}.persona-name h1{font-size:clamp(32px,4vw,44px)!important;letter-spacing:.3px;text-shadow:0 0 32px color-mix(in srgb,var(--persona) 24%,transparent)}.persona-name span{font-size:13px!important;color:#aab7cb!important}
+.voice-area{width:min(100%,760px)!important;padding:clamp(15px,2.2vh,23px) clamp(14px,2vw,28px)!important;border:1px solid rgba(201,215,239,.14)!important;border-radius:30px!important;background:linear-gradient(145deg,rgba(22,31,48,.9),rgba(9,13,22,.86))!important;box-shadow:0 22px 70px rgba(0,0,0,.36),inset 0 1px rgba(255,255,255,.055)!important;backdrop-filter:blur(24px)!important;gap:12px!important}
+.voice-feedback{min-height:42px!important}.voice-state{font-size:15px!important}.voice-transcript{font-size:12px!important;color:#9eacc1!important}
+.voice-controls{gap:20px!important}.mic-button{width:82px!important;height:82px!important;box-shadow:0 0 45px rgba(212,175,55,.26)!important}.subtle-button{width:48px!important;height:48px!important;background:rgba(30,39,56,.92)!important;border-color:rgba(201,215,239,.16)!important}
+.voice-hint{font-size:11px!important;color:#8290a5!important}
+.conversation-panel{width:min(100%,760px)!important;max-height:32svh!important;border-radius:24px!important;background:rgba(14,19,30,.93)!important;box-shadow:0 18px 48px #0003}
+.footer{border-top-color:rgba(212,175,55,.15);padding-block:14px!important;font-size:10px!important}
+@media(max-width:700px){
+.app-shell{padding-inline:14px!important}.topbar{height:65px!important}.meeting-screen{min-height:calc(100svh - 110px)!important;justify-content:center!important;padding:10px 0 max(12px,env(safe-area-inset-bottom))!important;gap:10px!important}
+.character-heading .eyebrow{font-size:9px!important;letter-spacing:2.5px!important}.character-heading p{font-size:16px!important;margin-top:9px!important}
+.character-stage{height:clamp(340px,48svh,480px)!important;width:100%!important;border-radius:28px!important}.stage-orbit.orbit-one{width:min(92vw,480px)!important;height:min(34vw,190px)!important}.stage-orbit.orbit-two{width:min(110vw,570px)!important;height:min(43vw,230px)!important}
+.nova-face-only{scale:1.16!important}.character-caption{bottom:0!important}.persona-name h1{font-size:30px!important}.persona-name span{font-size:11px!important}
+.voice-area{width:100%!important;padding:13px 11px!important;border-radius:23px!important;gap:9px!important}.voice-feedback{min-height:39px!important}.voice-controls{gap:14px!important}.mic-button{width:74px!important;height:74px!important}.subtle-button{width:44px!important;height:44px!important}.voice-hint{font-size:10px!important}.footer{font-size:9px!important;padding:10px 0!important}
+}
+@media(max-height:720px) and (min-width:701px){.meeting-screen{min-height:calc(100svh - 145px);gap:7px;padding:5px 0}.character-stage{height:48svh!important}.nova-face-only{scale:1.18!important}.voice-area{padding:12px 20px!important}}
