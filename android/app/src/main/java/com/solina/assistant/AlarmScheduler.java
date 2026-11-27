@@ -27,8 +27,17 @@ public final class AlarmScheduler {
                 .putExtra("stage", stage);
         PendingIntent pending = PendingIntent.getBroadcast(context, requestCode(id, stage), receiver,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        if (Build.VERSION.SDK_INT >= 23) manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending);
-        else manager.setExact(AlarmManager.RTC_WAKEUP, at, pending);
+        if ("due".equals(stage) || "followup".equals(stage)) {
+            Intent showIntent = new Intent(context, MainActivity.class)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            PendingIntent show = PendingIntent.getActivity(context, requestCode(id, stage + "_show"), showIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            manager.setAlarmClock(new AlarmManager.AlarmClockInfo(at, show), pending);
+        } else if (Build.VERSION.SDK_INT >= 23) {
+            manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending);
+        } else {
+            manager.setExact(AlarmManager.RTC_WAKEUP, at, pending);
+        }
     }
 
     public static void schedule(Context context, JSONObject task) {
@@ -75,6 +84,12 @@ public final class AlarmScheduler {
                 ((AlarmManager) context.getSystemService(Context.ALARM_SERVICE)).cancel(pending);
                 pending.cancel();
             }
+        }
+        for (String stage : new String[]{"due", "followup"}) {
+            Intent stageShow = new Intent(context, MainActivity.class);
+            PendingIntent stageShowPending = PendingIntent.getActivity(context, requestCode(id, stage + "_show"), stageShow,
+                    PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
+            if (stageShowPending != null) stageShowPending.cancel();
         }
         Intent show = new Intent(context, MainActivity.class);
         PendingIntent showPending = PendingIntent.getActivity(context, requestCode(id, "show"), show,
