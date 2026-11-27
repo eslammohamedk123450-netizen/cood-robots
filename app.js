@@ -1116,6 +1116,10 @@ async function executeTaskIntent(intent) {
       bridge.requestNotificationPermission();
       return "محتاجة تسمح لسولينا بالإشعارات من نافذة أندرويد اللي ظهرت، وبعدها كرر الأمر عشان أسجل الموعد.";
     }
+    if (!info.fullScreenIntent) {
+      bridge.requestFullScreenIntentPermission();
+      return "فعّل صلاحية عرض المنبه على كامل الشاشة لسولينا، وبعدها كرر الأمر عشان أسجل المنبه."; 
+    }
     if (!info.exactAlarms) {
       bridge.requestExactAlarmPermission();
       return "فتحتلك إعداد السماح بالمنبهات الدقيقة. فعّل السماح لسولينا، وارجع كرر الأمر عشان أسجل الموعد.";
