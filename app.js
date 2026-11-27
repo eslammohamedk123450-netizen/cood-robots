@@ -747,7 +747,7 @@ async function loadSpeechSettings() {
       if (storedEngine !== savedEngine) localStorage.setItem("nova.speech.engine", savedEngine);
       if ($("speechEngine")) $("speechEngine").value = savedEngine;
       if (!localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
-      setFeedback("speechEngineFeedback", savedEngine === "device" ? "صوت الجهاز محدد يدويًا." : savedEngine === "server" ? "Sonex Labs محدد؛ وعند الفشل سيتم الرجوع لصوت الجهاز." : "الوضع التلقائي: Sonex أولًا، ثم صوت الجهاز عند الحاجة.");
+      setFeedback("speechEngineFeedback", savedEngine === "device" ? "صوت الجهاز محدد يدويًا." : savedEngine === "server" ? "مزود الصوت السحابي المحدد يدويًا." : "الوضع التلقائي: صوت Gemini النسائي السحابي (Kore)، دون الاعتماد على أصوات الهاتف.");
       setFeedback("speechFeedback", "مفتاح " + result.provider + " محفوظ في Vault. جاري تحميل الأصوات.");
       try { await loadSpeechVoices(); }
       catch (voiceError) { setFeedback("speechFeedback", "المفتاح محفوظ، لكن تعذر تحميل الأصوات: " + voiceError.message, true); }
