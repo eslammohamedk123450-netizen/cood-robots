@@ -1318,7 +1318,7 @@ async function executeTaskIntent(intent) {
   }
   if (intent.action === "unsupported_device") return "فهمت إنك عايزني أنفّذ أمر على الهاتف، لكن التحكم ده لسه مش مفعّل عندي. مش هحوّل الأمر لرد من الذكاء الاصطناعي أو أدّعي إني نفّذته.";
   if (intent.action === "open_permissions") {
-    openSettings();
+    if (!$("settingsDialog").open) openSettings();
     openSettingsPage("permissions");
     return "أكيد. فتحتلك قسم صلاحيات الجهاز؛ اختار الصلاحية اللي عايز تفعّلها، وهوجّهك لمكانها في إعدادات أندرويد.";
   }
