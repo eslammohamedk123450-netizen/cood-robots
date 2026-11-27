@@ -5,7 +5,6 @@ const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const html = read("../index.html");
 const app = read("../app.js");
 const pin = read("../pin.js");
-const three = read("../nova-3d.js");
 const edge = read("../supabase/functions/nova-ai/index.ts");
 const workflow = read("../.github/workflows/pages.yml");
 
@@ -69,7 +68,9 @@ assert.match(edge, /actionLimits/, "Each API action must have an explicit reques
 assert.doesNotMatch(edge, /SUPABASE_SERVICE_ROLE_KEY\s*=\s*["'][^"']+["']/, "Service-role secrets must not be hard-coded");
 assert.match(workflow, /needs: check/, "Pages deployment must depend on the quality check job");
 assert.match(workflow, /npm test/, "CI must run repository tests");
-assert.match(three, /requestAnimationFrame\(animate\)/, "3D render loop must be present");
+assert.doesNotMatch(html + app + workflow, /nova-3d\.js|initNOVACharacter3D|character3D/, "Legacy 3D mannequin renderer must stay removed");
+assert.doesNotMatch(html, /robot-body|robot-head|robot-torso|robot-shadow|antenna/, "Legacy doll markup must not return");
+assert.match(html, /id="faceScreen"/, "OLED face must remain the only avatar");
 
 const secretPatterns = [
   /sk-[A-Za-z0-9]{20,}/,
