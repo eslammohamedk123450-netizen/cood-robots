@@ -89,15 +89,19 @@ assert.doesNotMatch(edge, /SUPABASE_SERVICE_ROLE_KEY\s*=\s*["'][^"']+["']/, "Ser
 assert.match(workflow, /needs: check/, "Pages deployment must depend on the quality check job");
 assert.match(workflow, /npm test/, "CI must run repository tests");
 assert.doesNotMatch(html + app + css + workflow, /nova-3d\\.js|initNOVACharacter3D|character3D|legacy-mannequin|old-robot-renderer|has-3d/, "Legacy mannequin renderer must stay removed");
-assert.match(html, /id="novaRobot"/, "The articulated NOVA robot body must exist");
-for (const part of ["robot-head-group","robot-neck","robot-torso","robot-arm-left","robot-arm-right","robot-hand","robot-leg-left","robot-leg-right"]) {
+assert.match(html, /id="novaRobot"/, "The compact NOVA companion must exist");
+for (const part of ["robot-head-group","robot-neck","robot-torso","robot-arm-left","robot-arm-right","robot-hand"]) {
   assert.match(html, new RegExp('class="[^"]*' + part + '[^"]*"'), "Robot must include " + part);
 }
 assert.match(css, /robot-explain-left/, "Robot arms must gesture while speaking");
 assert.match(css, /robot-listen-tilt/, "Robot must react physically while listening");
 assert.match(css, /robot-wave/, "Robot must have a waving gesture");
+assert.match(css, /NOVA compact premium companion/, "The character must use a compact upper-body layout");
+assert.match(css, /robot-sad-lower/, "The character must support sad body language");
 assert.match(app, /robot\.dataset\.mood = mood/, "Robot body motion must follow live conversation mood");
 assert.match(app, /robot\?\.classList\.add\(className\)/, "Body gestures must be triggered with character actions");
+assert.match(app, /audio.addEventListener\("playing"/, "Body and face speech animation must start on actual audio playback");
+assert.match(app, /trackAudioElementFace\(audio, speechSegments\);\s*await audio\.play\(\)/, "Audio analysis must be attached before playback begins");
 assert.match(html, /id="faceScreen"/, "OLED face must remain the only avatar");
 assert.match(html, /id="novaFaceMount"/, "Dedicated OLED face mount must exist");
 
