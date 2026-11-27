@@ -85,7 +85,7 @@ export function parseTaskCommand(value, now = new Date()) {
   if (!scheduledAt) return { action: "needs_time", type: isAlarm ? "alarm" : "reminder" };
   const timeMatch = text.match(/(?:الساعه|الساعة)\s*(\d{1,2}|واحده|واحد|واحدة|اتنين|اثنين|تلاته|تلاتة|ثلاثه|ثلاثة|اربعه|اربعة|أربعة|خمسه|خمسة|سته|ستة|سبعه|سبعة|تمانيه|تمانية|تمنية|ثمانية|تسعه|تسعة|عشره|عشرة|حداشر|احداشر|اتناشر|اثناشر)/);
   const hasDayPart = /صباحا|صباح|الصبح|مساء|بالليل|ليل/.test(text);
-  if (timeMatch && Number(timeMatch[1]) >= 1 && Number(timeMatch[1]) <= 12 && !hasDayPart) return { action: "needs_period", type: isAlarm ? "alarm" : "reminder" };
+  if (timeMatch && Number(SPOKEN_NUMBERS[timeMatch[1]] || timeMatch[1]) >= 1 && Number(SPOKEN_NUMBERS[timeMatch[1]] || timeMatch[1]) <= 12 && !hasDayPart) return { action: "needs_period", type: isAlarm ? "alarm" : "reminder" };
   const title = isAlarm ? "منبه سولينا" : stripCommandWords(text).replace(/\b(?:معاد|موعد|عندي)\b/g, " ").replace(/\s+/g, " ").trim();
   if (!isAlarm && title.length < 2) return { action: "needs_title", type: "reminder", scheduledAt: scheduledAt.toISOString() };
   return { action: "create", type: isAlarm ? "alarm" : "reminder", title: title.slice(0, 120), scheduledAt: scheduledAt.toISOString() };
