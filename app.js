@@ -1,26 +1,4 @@
 const $ = (id) => document.getElementById(id);
-// Always enforce the new screen-face avatar, even if an older cached HTML shell is opened.
-function enforceScreenFaceAvatar() {
-  const mount = $("novaFaceMount");
-  let fallback = $("novaFaceAvatar");
-  if (!mount) return;
-  if (!fallback) {
-    fallback = document.createElement("div");
-    fallback.id = "novaFaceAvatar";
-  }
-  fallback.className = "nova-face-avatar face-avatar";
-  fallback.innerHTML = '<div class="face-screen" id="faceScreen" data-emotion="neutral"><div class="face-scanline"></div><div class="face-brows"><i class="face-brow left"></i><i class="face-brow right"></i></div><div class="face-eyes"><span class="face-eye left"></span><span class="face-eye right"></span></div><span class="face-cheek left"></span><span class="face-cheek right"></span><div class="face-mouth" id="faceMouth"><i></i></div><span class="face-spark spark-one"></span><span class="face-spark spark-two"></span></div>';
-  fallback.setAttribute("aria-hidden", "true");
-  fallback.style.display = "grid";
-  fallback.style.visibility = "visible";
-  fallback.style.opacity = "1";
-  // The mount contains one OLED face and no other character elements.
-  mount.replaceChildren(fallback);
-}
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", enforceScreenFaceAvatar, { once: true });
-else enforceScreenFaceAvatar();
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", connectFaceInteractions, { once: true });
-else connectFaceInteractions();
 const state = {
   persona: (localStorage.getItem("nova.persona") === "soleen" ? "soleen" : "soly"), emotion: "idle", listening: false, speaking: false,
   recognition: null, restartRecognition: false, processing: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
@@ -36,10 +14,7 @@ function setStatus(label, mood = "idle") {
   $("characterStatus").textContent = label;
   $("voiceState").textContent = label;
   document.body.dataset.mood = mood;
-  const robot = $("novaFaceOnly");
-  if (robot) robot.dataset.mood = mood;
-  const avatar = $("novaFaceOnly");
-  if (avatar) avatar.dataset.mood = mood;
+  const orb = $("novaAudioOrb"); if (orb) orb.dataset.mood = mood;
 }
 const NOVA_EMOTIONS = new Set(["neutral","happy","sad","surprised","curious","caring","playful","concerned","thinking"]);
 function setFaceEmotion(emotion) {
