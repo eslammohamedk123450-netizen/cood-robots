@@ -77,12 +77,12 @@ function sanitizeInternalReplyText(input: unknown): string {
   let text = String(input ?? "");
   const entities: Record<string,string> = { "&lt;":"<", "&gt;":">", "&quot;":"\"", "&#91;":"[", "&#93;":"]", "&amp;":"&", "&#60;":"<", "&#62;":">" };
   for (let pass = 0; pass < 3; pass++) text = text.replace(/&lt;|&gt;|&quot;|&#91;|&#93;|&amp;|&#60;|&#62;/gi, (entity) => entities[entity.toLowerCase()] ?? entity);  // Remove complete internal memory envelopes before any text reaches chat or TTS.
-  text = text.replace(/<\\s*(?:NOVA|NOA)[_\\s-]?MEMORY\\b[^>]*>[\\s\\S]*?<\\s*\\/\\s*(?:NOVA|NOA)[_\\s-]?MEMORY\\s*>/gi, "");
-  text = text.replace(/<\\s*\\/?\\s*(?:NOVA|NOA)[_\\s-]?MEMORY\\b[^>]*>/gi, "");
-  text = text.replace(/<\\s*\\/?\\s*(?:OWNER|NOVA)[_\\s-]?(?:MEMORY|MEMORY_DATA)\\b[^>]*>/gi, "");
+  text = text.replace(/<\s*(?:NOVA|NOA)[_\s-]?MEMORY\b[^>]*>[\s\S]*?<\s*\/\s*(?:NOVA|NOA)[_\s-]?MEMORY\s*>/gi, "");
+  text = text.replace(/<\s*\/?\s*(?:NOVA|NOA)[_\s-]?MEMORY\b[^>]*>/gi, "");
+  text = text.replace(/<\s*\/?\s*(?:OWNER|NOVA)[_\s-]?(?:MEMORY|MEMORY_DATA)\b[^>]*>/gi, "");
   // Some providers echo the marker as ordinary words instead of preserving its wrapper.
   // Drop only the affected sentence so nearby useful text remains visible.
-  text = text.replace(/[^.!؟\\n]*\\b(?:NOVA|NOA)\\s*[_ -]?\\s*MEMORY(?:_DATA)?\\b[^.!؟\\n]*(?:[.!؟]|$)/gi, " ");
+  text = text.replace(/[^.!؟\n]*\b(?:NOVA|NOA)\s*[_ -]?\s*MEMORY(?:_DATA)?\b[^.!؟\n]*(?:[.!؟]|$)/gi, " ");
   // Never expose internal face-emotion control tokens, even if the model omits brackets.
   text = text.replace(/\[?\s*(?:NOVA|NOA)[\s_-]*EMOTION\s*[:=]\s*(?:neutral|happy|sad|surprised|curious|caring|playful|concerned|thinking)\s*(?:→|->|➜)?\s*\?*\s*\]?/gi, " ");
   return text.replace(/\s{2,}/g, " ").trim();
