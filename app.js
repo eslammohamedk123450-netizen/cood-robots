@@ -197,7 +197,7 @@ function setPersona(persona) {
   $("personaName").textContent = current.name;
   $("personaDescription").textContent = current.description;
   $("characterStatus").textContent = current.intro;
-  $("faceScreen")?.classList.toggle("pink", persona === "soleen");
+
   document.querySelectorAll("[data-persona]").forEach((button) => {
     button.classList.toggle("selected", button.dataset.persona === persona);
     button.setAttribute("aria-pressed", String(button.dataset.persona === persona));
@@ -205,47 +205,12 @@ function setPersona(persona) {
   setStatus(current.intro, state.listening ? "listening" : "idle");
 }
 function animateCharacter(kind) {
-  const stage = $("characterStage");
-  const face = $("faceScreen");
-  const robot = $("novaFaceOnly");
+  const stage = $("characterStage"); if (!stage) return;
   const className = "gesture-" + kind;
-  stage.classList.remove("gesture-wave", "gesture-happy", "gesture-thinking", "gesture-nod");
-  robot?.classList.remove("gesture-wave", "gesture-happy", "gesture-thinking", "gesture-nod");
-  face?.classList.remove("face-gesture-wave", "face-gesture-happy", "face-gesture-thinking", "face-gesture-nod");
-  void stage.offsetWidth;
-  stage.classList.add(className);
-  robot?.classList.add(className);
-  face?.classList.add("face-" + className);
-  window.setTimeout(() => {
-    stage.classList.remove(className);
-    robot?.classList.remove(className);
-    face?.classList.remove("face-" + className);
-  }, 2200);
+  stage.classList.remove("gesture-wave","gesture-happy","gesture-thinking","gesture-nod");
+  void stage.offsetWidth; stage.classList.add(className);
+  window.setTimeout(() => stage.classList.remove(className), 900);
 }
-function connectFaceInteractions() {
-  const stage = $("characterStage");
-  const face = $("faceScreen");
-  if (!stage || !face || stage.dataset.faceInteractive === "1") return;
-  stage.dataset.faceInteractive = "1";
-  const move = (event) => {
-    const rect = stage.getBoundingClientRect();
-    const x = Math.max(-1, Math.min(1, ((event.clientX - rect.left) / rect.width - .5) * 2));
-    const y = Math.max(-1, Math.min(1, ((event.clientY - rect.top) / rect.height - .5) * 2));
-    face.style.setProperty("--look-x", (x * 9).toFixed(1) + "px");
-    face.style.setProperty("--look-y", (y * 6).toFixed(1) + "px");
-    face.style.setProperty("--tilt", (x * 4).toFixed(1) + "deg");
-  };
-  stage.addEventListener("pointermove", move, { passive: true });
-  stage.addEventListener("pointerleave", () => {
-    face.style.setProperty("--look-x", "0px");
-    face.style.setProperty("--look-y", "0px");
-    face.style.setProperty("--tilt", "0deg");
-  }, { passive: true });
-  stage.addEventListener("click", () => {
-    if (!state.speaking && !state.processing) animateCharacter("happy");
-  });
-}
-
 function escapeHtml(value) {
   return String(value).replace(/[&<>'"]/g, (char) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
@@ -307,7 +272,7 @@ function speakWithDevice(text, persona, segments = []) {
     let estimatedDuration = Math.max(1800, (text.length / 13.5) * 1000 / utterance.rate);
     let lastBoundaryProgress = 0;
     let ended = false;
-    const face = $("faceScreen");
+    const orb = $("novaAudioOrb");
     const tick = (now) => {
       if (ended || !state.speaking) return;
       const elapsed = Math.max(0, now - startedAt);
@@ -323,19 +288,13 @@ function speakWithDevice(text, persona, segments = []) {
       const emphasis = /[اويىةآ]/.test(currentChar) ? 1 : 0.72;
       const mouthLevel = isPause ? 0.035 : 0.12 + pulse * emphasis * 0.72;
       setSpeechMouthLevel(mouthLevel, isPause ? 0.08 : 0.22 + pulse * 0.55);
-      if (face) {
-        face.style.setProperty("--speech-bob", (Math.sin(elapsed / 190) * 2.2).toFixed(1) + "px");
-        face.classList.toggle("device-speech-active", !isPause);
-      }
+      if (orb) orb.style.setProperty("--speech-phase", (Math.sin(elapsed / 190) * .5 + .5).toFixed(3));
       rafId = requestAnimationFrame(tick);
     };
     const stopVisuals = () => {
       ended = true;
       if (rafId) cancelAnimationFrame(rafId);
-      if (face) {
-        face.classList.remove("device-speech-active");
-        face.style.removeProperty("--speech-bob");
-      }
+      if (orb) orb.style.removeProperty("--speech-phase");
       resetSpeechMouth();
     };
     utterance.onstart = () => {
