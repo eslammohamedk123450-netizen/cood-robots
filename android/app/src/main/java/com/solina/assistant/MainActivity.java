@@ -237,6 +237,38 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public String listTasks() { return TaskStore.all(activity).toString(); }
 
+        @JavascriptInterface public String completeTask(String id) {
+            try {
+                JSONObject task = TaskStore.find(activity, id);
+                if (task == null || !"reminder".equals(task.optString("type"))) {
+                    return new JSONObject().put("ok", false).put("error", "reminder_not_found").toString();
+                }
+                AlarmScheduler.cancel(activity, id);
+                ((NotificationManager) activity.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(id.hashCode());
+                TaskStore.remove(activity, id);
+                return new JSONObject().put("ok", true).toString();
+            } catch (Exception error) {
+                return "{\\"ok\\":false,\\"error\\":\\"complete_failed\\"}";
+            }
+        }
+
+        @JavascriptInterface public String snoozeTask(String id, int minutes) {
+            try {
+                JSONObject task = TaskStore.find(activity, id);
+                if (task == null || !"reminder".equals(task.optString("type"))) {
+                    return new JSONObject().put("ok", false).put("error", "reminder_not_found").toString();
+                }
+                int safeMinutes = Math.max(1, Math.min(1440, minutes));
+                long next = System.currentTimeMillis() + safeMinutes * 60L * 1000L;
+                TaskStore.setNextFollowUp(activity, id, next);
+                AlarmScheduler.scheduleFollowUp(activity, id, next);
+                ((NotificationManager) activity.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(id.hashCode());
+                return new JSONObject().put("ok", true).put("nextAt", next).toString();
+            } catch (Exception error) {
+                return "{\\"ok\\":false,\\"error\\":\\"snooze_failed\\"}";
+            }
+        }
+
         @JavascriptInterface public String cancelTask(String id) {
             try {
                 AlarmScheduler.cancel(activity, id);
