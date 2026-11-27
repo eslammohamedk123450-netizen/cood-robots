@@ -273,6 +273,9 @@ assert.equal(parseTaskCommand("صحيني الفجر", fixedNow)?.action, "needs
 assert.equal(parseTaskCommand("وريني المنبهات", fixedNow)?.action, "list", "Task list command should be recognized");
 assert.equal(parseTaskCommand("إيه معنى المنبه؟", fixedNow), null, "Ordinary questions about alarms must go to the AI");
 assert.equal(parseTaskCommand("منبه الساعة 10", fixedNow)?.type, "alarm", "Direct alarm scheduling phrase should be recognized");
+assert.equal(new Date(parseTaskCommand("صحيني الساعة تسعة", fixedNow).scheduledAt).getHours(), 9, "Spoken Egyptian number words should be parsed as clock times");
+assert.equal(parseTaskCommand("فكريني بكرة أذاكر الساعة 9", fixedNow)?.action, "create", "Tomorrow reminders should be recognized");
+assert.equal(parseTaskCommand("فكريني بعد نص ساعة أذاكر", fixedNow)?.action, "create", "Relative reminder durations should be recognized");
 assert.equal(parseTaskCommand("الغى كل التذكيرات", fixedNow)?.all, true, "Bulk task cancellation should be recognized");
 assert.equal(normalizeTaskText("الساعة ٩:٣٠"), "الساعة 9:30", "Arabic numerals and clock separators should normalize safely");
 assert.match(app, /parseTaskCommand\(clean\)/, "Voice and text turns should route task commands locally");
