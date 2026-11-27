@@ -112,14 +112,10 @@ function updateSpeechSegmentProgress(segments, progress) {
   setSpeechSegmentTone(segments[segments.length - 1].emotion);
 }
 function setSpeechMouthLevel(level, brightness = 0) {
-  const orb = $("novaAudioOrb");
   const amount = Math.max(0, Math.min(1, level)), energy = Math.max(0, Math.min(1, brightness));
-  if (orb) { orb.style.setProperty("--audio-level", amount.toFixed(3)); orb.style.setProperty("--mouth-scale", (0.48 + amount * 1.75).toFixed(3)); orb.style.setProperty("--audio-brightness", energy.toFixed(3)); }
   window.solinaWave?.setLevel(amount, energy);
 }
 function resetSpeechMouth() {
-  const orb = $("novaAudioOrb");
-  if (orb) { orb.style.setProperty("--audio-level", "0"); orb.style.setProperty("--mouth-scale", ".48"); orb.style.setProperty("--audio-brightness", ".12"); }
   window.solinaWave?.setLevel(0, .12);
 }
 function connectSpeechAnalyser(source) {
