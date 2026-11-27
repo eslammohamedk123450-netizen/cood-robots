@@ -240,3 +240,12 @@ body[data-mood="happy"] .face-mouth{width:86px;height:24px;border-bottom:4px sol
 @keyframes sparkle{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1.3)}}
 @media(max-width:700px){.character-stage{height:315px}.character-fallback.face-avatar{height:230px}.face-screen{height:190px;width:min(88vw,340px)}.face-eyes{top:48px;gap:63px}.face-eye{width:40px;height:52px}.face-mouth{top:128px}body[data-mood="speaking"] .face-mouth{top:115px}body[data-mood="thinking"] .face-mouth{top:121px}}
 @media(prefers-reduced-motion:reduce){.face-screen,.face-eye,.face-spark,.face-mouth{animation:none!important}}
+
+/* Hard override: never show the legacy doll over the OLED face */
+#character3dMount:not(.has-3d) #characterFallback.face-avatar{display:grid!important;visibility:visible!important;opacity:1!important;z-index:5!important}
+#character3dMount:not(.has-3d) #characterFallback.face-avatar .robot-body,
+#character3dMount:not(.has-3d) #characterFallback.face-avatar .robot-head,
+#character3dMount:not(.has-3d) #characterFallback.face-avatar .robot-torso,
+#character3dMount:not(.has-3d) #characterFallback.face-avatar .arm,
+#character3dMount:not(.has-3d) #characterFallback.face-avatar .leg{display:none!important}
+#character3dMount:not(.has-3d) canvas{display:none!important}
