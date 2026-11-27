@@ -2,7 +2,7 @@ const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soleen", emotion: "idle", listening: false, speaking: false,
   recognition: null, restartRecognition: false, processing: false, voiceSessionActive: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
-  messages: [], messagesByPersona: { soleen: [] }, conversationIds: { soleen: null }, historyQueues: { soleen: Promise.resolve() }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: ""
+  messages: [], voiceAlternatives: [], messagesByPersona: { soleen: [] }, conversationIds: { soleen: null }, historyQueues: { soleen: Promise.resolve() }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: ""
 };
 const personas = { soleen: { name: "سولينا", description: "مساعدتك الصوتية 💗", color: "#b9a5ff", accent: "#7959d6", intro: "سولينا معاكي" } };
 let speechAudioContext = null;
@@ -260,29 +260,27 @@ function cleanSpeechText(value) {
     .trim()
     .slice(0, 2600);
 }
-function getDeviceArabicVoice(persona) {
+function getDeviceArabicVoice() {
   const voices = window.speechSynthesis?.getVoices?.() || [];
   const arabic = voices.filter((voice) => /^ar(-|$)/i.test(voice.lang || ""));
-  if (!arabic.length) return null;
   const egyptian = arabic.filter((voice) => /^ar-EG$/i.test(voice.lang || ""));
   const pool = egyptian.length ? egyptian : arabic;
-  const hints = persona === "soleen" ? /female|woman|salma|zira|sara/i : /male|man|shakir|hamed|tariq/i;
-  return pool.find((voice) => hints.test(voice.name || "")) || pool[0];
+  return pool.find((voice) => voice.gender === "female" || /female|woman|salma|zira|sara|hoda|laila|layla|noura|noora/i.test(voice.name || "")) || null;
 }
-function speakWithDevice(text, persona, segments = [], retryWithoutVoice = false) {
+function speakWithDevice(text, segments = []) {
   return new Promise((resolve, reject) => {
     if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
       reject(new Error("محرك النطق غير متاح في المتصفح ده. افتح NOVA من Chrome على أندرويد."));
       return;
     }
     window.speechSynthesis.cancel();
+    const voice = getDeviceArabicVoice();
+    if (!voice) { reject(new Error("مش لاقية صوت عربي نسائي واضح على الجهاز. اختاري صوتًا نسائيًا من مزود الصوت السحابي.")); return; }
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "ar-EG";
-    // First attempt keeps persona settings; retry uses Android's default voice.
-    utterance.rate = retryWithoutVoice ? 1 : (persona === "soleen" ? 0.98 : 0.92);
-    utterance.pitch = retryWithoutVoice ? 1 : (persona === "soleen" ? 1.16 : 0.82);
-    const voice = retryWithoutVoice ? null : getDeviceArabicVoice(persona);
-    if (voice) utterance.voice = voice;
+    utterance.lang = voice.lang || "ar-EG";
+    utterance.rate = 0.98;
+    utterance.pitch = 1.16;
+    utterance.voice = voice;
 
     // Android's SpeechSynthesis often emits no boundary events and exposes no audio
     // waveform. Drive the Solina audio orb from a speech-timed syllable envelope instead.
@@ -330,10 +328,6 @@ function speakWithDevice(text, persona, segments = [], retryWithoutVoice = false
     utterance.onerror = (event) => {
       stopVisuals();
       const errorCode = event.error || "unknown";
-      if (!retryWithoutVoice && !["canceled", "interrupted"].includes(errorCode)) {
-        speakWithDevice(text, persona, segments, true).then(resolve, reject);
-        return;
-      }
       reject(new Error("محرك الجهاز فشل في النطق: " + errorCode));
     };
     utterance.onpause = () => { if (rafId) cancelAnimationFrame(rafId); };
@@ -344,7 +338,7 @@ function speakWithDevice(text, persona, segments = [], retryWithoutVoice = false
 async function speak(text, segments = [], signal) {
   const spokenText = cleanSpeechText(text);
   if (!spokenText) return;
-  const persona = state.persona;
+  const persona = "soleen";
   const speechSegments = segments.length ? segments : [{ text: spokenText, emotion: state.replyEmotion || "neutral" }];
   state.speaking = true;
   // Keep the dedicated interrupt listener alive during playback so "اسكت"
@@ -371,14 +365,14 @@ async function speak(text, segments = [], signal) {
   try {
     if (engine === "device") {
       state.audio = { pause: () => { window.speechSynthesis.cancel(); finish(); } };
-      await speakWithDevice(spokenText, persona, speechSegments);
+      await speakWithDevice(spokenText, speechSegments);
       finish();
       return;
     }
     if (engine === "auto" && !localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
     const speechVendor = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
     const voicePrefix = speechVendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
-    const voiceId = engine === "chatterbox" ? "" : (localStorage.getItem(voicePrefix + (persona === "soleen" ? "female" : "male")) || "");
+    const voiceId = engine === "chatterbox" ? "" : (localStorage.getItem(voicePrefix + "female") || "");
     const speechAction = engine === "chatterbox" ? "tts_chatterbox" : engine === "gemini" ? "tts_gemini" : "tts";
     // Gemini receives the complete reply in ONE request, never one request per sentence.
     const geminiCacheKey = engine === "gemini" ? JSON.stringify([persona, "gemini-2.5-flash-preview-tts", spokenText]) : "";
@@ -453,7 +447,7 @@ async function speak(text, segments = [], signal) {
         setStatus(personas[persona].name + " بيحوّل لصوت الجهاز...", "thinking");
         state.speaking = true;
         state.audio = { pause: () => { window.speechSynthesis?.cancel(); finish(); } };
-        await speakWithDevice(spokenText, persona, speechSegments);
+        await speakWithDevice(spokenText, speechSegments);
         finish();
         showToast("الصوت الخارجي مش متاح دلوقتي، كملت بصوت الجهاز.");
         return;
@@ -864,7 +858,7 @@ async function getStopAudioCache() {
   if (engine === "device") return null;
   const vendor = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
   const voicePrefix = vendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
-  const voiceId = localStorage.getItem(voicePrefix + (state.persona === "soleen" ? "female" : "male")) || "";
+  const voiceId = localStorage.getItem(voicePrefix + "female") || "";
   const key = "nova.stopAudio.cache.v1." + encodeURIComponent([engine,vendor,voiceId,state.persona].join("|"));
   try { const cached = JSON.parse(localStorage.getItem(key) || "null"); if (cached?.audio && ["audio/mpeg","audio/mp3","audio/wav","audio/x-wav"].includes(cached.mime)) return cached; } catch (_) {}
   const action = engine === "chatterbox" ? "tts_chatterbox" : engine === "gemini" ? "tts_gemini" : "tts";
@@ -882,7 +876,7 @@ async function playStopAcknowledgement() {
   stopInterruptRecognition();
   try {
     const cached = await getStopAudioCache();
-    if (!cached) { await speakWithDevice(phrase, state.persona, []); return; }
+    if (!cached) { await speakWithDevice(phrase, []); return; }
     const binary = atob(cached.audio), bytes = new Uint8Array(binary.length);
     for (let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
     const url = URL.createObjectURL(new Blob([bytes], {type:cached.mime}));
@@ -895,7 +889,7 @@ async function playStopAcknowledgement() {
     });
   } catch (error) {
     console.warn("NOVA stop acknowledgement failed:", error);
-    try { await speakWithDevice(phrase, state.persona, []); } catch (_) {}
+    try { await speakWithDevice(phrase, []); } catch (_) {}
   } finally {
     state.speaking = false; state.processing = false; state.audio = null; resetSpeechMouth();
     if (state.listening && state.recognition) window.setTimeout(() => { if (state.listening && !state.processing) { try { state.recognition.start(); } catch (_) {} } }, 300);
