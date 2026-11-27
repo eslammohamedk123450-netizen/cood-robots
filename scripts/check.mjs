@@ -6,6 +6,7 @@ const html = read("../index.html");
 const app = read("../app.js");
 const pin = read("../pin.js");
 const edge = read("../supabase/functions/nova-ai/index.ts");
+const css = read("../style.css");
 const workflow = read("../.github/workflows/pages.yml");
 
 const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map((m) => m[1]);
@@ -68,9 +69,9 @@ assert.match(edge, /actionLimits/, "Each API action must have an explicit reques
 assert.doesNotMatch(edge, /SUPABASE_SERVICE_ROLE_KEY\s*=\s*["'][^"']+["']/, "Service-role secrets must not be hard-coded");
 assert.match(workflow, /needs: check/, "Pages deployment must depend on the quality check job");
 assert.match(workflow, /npm test/, "CI must run repository tests");
-assert.doesNotMatch(html + app + workflow, /nova-3d\.js|initNOVACharacter3D|character3D/, "Legacy 3D mannequin renderer must stay removed");
-assert.doesNotMatch(html, /robot-body|robot-head|robot-torso|robot-shadow|antenna/, "Legacy doll markup must not return");
+assert.doesNotMatch(html + app + css + workflow, /nova-3d\.js|initNOVACharacter3D|character3D|robot-body|robot-head|robot-torso|robot-shadow|antenna|has-3d/, "Legacy mannequin renderer and styles must stay removed");
 assert.match(html, /id="faceScreen"/, "OLED face must remain the only avatar");
+assert.match(html, /id="novaFaceMount"/, "Dedicated OLED face mount must exist");
 
 const secretPatterns = [
   /sk-[A-Za-z0-9]{20,}/,
@@ -78,7 +79,7 @@ const secretPatterns = [
   /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,
   /eyJ[A-Za-z0-9_-]{30,}\.eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/
 ];
-for (const [name, source] of [["index.html", html], ["app.js", app], ["pin.js", pin], ["nova-3d.js", three], ["nova-ai", edge]]) {
+for (const [name, source] of [["index.html", html], ["app.js", app], ["style.css", css], ["pin.js", pin], ["nova-ai", edge]]) {
   for (const pattern of secretPatterns) assert.doesNotMatch(source, pattern, name + " may contain a committed secret");
 }
 console.log("NOVA repository checks passed.");
