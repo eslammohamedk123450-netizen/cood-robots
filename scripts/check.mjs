@@ -48,7 +48,12 @@ assert.match(app, /connectSpeechAnalyser/, "Audio waveform must be analyzed for 
 assert.match(app, /\[NOVA_EMOTION:/, "AI must provide emotion markers for speech segments");
 assert.match(app, /قسّم ردك إلى أجزاء طبيعية حسب تغيّر المعنى/, "AI prompt must request context-based emotion changes");
 assert.match(app, /أنتِ سولينا، بنت مصرية مستقلة الشخصية/, "Solina must have a distinct, consistently feminine identity");
-assert.match(app, /ممنوع تمامًا أن تقولي عن نفسك أنا ولد/, "Solina prompt must explicitly forbid masculine self-reference");
+assert.match(app, /هويتك أنثى دائمًا/, "Solina prompt must enforce a single feminine identity");
+assert.doesNotMatch(app, /speechMaleVoice|tts_chatterbox|\bsoly\b|أنت سولي/, "Client must contain no legacy persona or male voice path");
+assert.match(app, /getDeviceArabicVoice\(\)/, "Device TTS must select the female Arabic voice only");
+assert.match(app, /مزود الصوت لم يرجع صوتًا نسائيًا موثقًا/, "Unknown or male cloud voices must not be used as a fallback");
+assert.match(app, /recognition\.maxAlternatives = 3/, "Speech recognition must collect alternatives for Egyptian Arabic disambiguation");
+assert.match(app, /voiceAlternatives/, "Alternative speech transcripts must be passed as context to the AI");
 assert.match(app, /تفاصيل النماذج:/, "Provider failures must expose safe model diagnostics to the owner");
 assert.match(html, /سولينا/, "The female persona must be named Solina in the UI");
 assert.doesNotMatch(html, /سولين(?!ا)/, "The old female persona name must not remain in the UI");
@@ -72,8 +77,8 @@ assert.match(app, /speechAudioCache/, "Gemini speech reuse cache must stay memor
 assert.match(app, /rememberSpeechAudio/, "Generated Gemini audio must be cached for exact repeats in the current session");
 assert.match(app, /Gemini receives the complete reply in ONE request/, "Gemini TTS must not create a request for every sentence");
 assert.match(app, /rememberSpeechAudio\(geminiCacheKey, result\)/, "Valid Gemini audio must be reused during the current session");
-assert.match(html, /لا يستهلك طلبات Gemini TTS/, "The UI must explain that device TTS does not use Gemini quota");
-assert.match(html, /طلبًا لكل جملة/, "The UI must explain that Gemini TTS synthesizes a whole reply in one request");
+assert.match(html, /صوتًا عربيًا نسائيًا مثبتًا فقط/, "The UI must explain device voice gender enforcement");
+assert.match(html, /Kore النسائي/, "The UI must identify Gemini's fixed female voice");
 assert.match(app, /audio\/mpeg/, "The client must accept Sonex MP3 audio");
 assert.match(app, /nova:authenticated/, "The app must receive the authenticated server session");
 assert.doesNotMatch(html, /id="pinSetupForm"|إنشاء كود المالك/, "PIN creation screen must be removed after initial setup");
@@ -157,7 +162,13 @@ assert.match(app, /state\.voiceSessionActive = true/, "Solina wake word must kee
 assert.match(app, /}, 600\);/, "Voice turn should start after a short 600ms natural pause");
 assert.doesNotMatch(app, /const memoryMatches = await searchConversationMemory\(text, signal\)/, "Memory retrieval must not add a separate browser round trip before chat");
 assert.match(app, /exclude_conversation_id: state\.conversationIds\[state\.persona\]/, "Chat request must exclude the active conversation from older-memory retrieval");
-assert.match(edge, /سياق مسترجع من محادثات سابقة للشخصيتين/, "Chat endpoint must retrieve cross-persona history in the same request");
+assert.match(edge, /سياق مسترجع من محادثات سولينا السابقة/, "Chat endpoint must retrieve only Solina history");
+assert.match(edge, /const voiceName = "Kore"/, "Gemini must use the fixed female voice");
+assert.match(edge, /ar-EG-SalmaNeural/, "Azure speech must use the female Egyptian voice");
+assert.match(edge, /labels\?\.gender.*female/, "ElevenLabs voice lists must be filtered to female voices");
+assert.match(edge, /voice\?\.gender.*female/, "Sonex voice lists must be filtered to female voices");
+assert.match(edge, /isVerifiedFemale/, "Server must reject any selected voice not verified as female");
+assert.doesNotMatch(edge, /\bsoly\b|Puck|ShakirNeural|tts_chatterbox|Chatterbox/, "Server must not retain old persona or unverified TTS service paths");
 assert.match(edge, /oldRowsResult\.error/, "Parallel history retrieval errors must be handled explicitly");
 assert.match(edge, /const \[\{ data: memoryRow, error: memoryReadError \}, \{ data: models, error \}, oldRowsResult\] = await Promise\.all\(/, "Independent memory, model, and history reads must run concurrently");
 assert.match(edge, /const secretEntries = await Promise\.all\(/, "Provider secrets must be fetched concurrently instead of serially");
@@ -186,7 +197,7 @@ assert.match(css, /solina-breathe/, "Solina audio orb must pulse");
 assert.match(app, /window\.solinaWave\?\.setLevel\(amount, energy\)/, "Audio orb must follow real playback amplitude");
 
 assert.match(app, /wakePattern = .*سولينا/, "Only the Solina wake word should activate voice turns");
-assert.doesNotMatch(app, /نوفا\|نوفة\|nova\|سولي\|سولين/, "Old wake-word aliases must not activate the assistant");
+assert.doesNotMatch(app, /نوفا|نوفة|nova|سولي(?!نا)|سولين/, "Old wake-word aliases must not activate the assistant");
 
 assert.doesNotMatch(app, /واجهة NOVA مفتوحة حاليًا في الوضع المحلي/, "Cloud AI must never silently fall back to a fake local reply");
 assert.doesNotMatch(app, /async function restoreOwnerSession\(/, "Only pin.js may restore the owner session to prevent competing startup checks");
