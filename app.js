@@ -355,6 +355,7 @@ async function speak(text, segments = [], signal) {
   // can cancel speech immediately instead of being ignored.
   if (state.listening) startInterruptRecognition();
   if (state.audio) { try { state.audio.pause(); } catch (_) {} state.audio = null; }
+  if (state.listening && state.nativeSpeech) window.setTimeout(() => { if (state.listening && state.nativeSpeech && !state.processing && !state.speaking) startNativeSpeechCapture(); }, 400);
   if (speechAudioElement) { try { speechAudioElement.pause(); } catch (_) {} speechAudioElement = null; }
   if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
   const engine = $("speechEngine")?.value || localStorage.getItem("nova.speech.engine") || "server";
@@ -1268,6 +1269,7 @@ window.addEventListener("solina-native-speech-result", (event) => {
     return;
   }
   queueVoiceFinal(transcript, alternatives);
+  window.setTimeout(() => { if (state.listening && state.nativeSpeech && !state.processing && !state.speaking) startNativeSpeechCapture(); }, 550);
 });
 window.addEventListener("solina-native-speech-error", (event) => {
   const code = Number(event.detail?.code);
