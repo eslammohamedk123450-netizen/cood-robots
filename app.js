@@ -65,9 +65,9 @@ function inferFaceEmotion(reply) {
 }
 function extractReplyEmotion(rawReply) {
   const raw = String(rawReply || "");
-  const marker = raw.match(/\\[NOVA_EMOTION:(neutral|happy|sad|surprised|curious|caring|playful|concerned|thinking)\\]/i);
+  const marker = raw.match(/\[NOVA_EMOTION:(neutral|happy|sad|surprised|curious|caring|playful|concerned|thinking)\]/i);
   const emotion = marker ? marker[1].toLowerCase() : inferFaceEmotion(raw);
-  return { text: raw.replace(/\\s*\\[NOVA_EMOTION:[a-z]+\\]\\s*/ig, "").trim(), emotion };
+  return { text: raw.replace(/\s*\[NOVA_EMOTION:[a-z]+\]\s*/ig, "").trim(), emotion };
 }
 function setPersona(persona) {
   if (!personas[persona]) return;
