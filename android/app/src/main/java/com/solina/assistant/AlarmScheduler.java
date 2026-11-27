@@ -57,6 +57,15 @@ public final class AlarmScheduler {
     }
 
     public static void cancel(Context context, String id) {
+        // Cancel alarms created by the previous single-trigger scheduler after app upgrades.
+        Intent legacyReceiver = new Intent(context, TaskReceiver.class).setAction(TaskReceiver.ACTION_FIRE)
+                .putExtra("task_id", id);
+        PendingIntent legacy = PendingIntent.getBroadcast(context, id.hashCode(), legacyReceiver,
+                PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
+        if (legacy != null) {
+            ((AlarmManager) context.getSystemService(Context.ALARM_SERVICE)).cancel(legacy);
+            legacy.cancel();
+        }
         for (String stage : new String[]{"alarm", "day", "hour", "ten", "due", "followup"}) {
             Intent receiver = new Intent(context, TaskReceiver.class).setAction(TaskReceiver.ACTION_FIRE)
                     .putExtra("task_id", id).putExtra("stage", stage);
