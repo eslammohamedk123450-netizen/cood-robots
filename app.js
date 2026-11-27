@@ -22,7 +22,7 @@ else enforceScreenFaceAvatar();
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", connectFaceInteractions, { once: true });
 else connectFaceInteractions();
 const state = {
-  persona: "soly", emotion: "idle", listening: false, speaking: false,
+  persona: (localStorage.getItem("nova.persona") === "soleen" ? "soleen" : "soly"), emotion: "idle", listening: false, speaking: false,
   recognition: null, restartRecognition: false, processing: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
   messages: [], messagesByPersona: { soly: [], soleen: [] }, session: null, providers: [], models: [], audio: null, profile: ""
 };
@@ -178,7 +178,12 @@ function trackAudioElementFace(audio, segments) {
 }
 function setPersona(persona) {
   if (!personas[persona]) return;
+  if (state.processing && state.persona !== persona) {
+    showToast("استنى الرد الحالي يخلص قبل ما تبدّل الشخصية.");
+    return;
+  }
   if (state.persona !== persona) {
+    localStorage.setItem("nova.persona", persona);
     // Keep each character's conversation isolated; never pass one persona's
     // system prompt or chat history to the other persona.
     state.messagesByPersona[state.persona] = state.messages.slice();
