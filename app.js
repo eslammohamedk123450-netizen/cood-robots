@@ -455,6 +455,8 @@ async function speak(text, segments = [], signal) {
     // block the text reply.
     if (engine !== "device" && !signal?.aborted) {
       try {
+        state.speaking = true;
+        setStatus(personas[persona].name + " بيتكلم...", "speaking");
         state.audio = { pause: () => { window.speechSynthesis?.cancel?.(); finish(); } };
         await speakWithDevice(spokenText, speechSegments);
         finish();
