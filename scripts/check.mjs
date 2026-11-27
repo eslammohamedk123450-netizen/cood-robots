@@ -161,7 +161,7 @@ assert.match(app, /text: original/, "Wake-word requests must preserve the comple
 assert.match(app, /Wake-word detection is position-independent/, "Solina wake word must be detected anywhere in the utterance");
 assert.match(app, /withoutWakeName/, "Stop commands must work even when Solina is spoken mid-sentence");
 assert.match(app, /state\.voiceSessionActive = true/, "Solina wake word must keep the voice session armed");
-assert.match(app, /}, 600\);/, "Voice turn should start after a short 600ms natural pause");
+assert.match(app, /const VOICE_TURN_PAUSE_MS = 480/, "Voice turn should use the faster 480ms natural pause");
 assert.doesNotMatch(app, /const memoryMatches = await searchConversationMemory\(text, signal\)/, "Memory retrieval must not add a separate browser round trip before chat");
 assert.match(app, /exclude_conversation_id: state\.conversationIds\[state\.persona\]/, "Chat request must exclude the active conversation from older-memory retrieval");
 assert.match(edge, /سياق مسترجع من محادثات سولينا السابقة/, "Chat endpoint must retrieve only Solina history");
@@ -212,7 +212,7 @@ assert.match(app, /جلسة سولينا غير متصلة/, "Missing authentica
 assert.match(app, /voiceSessionActive: false/, "Voice session must begin disarmed");
 assert.match(app, /if \(!state\.voiceSessionActive && !local\.addressed\)/, "Only Solina wake word may arm a hands-free session");
 assert.match(app, /state\.voiceSessionActive = true/, "Saying Solina must arm continuous conversational turns");
-assert.match(app, /}, 600\);/, "AI turn must begin after a short 600ms natural silence");
+assert.match(app, /}, VOICE_TURN_PAUSE_MS\\);/, "AI turn must use the shared natural-silence threshold");
 assert.match(app, /ناديني: سولينا/, "The wake prompt must use Solina, never NOVA");
 assert.doesNotMatch(app, /مستني تناديني: نوفا|مستني تناديني يا نوفا/, "No stale NOVA wake prompt may remain");
 assert.match(app, /state\.voiceSessionActive = false;\s*cancelCurrentTurn/, "Stopping the microphone must close the armed voice session");
