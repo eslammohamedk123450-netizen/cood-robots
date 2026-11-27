@@ -50,8 +50,8 @@ assert.match(app, /قسّم ردك إلى أجزاء طبيعية حسب تغي�
 assert.match(app, /أنتِ سولينا، بنت مصرية مستقلة الشخصية/, "Solina must have a distinct, consistently feminine identity");
 assert.match(app, /هويتك أنثى دائمًا/, "Solina prompt must enforce a single feminine identity");
 assert.doesNotMatch(app, /speechMaleVoice|tts_chatterbox|أنت سولي/, "Client must contain no legacy persona or male voice path");
-assert.match(app, /getDeviceArabicVoice\(\)/, "Device TTS must select the female Arabic voice only");
-assert.match(app, /مزود الصوت لم يرجع صوتًا نسائيًا موثقًا/, "Unknown or male cloud voices must not be used as a fallback");
+assert.match(app, /getDeviceArabicVoice\(\)/, "Device TTS must select an available Arabic or device voice");
+assert.match(app, /مزود الصوت لم يرجع صوتًا نسائيًا موثقًا/, "Cloud provider voices must be validated as female");
 assert.match(app, /recognition\.maxAlternatives = 3/, "Speech recognition must collect alternatives for Egyptian Arabic disambiguation");
 assert.match(app, /voiceAlternatives/, "Alternative speech transcripts must be passed as context to the AI");
 assert.match(app, /تفاصيل النماذج:/, "Provider failures must expose safe model diagnostics to the owner");
@@ -87,7 +87,7 @@ assert.match(app, /speechAudioCache/, "Gemini speech reuse cache must stay memor
 assert.match(app, /rememberSpeechAudio/, "Generated Gemini audio must be cached for exact repeats in the current session");
 assert.match(app, /Gemini receives the complete reply in ONE request/, "Gemini TTS must not create a request for every sentence");
 assert.match(app, /rememberSpeechAudio\(geminiCacheKey, result\)/, "Valid Gemini audio must be reused during the current session");
-assert.match(html, /الوضع التلقائي يستخدم صوت Gemini السحابي النسائي/, "The UI must explain that automatic speech uses cloud female TTS");
+assert.match(html, /إذا فشلت الخدمة المختارة فقط، تستخدم صوت الهاتف المجاني كحل احتياطي/, "The UI must explain the selected-provider-only policy and phone fallback");
 assert.match(html, /صوت Gemini السحابي النسائي \(Kore\)/, "The UI must identify Gemini's fixed female voice");
 assert.match(app, /audio\/mpeg/, "The client must accept Sonex MP3 audio");
 assert.match(app, /nova:authenticated/, "The app must receive the authenticated server session");
