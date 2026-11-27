@@ -15,6 +15,9 @@ const receiver = read("../android/app/src/main/java/com/solina/assistant/TaskRec
 const activity = read("../android/app/src/main/java/com/solina/assistant/AlarmActivity.java");
 const service = read("../android/app/src/main/java/com/solina/assistant/AlarmPlaybackService.java");
 const androidMain = read("../android/app/src/main/java/com/solina/assistant/MainActivity.java");
+const taskStore = read("../android/app/src/main/java/com/solina/assistant/TaskStore.java");
+const taskReceiver = read("../android/app/src/main/java/com/solina/assistant/TaskReceiver.java");
+const alarmActivity = read("../android/app/src/main/java/com/solina/assistant/AlarmActivity.java");
 
 const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map((m) => m[1]);
 const duplicates = ids.filter((id, i) => ids.indexOf(id) !== i);
@@ -290,6 +293,13 @@ assert.match(edge, /action === "personal_item_delete"/, "The owner API must dele
 assert.match(edge, /\.eq\("user_id", userId\)/, "Personal item queries must always be scoped to the validated owner");
 assert.match(app, /invokeNova\("personal_items_list"\)/, "The app must load items from the account rather than device storage");
 assert.match(app, /async function syncNativeTasks\(\)/, "Android alarms must be restored from account data on login");
+assert.match(androidMain, /pendingTaskSyncEvents\(\)/, "Android must expose completion and snooze events to the account sync layer");
+assert.match(androidMain, /acknowledgeTaskSyncEvent\(String id\)/, "Native sync events must be acknowledged only after cloud updates succeed");
+assert.match(taskStore, /recordPendingSync\(Context context, String id, String status, long scheduledAt\)/, "Native task changes must be queued until account sync succeeds");
+assert.match(taskReceiver, /recordPendingSync\(context, id, "completed", 0\)/, "Completing a reminder from its notification must sync to the account");
+assert.match(taskReceiver, /recordPendingSync\(context, id, "active", next\)/, "Snoozing from a notification must sync the new time to the account");
+assert.match(alarmActivity, /recordPendingSync\(this, taskId, "completed", 0\)/, "Stopping the full-screen alarm must sync completion to the account");
+
 assert.match(app, /savePersonalItem\(\{ item_type: "note"/, "Notes must be saved to the account API");
 assert.match(app, /await savePersonalItem\(\{ id, item_type: intent\.type/, "Voice reminders must be saved in the account before native scheduling");
 assert.match(app, /التنبيه المحلي هيتفعّل عند فتح نسخة أندرويد/, "Web-created reminders must be honestly described as account-saved pending Android scheduling");
@@ -302,6 +312,7 @@ const fixedNow = new Date("2026-11-27T08:00:00+02:00");
 assert.equal(parseTaskCommand("سولينا سجلي ملاحظة أراجع فكرة التطبيق", fixedNow)?.action, "create_personal_item", "Voice note requests should route to account storage");
 assert.equal(parseTaskCommand("سيلينا سجلي ملاحظة أراجع فكرة التطبيق", fixedNow)?.type, "note", "Alternative wake-name pronunciation should still save notes");
 assert.equal(parseTaskCommand("ضيفي مهمة أراجع المحاضرة", fixedNow)?.type, "task", "Spoken task creation should create an account task");
+assert.equal(parseTaskCommand("وريني الملاحظات", fixedNow)?.action, "list_notes", "Voice requests to list saved notes should be recognized");
 assert.equal(parseTaskCommand("وريني المهام", fixedNow)?.action, "list", "Voice requests to list tasks should read the account list");
 const reminderIntent = parseTaskCommand("فكريني أراجع المحاضرة الساعة 5 مساء", fixedNow);
 assert.equal(reminderIntent?.action, "create", "Arabic reminder command should be recognized");
