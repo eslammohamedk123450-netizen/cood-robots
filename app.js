@@ -108,6 +108,18 @@ function resetSpeechMouth() {
   const mouth = $("faceMouth");
   if (mouth) { mouth.style.height = ""; mouth.style.opacity = ""; }
 }
+function connectSpeechAnalyser(source) {
+  try {
+    const analyser = speechAudioContext.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+    analyser.connect(speechAudioContext.destination);
+    return analyser;
+  } catch (error) {
+    console.warn("NOVA speech analyser unavailable.", error);
+    return null;
+  }
+}
 function trackAudioElementFace(audio, segments) {
   audio.addEventListener("timeupdate", () => {
     if (state.speaking && Number.isFinite(audio.duration) && audio.duration > 0) {
@@ -121,10 +133,8 @@ function trackAudioElementFace(audio, segments) {
       speechAudioContext = new AudioContextClass();
     }
     const source = speechAudioContext.createMediaElementSource(audio);
-    const analyser = speechAudioContext.createAnalyser();
-    analyser.fftSize = 256;
-    source.connect(analyser);
-    analyser.connect(speechAudioContext.destination);
+    const analyser = connectSpeechAnalyser(source);
+    if (!analyser) return;
     const samples = new Uint8Array(analyser.fftSize);
     const animate = () => {
       if (!state.speaking || state.audio?.element !== audio) return;
@@ -251,7 +261,7 @@ function speakWithDevice(text, persona, segments = []) {
     utterance.onboundary = (event) => {
       if (Number.isFinite(event.charIndex) && text.length) {
         updateFaceSpeechProgress(segments, event.charIndex / text.length);
-        setSpeechMouthLevel(0.25 + Math.random() * 0.65);
+        setSpeechMouthLevel(0.25 + Math.min(0.7, (event.charLength || 4) / 12));
       }
     };
     utterance.onend = resolve;
@@ -285,6 +295,7 @@ async function speak(text, segments = []) {
   setStatus(personas[persona].name + " بيتكلم...", "speaking");
   try {
     if (engine === "device") {
+      state.audio = { pause: () => { window.speechSynthesis.cancel(); finish(); } };
       await speakWithDevice(spokenText, persona, speechSegments);
       finish();
       return;
@@ -313,8 +324,37 @@ async function speak(text, segments = []) {
     audio.addEventListener("ended", finish, { once: true });
     audio.addEventListener("error", () => { finish(); showToast("المتصفح رفض ملف الصوت (خطأ تشغيل " + (audio.error?.code || "غير معروف") + ")."); }, { once: true });
     state.audio = { pause: () => { audio.pause(); finish(); }, element: audio };
-    await audio.play();
-    trackAudioElementFace(audio, speechSegments);
+    try {
+      await audio.play();
+      trackAudioElementFace(audio, speechSegments);
+    } catch (playError) {
+      // Android can reject delayed HTMLAudio playback; decode through the unlocked AudioContext.
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass || !["NotSupportedError", "NotAllowedError"].includes(playError?.name)) throw playError;
+      if (!speechAudioContext) speechAudioContext = new AudioContextClass();
+      if (speechAudioContext.state === "suspended") await speechAudioContext.resume();
+      const buffer = await speechAudioContext.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+      const source = speechAudioContext.createBufferSource();
+      source.buffer = buffer;
+      source.onended = finish;
+      const analyser = connectSpeechAnalyser(source);
+      state.audio = { pause: () => { try { source.stop(); } catch (_) {} finish(); } };
+      if (analyser) {
+        const samples = new Uint8Array(analyser.fftSize);
+        const startedAt = performance.now();
+        const animate = () => {
+          if (!state.speaking) return;
+          updateFaceSpeechProgress(speechSegments, Math.min(1, (performance.now() - startedAt) / (buffer.duration * 1000)));
+          analyser.getByteTimeDomainData(samples);
+          let energy = 0;
+          for (const sample of samples) { const centered = (sample - 128) / 128; energy += centered * centered; }
+          setSpeechMouthLevel(Math.min(1, Math.sqrt(energy / samples.length) * 5.5));
+          requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
+      }
+      source.start(0);
+    }
   } catch (error) {
     state.speaking = false;
     state.audio = null;
@@ -657,6 +697,8 @@ async function requestAIReply(text) {
     return parsedReply.text;
   } catch (error) {
     state.messages.pop();
+    state.replySegments = [];
+    state.replyEmotion = "neutral";
     return "معلش يا " + state.ownerName + "، " + error.message;
   }
 }
@@ -678,6 +720,8 @@ async function handleRecognizedText(text, voiceTurn = false) {
   const clean = text.trim();
   if (!clean || state.processing || (voiceTurn && !state.listening)) return;
   state.processing = true;
+  state.replySegments = [];
+  state.replyEmotion = "neutral";
   try {
     if (voiceTurn) { try { state.recognition?.stop(); } catch (_) {} }
     $("liveTranscript").textContent = "أنت قلت: “" + clean + "”";
