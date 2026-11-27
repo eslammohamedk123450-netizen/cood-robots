@@ -347,7 +347,7 @@ assert.match(html, /class="conversation-log solina-conversation-feed" id="conver
 assert.match(html, /id="scheduledTasksList"/, "Settings should expose saved reminders and alarms");
 console.log("Arabic task parser checks passed.");
 
-const androidMain = read("../android/app/src/main/java/com/solina/assistant/MainActivity.java");
+
 assert.match(androidMain, /permissionInfo\(\)/, "Android bridge must report real device permission state");
 assert.match(androidMain, /requestPermission\(String name\)/, "Android bridge must request or open each permission directly");
 assert.match(app, /solina-native-speech-result/, "The app must consume Android native speech results");
