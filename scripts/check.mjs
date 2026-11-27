@@ -18,8 +18,10 @@ const missing = [...new Set(refs.filter((id) => !ids.includes(id)))];
 assert.deepEqual(missing, [], "app.js references missing HTML IDs");
 
 assert.match(html, /Content-Security-Policy/, "CSP meta policy must be present");
-assert.equal(html.includes("\\n"), false, "HTML must not contain literal escaped newline artifacts");
-assert.equal(app.includes("\\n"), false, "app.js must not contain literal escaped newline artifacts");
+assert.equal(html.includes("\
+"), false, "HTML must not contain literal escaped newline artifacts");
+assert.equal(app.includes("\
+"), false, "app.js must not contain literal escaped newline artifacts");
 assert.match(pin, /login_pin/, "Returning owner must authenticate through the server");
 assert.match(pin, /check_session/, "Saved owner sessions must be validated server-side on return");
 assert.doesNotMatch(pin, /setup_pin|pinSetupForm|check_setup/, "Owner PIN creation flow must not be exposed in the browser");
@@ -308,12 +310,14 @@ assert.equal(parseTaskCommand("فكريني بمعاد بكرة الساعة ع�
 const namedAppointment = parseTaskCommand("فكريني بمعاد بكرة الساعة عشرة صباحا كشف دكتور", fixedNow);
 assert.equal(namedAppointment?.action, "create", "Named appointment should be ready for confirmation");
 assert.match(namedAppointment?.title || "", /كشف دكتور/, "Appointment title should be retained");
-assert.equal(parseTaskCommand("فكريني بعد نص ساعة أذاكر", fixedNow)?.action, "create", "Relative reminder durations should be recognized");\nassert.equal(new Date(parseTaskCommand("فكريني بعد شوية أذاكر", fixedNow).scheduledAt).getTime(), fixedNow.getTime() + 300000, "After a little while should default to five minutes");
+assert.equal(parseTaskCommand("فكريني بعد نص ساعة أذاكر", fixedNow)?.action, "create", "Relative reminder durations should be recognized");
+assert.equal(new Date(parseTaskCommand("فكريني بعد شوية أذاكر", fixedNow).scheduledAt).getTime(), fixedNow.getTime() + 300000, "After a little while should default to five minutes");
 assert.equal(parseTaskCommand("الغى كل التذكيرات", fixedNow)?.all, true, "Bulk task cancellation should be recognized");
 assert.equal(normalizeTaskText("الساعة ٩:٣٠"), "الساعة 9:30", "Arabic numerals and clock separators should normalize safely");
 assert.match(app, /parseTaskCommand\(clean\)/, "Voice and text turns should route task commands locally");
 assert.match(app, /function handleTaskDialogue\(clean\)/, "Task setup must support multi-turn conversational slot filling");
-assert.match(app, /beginTaskConfirmation\(intent\)/, "Task details must be confirmed before scheduling");\nassert.match(app, /أفكّرك بـ/, "Reminder confirmation should hide internal reminder schedules");
+assert.match(app, /beginTaskConfirmation\(intent\)/, "Task details must be confirmed before scheduling");
+assert.match(app, /أفكّرك بـ/, "Reminder confirmation should hide internal reminder schedules");
 assert.match(app, /pendingTaskDraft/, "Pending task details must remain available between voice turns");
 assert.match(app, /window\.SolinaNative/, "Task actions must use the native Android bridge");
 assert.match(html, /id="scheduledTasksList"/, "Settings should expose saved reminders and alarms");
