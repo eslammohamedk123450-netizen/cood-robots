@@ -854,12 +854,18 @@ Deno.serve(async (req: Request) => {
         .select("id,provider,base_url,secret_id,is_active").eq("user_id", userId).eq("is_active", true).in("id", providerIds);
       if (providerError) throw providerError;
       const providerMap = new Map((providers ?? []).map((provider: any) => [provider.id, provider]));
+      // Read each distinct provider secret concurrently; multiple models may share one key.
+      const secretEntries = await Promise.all((providers ?? []).map(async (provider: any) => {
+        const { data: apiKey, error: keyError } = await admin.rpc("nova_read_api_secret", { p_secret_id: provider.secret_id });
+        return [provider.id, !keyError && typeof apiKey === "string" && apiKey ? apiKey : null] as const;
+      }));
+      const secretMap = new Map(secretEntries);
       const failures: string[] = [];
       for (const model of models) {
         const provider = providerMap.get(model.api_key_id);
         if (!provider) continue;
-        const { data: apiKey, error: keyError } = await admin.rpc("nova_read_api_secret", { p_secret_id: provider.secret_id });
-        if (keyError || typeof apiKey !== "string" || !apiKey) { failures.push(model.model_id + ": vault unavailable"); continue; }
+        const apiKey = secretMap.get(model.api_key_id);
+        if (!apiKey) { failures.push(model.model_id + ": vault unavailable"); continue; }
         try {
           const providerType = provider.provider as ProviderType;
           if (!providerTypes.has(providerType)) { failures.push(model.model_id + ": unsupported provider"); continue; }
