@@ -809,6 +809,9 @@ async function getStopAudioCache() {
 }
 async function playStopAcknowledgement() {
   const phrase = "حاضر، سكت.";
+  state.processing = true; state.speaking = true;
+  try { state.recognition?.stop(); } catch (_) {}
+  stopInterruptRecognition();
   try {
     const cached = await getStopAudioCache();
     if (!cached) { await speakWithDevice(phrase, state.persona, []); return; }
@@ -816,9 +819,18 @@ async function playStopAcknowledgement() {
     for (let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
     const url = URL.createObjectURL(new Blob([bytes], {type:cached.mime}));
     const audio = new Audio(url); audio.preload = "auto";
-    audio.onended = () => URL.revokeObjectURL(url); audio.onerror = () => URL.revokeObjectURL(url);
-    await audio.play();
-  } catch (error) { console.warn("NOVA stop acknowledgement failed:", error); try { await speakWithDevice(phrase, state.persona, []); } catch (_) {} }
+    await new Promise((resolve, reject) => {
+      audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+      audio.onerror = () => { URL.revokeObjectURL(url); reject(new Error("تعذر تشغيل صوت الإيقاف المحفوظ.")); };
+      audio.play().catch(reject);
+    });
+  } catch (error) {
+    console.warn("NOVA stop acknowledgement failed:", error);
+    try { await speakWithDevice(phrase, state.persona, []); } catch (_) {}
+  } finally {
+    state.speaking = false; state.processing = false; resetSpeechMouth();
+    if (state.listening && state.recognition) window.setTimeout(() => { if (state.listening && !state.processing) { try { state.recognition.start(); } catch (_) {} } }, 300);
+  }
 }
 function stopInterruptRecognition() {
   const recognition = state.interruptRecognition; state.interruptRecognition = null;
