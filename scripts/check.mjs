@@ -208,3 +208,5 @@ assert.match(app, /function openSettings\(\) \{ \$\("settingsDialog"\)\.showModa
 assert.match(app, /جاري تحميل مفاتيح API المحفوظة/, "Provider list must show a loading state instead of a false empty state");
 assert.match(app, /تعذر تحميل المفاتيح من الخادم:/, "Provider list failures must be shown as errors, not as an empty key list");
 assert.match(html, /id="reloadProvidersButton"/, "Settings must provide a manual API key list refresh control");
+
+assert.match(app, /const savedOwnerSession = localStorage\.getItem\("nova\.owner\.session\.v2"\)/, "App module must adopt the already validated session if pin.js finishes first");
