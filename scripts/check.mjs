@@ -199,6 +199,8 @@ assert.match(css, /solina-breathe/, "Solina audio orb must pulse");
 assert.match(app, /window\.solinaWave\?\.setLevel\(amount, energy\)/, "Audio orb must follow real playback amplitude");
 
 assert.match(app, /wakePattern = .*سولينا/, "Only the Solina wake word should activate voice turns");
+assert.ok(app.includes(String.raw`const wakePattern = /(?:^|\s)`), "Wake-word matching must use a real whitespace boundary");
+assert.ok(app.includes(String.raw`normalized.replace(/(?:^|\s)`), "Stop-command matching must use a real whitespace boundary");
 assert.doesNotMatch(app, /wakePattern = .*نوفا|wakePattern = .*سولي(?!نا)|wakePattern = .*سولين(?!ا)/, "Old wake-word aliases must not activate the assistant");
 
 assert.doesNotMatch(app, /واجهة NOVA مفتوحة حاليًا في الوضع المحلي/, "Cloud AI must never silently fall back to a fake local reply");
