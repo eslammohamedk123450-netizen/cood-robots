@@ -13,8 +13,7 @@
   async function callServer(action, payload = {}) {
     const response = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "apikey": PUBLISHABLE_KEY,
-        ...(payload.token ? { "Authorization": "Bearer " + payload.token } : {}) },
+      headers: { "Content-Type": "application/json", "apikey": PUBLISHABLE_KEY },
       body: JSON.stringify({ action, ...payload })
     });
     const data = await response.json().catch(() => ({}));
@@ -52,7 +51,7 @@
     restoreInFlight = (async () => {
       try {
         const result = await callServer("check_session", { token: saved });
-        if (result.valid) { openApp(saved); return true; }
+        if (result.valid) { openApp(saved); return saved; }
         localStorage.removeItem(SESSION_KEY);
         return false;
       } catch (error) {
