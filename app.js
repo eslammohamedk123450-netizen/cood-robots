@@ -1,4 +1,4 @@
-import { parseTaskCommand, formatTaskDate } from "./task-manager.js";
+import { parseTaskCommand, formatTaskDate } from "./task-manager.js?v=solina-device-router-v2";
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soleen", emotion: "idle", listening: false, speaking: false,
@@ -1092,6 +1092,22 @@ function renderScheduledTasks() {
 }
 async function executeTaskIntent(intent) {
   const bridge = nativeTaskBridge();
+  if (intent.action === "open_settings") {
+    if (!bridge || typeof bridge.openSettings !== "function") return "فتح إعدادات الهاتف متاح من تطبيق سولينا APK فقط.";
+    try {
+      const result = JSON.parse(bridge.openSettings());
+      return result.ok ? "حاضر، فتحتلك إعدادات الهاتف." : "ماقدرتش أفتح إعدادات الهاتف.";
+    } catch (_) { return "ماقدرتش أفتح إعدادات الهاتف."; }
+  }
+  if (intent.action === "open_app") {
+    if (!bridge || typeof bridge.openApp !== "function") return "فتح التطبيقات من الهاتف متاح من نسخة سولينا APK فقط.";
+    try {
+      const result = JSON.parse(bridge.openApp(intent.appName));
+      return result.ok ? "حاضر، فتحت " + (result.app || intent.appName) + "." :
+        result.error === "app_not_found" ? "مش لاقية تطبيق باسم " + intent.appName + " على الهاتف." :
+        "ماقدرتش أفتح التطبيق ده على الهاتف.";
+    } catch (_) { return "ماقدرتش أفتح التطبيق ده على الهاتف."; }
+  }
   if (intent.action === "needs_fajr_time") return "أقدر أصحيك للفجر، بس محتاجة أعرف المدينة أو ميعاد الفجر اللي تحب أعتمده. مش هخمن وقت الصلاة.";
   if (intent.action === "needs_time") return "تمام، عايزني أظبطه على الساعة كام بالظبط؟ قولّي الساعة والدقايق.";
   if (intent.action === "needs_title") return "حاضر، أفكّرك بإيه في المعاد ده؟";
