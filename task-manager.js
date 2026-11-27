@@ -46,7 +46,7 @@ function parseSchedule(text, now = new Date()) {
   }
   const clockText = text.replace(/خمسة\s+وأ?ربعين|خمس\s+وأ?ربعين/g, "45").replace(/(^|\s)(واحده|واحد|واحدة|اتنين|اثنين|تلاته|تلاتة|ثلاثه|ثلاثة|اربعه|اربعة|أربعة|خمسه|خمسة|سته|ستة|سبعه|سبعة|تمانيه|تمانية|تمنية|ثمانية|تسعه|تسعة|عشره|عشرة|حداشر|احداشر|اتناشر|اثناشر|عشرين|تلاتين|ثلاثين|اربعين|أربعين|خمسين)(?=$|\s)/g,
     (all, prefix, word) => prefix + (SPOKEN_NUMBERS[word] || word));
-  const spokenClock = clockText.match(/(?:الساعه\s*|الساعة\s*)?(\d{1,2})\s+و\s+(\d{1,2})\s*(?:دقيقه|دقيقة)?\s*(صباحا|صباح|الصبح|مساء|بالليل|ليل)?/);
+  const spokenClock = clockText.match(/(?:الساعه\s*|الساعة\s*)?(\d{1,2})\s+و\s*(\d{1,2})\s*(?:دقيقه|دقيقة)?\s*(صباحا|صباح|الصبح|مساء|بالليل|ليل)?/);
   const match = spokenClock || clockText.match(/(?:الساعه\s*|الساعة\s*)?(\d{1,2})(?::(\d{2}))?\s*(صباحا|صباح|الصبح|مساء|بالليل|ليل)?/);
   if (!match) return null;
   const hour = Number(match[1]), minute = Number(spokenClock ? match[2] : (match[2] || 0)), dayPart = (spokenClock ? match[3] : match[3]) || "";
