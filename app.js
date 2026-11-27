@@ -1,4 +1,22 @@
 const $ = (id) => document.getElementById(id);
+// Always enforce the new screen-face avatar, even if an older cached HTML shell is opened.
+function enforceScreenFaceAvatar() {
+  const mount = $("character3dMount");
+  const fallback = $("characterFallback");
+  if (!mount || !fallback) return;
+  mount.classList.remove("has-3d");
+  mount.querySelectorAll("canvas").forEach((node) => node.remove());
+  if (!fallback.querySelector("#faceScreen")) {
+    fallback.className = "character-fallback face-avatar";
+    fallback.innerHTML = '<div class="face-screen" id="faceScreen"><div class="face-scanline"></div><div class="face-eyes"><span class="face-eye left"></span><span class="face-eye right"></span></div><div class="face-mouth" id="faceMouth"><i></i></div><span class="face-spark spark-one"></span><span class="face-spark spark-two"></span></div>';
+  }
+  fallback.setAttribute("aria-hidden", "true");
+  fallback.style.display = "grid";
+  fallback.style.visibility = "visible";
+  fallback.style.opacity = "1";
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", enforceScreenFaceAvatar, { once: true });
+else enforceScreenFaceAvatar();
 const state = {
   persona: "soly", emotion: "idle", listening: false, speaking: false,
   recognition: null, restartRecognition: false, processing: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
