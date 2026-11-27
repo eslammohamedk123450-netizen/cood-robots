@@ -2,7 +2,7 @@ const $ = (id) => document.getElementById(id);
 const state = {
   persona: (localStorage.getItem("nova.persona") === "soleen" ? "soleen" : "soly"), emotion: "idle", listening: false, speaking: false,
   recognition: null, restartRecognition: false, processing: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
-  messages: [], messagesByPersona: { soly: [], soleen: [] }, conversationIds: { soly: null, soleen: null }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: ""
+  messages: [], messagesByPersona: { soly: [], soleen: [] }, conversationIds: { soly: null, soleen: null }, historyQueues: { soly: Promise.resolve(), soleen: Promise.resolve() }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: ""
 };
 const personas = {
   soly: { name: "سولي", description: "صاحبك الأزرق 💙", color: "#69a0ff", accent: "#2760c7", intro: "سولي معاك" },
@@ -859,10 +859,21 @@ function handleLocalVoiceCommand(value) {
   if (addressed && !command) { setStatus("أيوه، معاك", "listening"); $("liveTranscript").textContent = "أيوه، سامعك. قولّي."; return { handled: true }; }
   return { handled: false, text: addressed ? command : String(value || "").trim() };
 }
-async function persistConversationMessage(role, content) {
-  if (!state.session || !content?.trim()) return;
-  const result = await invokeNova("history_append", { conversation_id: state.conversationIds[state.persona], persona: state.persona, role, content: content.trim() });
-  state.conversationIds[state.persona] = result.conversation_id; localStorage.setItem("nova.activeConversation." + state.persona, result.conversation_id);
+function persistConversationMessage(role, content) {
+  const persona = state.persona;
+  if (!state.session || !content?.trim()) return Promise.resolve();
+  // Serialize writes per persona so a fast assistant reply can never overtake
+  // the user's message when a new conversation is created.
+  const write = state.historyQueues[persona].catch(() => {}).then(async () => {
+    const result = await invokeNova("history_append", {
+      conversation_id: state.conversationIds[persona], persona, role, content: content.trim()
+    });
+    state.conversationIds[persona] = result.conversation_id;
+    localStorage.setItem("nova.activeConversation." + persona, result.conversation_id);
+    return result;
+  });
+  state.historyQueues[persona] = write;
+  return write;
 }
 async function searchConversationMemory(query, signal) {
   if (!state.session || !query?.trim()) return [];
@@ -904,7 +915,9 @@ async function handleRecognizedText(text, voiceTurn = false) {
   try {
     if (voiceTurn) { try { state.recognition?.stop(); } catch (_) {} startInterruptRecognition(); }
     $("liveTranscript").textContent = "أنت قلت: “" + clean + "”";
-    try { await persistConversationMessage("user", clean); } catch (historyError) { console.warn("NOVA user message save failed:", historyError); }
+    // Start durable history saving in the background; don't make the user
+    // wait for a database round trip before NOVA starts thinking.
+    void persistConversationMessage("user", clean).catch((historyError) => console.warn("NOVA user message save failed:", historyError));
     addConversationLine(clean, "owner");
     setStatus("بفكر في كلامك...", "thinking");
     animateCharacter("thinking");
@@ -912,9 +925,12 @@ async function handleRecognizedText(text, voiceTurn = false) {
     if (controller.signal.aborted || requestId !== state.requestSequence || (voiceTurn && !state.listening)) return;
     setSpeechSegmentTone(state.replyEmotion || inferReplyTone(reply));
     addConversationLine(reply, "nova"); $("liveTranscript").textContent = reply;
-    try { await persistConversationMessage("assistant", reply); } catch (historyError) { console.warn("NOVA assistant message save failed:", historyError); }
-    await loadConversationHistory(false);
+    const assistantHistorySave = persistConversationMessage("assistant", reply)
+      .catch((historyError) => console.warn("NOVA assistant message save failed:", historyError));
+    // Start speech immediately. History writes are serialized in the background.
     await speak(reply, state.replySegments || [], controller.signal);
+    await assistantHistorySave;
+    void loadConversationHistory(false);
   } catch (error) { if (error?.name !== "AbortError") console.error("NOVA turn failed:", error); }
   finally { if (state.requestController === controller) state.requestController = null; if (requestId === state.requestSequence) state.processing = false; }
 }
