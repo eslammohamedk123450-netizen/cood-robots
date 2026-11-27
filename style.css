@@ -707,3 +707,24 @@ body{background:radial-gradient(ellipse at 50% 43%,rgba(28,51,86,.46),transparen
 @media(max-width:700px){.character-stage{height:clamp(350px,53vh,470px)!important}.holo-person{width:min(92%,390px)}.holo-caption{bottom:7%}}
 @media(max-width:390px){.character-stage{height:350px!important}.holo-person{width:100%;height:90%}}
 @media(prefers-reduced-motion:reduce){.nova-hologram *{animation:none!important}}
+
+
+/* NOVA facial micro-animation and speech-driven expression sync */
+.nova-hologram{--mouth-scale:.48;--audio-level:0}
+.holo-eye{transform-box:fill-box;transform-origin:center;animation:holo-natural-blink 5.7s ease-in-out infinite}
+.holo-eye:nth-of-type(2){animation-delay:1.35s}
+.holo-mouth{transform-box:fill-box;transform-origin:center;transform:scaleY(var(--mouth-scale,.48));transition:transform 55ms linear;will-change:transform}
+.nova-hologram[data-mood="speaking"] .holo-mouth{filter:drop-shadow(0 0 5px #c8faff)}
+.nova-hologram[data-expression="happy"] .holo-mouth{transform:scaleY(1.35)}
+.nova-hologram[data-expression="happy"] .holo-eye{transform:scaleY(.72)}
+.nova-hologram[data-expression="sad"] .holo-eye{transform:scaleY(.82)}
+.nova-hologram[data-expression="concerned"] .holo-face{transform:translateY(2px) rotate(-1deg)}
+.nova-hologram[data-expression="surprised"] .holo-eye{transform:scaleY(1.42)}
+.nova-hologram[data-expression="curious"] .holo-head{transform:rotate(4deg)}
+.nova-hologram[data-expression="playful"] .holo-head{transform:rotate(-3deg)}
+.nova-hologram[data-expression="caring"] .holo-aura{opacity:.34}
+@keyframes holo-natural-blink{
+  0%,43%,46%,78%,81%,100%{transform:scaleY(1)}
+  44.5%,79.5%{transform:scaleY(.08)}
+}
+@media(prefers-reduced-motion:reduce){.holo-eye{animation:none!important}}
