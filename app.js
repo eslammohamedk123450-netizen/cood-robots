@@ -1237,13 +1237,6 @@ function taskPromptFor(intent) {
   if (intent.action === "needs_title") return "حاضر، اسم المعاد أو المناسبة إيه عشان أسجله صح؟";
   return "";
 }
-function beginTaskConfirmation(intent) {
-  state.pendingTaskDraft = { stage: "confirm", intent };
-  const when = formatTaskDate(new Date(intent.scheduledAt).getTime());
-  return intent.type === "alarm"
-    ? "أظبط المنبه " + when + "؟"
-    : "تمام، أفكّرك بـ" + (intent.title || "الموعد") + " " + when + "؟";
-}
 function handleTaskDialogue(clean) {
   const normalized = String(clean || "").trim();
   const clockQuestion = /(?:الساعه|الساعة)\s*(?:كام|كم)|كام\s+(?:الساعه|الساعة)|الوقت\s+كام|الوقت\s+دلوقتي|الساعة\s+دلوقتي/.test(normalizeTaskText(normalized));
@@ -1261,38 +1254,28 @@ function handleTaskDialogue(clean) {
     return { handled: true, intent: { action: "snooze_task", taskId: String(dueReminders[0].id), minutes: 10 } };
   }
   const pending = state.pendingTaskDraft;
-  const confirmationText = normalizeTaskText(clean).replace(/^(?:يا\s*)?سولينا\s*/,"").replace(/^(?:طيب|تمام|خلاص|ماشي)\s*/,"").trim();
-  const yes = /^(?:(?:أيوه|ايوه|أيوة|اه|أه|تمام|مظبوط|مضبوط|صحيح|صح|موافق|موافقة|احفظيه|احفظي|احفظ|سجليه|سجل|أكد|اكدي|نعم|yes)(?:\s+(?:بالظبط|بالضبط|اكيد|أكيد|مظبوط|مضبوط|صحيح|صح|تمام|كده|الموعد|التذكير|ده|دي|ه|ها))*)$/i.test(confirmationText);
-  const no = /^(?:لا|لأ|مش دلوقتي|الغيه|الغي|إلغاء|cancel)(?:\s+(?:الموعد|التذكير|ده|دي))?$/i.test(confirmationText);
-  if (pending?.stage === "confirm") {
-    if (yes) {
-      state.pendingTaskDraft = null;
-      return { handled: true, intent: pending.intent };
-    }
-    if (no) {
-      state.pendingTaskDraft = null;
-      return { handled: true, reply: "تمام، مش هحفظ الموعد. لو عايز تغيّر الوقت أو العنوان، قولي الطلب من جديد." };
-    }
-    state.pendingTaskDraft = null;
-  } else if (pending) {
-    const isPeriodAnswer = /^(?:بالليل|ليل|مساء|الصبح|صباح|صباحا|مساءً|بالنهار)$/i.test(confirmationText);
-    const isTimeAnswer = /(?:\d|واحد|واحدة|اتنين|اثنين|تلات|ثلاث|اربعة|أربعة|خمسة|خمس|ستة|سبعة|تمانية|ثمانية|تسعة|عشرة|حداشر|اتناشر|بعد)/.test(confirmationText);
-    if ((pending.stage === "needs_period" && !isPeriodAnswer) ||
-        (pending.stage === "needs_time" && !isTimeAnswer)) {
-      state.pendingTaskDraft = null;
-    } else {
+  const answerText = normalizeTaskText(clean)
+    .replace(/^(?:يا\s*)?سولينا\s*/, "")
+    .replace(/^(?:طيب|تمام|خلاص|ماشي)\s*/, "").trim();
+  if (pending) {
+    const isPeriodAnswer = /^(?:بالليل|ليل|مساء|مساءً|الصبح|صباح|صباحا|بالنهار|الظهر)$/i.test(answerText);
+    const isTimeAnswer = /(?:\d|واحد|واحدة|اتنين|اثنين|تلات|ثلاث|اربعه|أربعة|خمسة|خمس|ستة|سبعة|تمانية|ثمانية|تسعة|عشرة|حداشر|اتناشر|بعد)/.test(answerText);
+    const isTitleAnswer = answerText.length >= 2 && !/^(?:لا|لأ|مش عارف|مش عارفة)$/i.test(answerText);
+    const answerFits = pending.stage === "needs_period" ? isPeriodAnswer :
+      pending.stage === "needs_time" ? isTimeAnswer : pending.stage === "needs_title" ? isTitleAnswer : false;
+    if (answerFits) {
       pending.raw += " " + clean;
       const parsed = parseTaskCommand(pending.raw);
-      if (!parsed || ["needs_time", "needs_period", "needs_title"].includes(parsed.action)) {
-        pending.stage = parsed?.action || pending.stage;
-        return { handled: true, reply: taskPromptFor(parsed || { action: pending.stage }) };
-      }
-      if (parsed.action === "create") {
+      if (parsed?.action === "create") {
         state.pendingTaskDraft = null;
-        return { handled: true, reply: beginTaskConfirmation(parsed) };
+        return { handled: true, intent: parsed };
       }
-      state.pendingTaskDraft = null;
+      if (parsed && ["needs_time", "needs_period", "needs_title"].includes(parsed.action)) {
+        pending.stage = parsed.action;
+        return { handled: true, reply: taskPromptFor(parsed) };
+      }
     }
+    state.pendingTaskDraft = null;
   }
   const intent = parseTaskCommand(clean);
   if (!intent) return { handled: false };
@@ -1300,7 +1283,6 @@ function handleTaskDialogue(clean) {
     state.pendingTaskDraft = { stage: intent.action, raw: clean };
     return { handled: true, reply: taskPromptFor(intent) };
   }
-  if (intent.action === "create") return { handled: true, reply: beginTaskConfirmation(intent) };
   return { handled: true, intent };
 }
 async function executeTaskIntent(intent) {
@@ -1414,8 +1396,8 @@ async function executeTaskIntent(intent) {
     renderScheduledTasks();
     const when = formatTaskDate(Number(stored.at));
     return intent.type === "alarm"
-      ? "اتسجل المنبه على الهاتف بنجاح، يوم " + when + "."
-      : "اتحفظ تذكير " + stored.title + " على الهاتف بنجاح، يوم " + when + ".";
+      ? "حاضر، تم تفعيل المنبه " + when + "."
+      : "حاضر، اتسجل التذكير " + stored.title + " " + when + ".";
   }
   return null;
 }
