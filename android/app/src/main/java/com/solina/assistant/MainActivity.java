@@ -13,6 +13,10 @@ import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
+import android.media.AudioAttributes;
+import java.util.Locale;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
@@ -30,10 +34,40 @@ import java.util.UUID;
 public class MainActivity extends Activity {
     private WebView webView;
     private SpeechRecognizer speechRecognizer;
+    private TextToSpeech textToSpeech;
+    private boolean ttsReady = false;
+    private String pendingTtsText = null;
     private final String appUrl = "https://eslammohamedk123450-netizen.github.io/cood-robots/?solina=command-router-v2";
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        textToSpeech = new TextToSpeech(this, status -> {
+            if (status != TextToSpeech.SUCCESS) {
+                ttsReady = false;
+                dispatchTtsEvent("error", "تعذر تهيئة محرك تحويل النص إلى كلام في أندرويد.");
+                return;
+            }
+            int language = textToSpeech.setLanguage(new Locale("ar", "EG"));
+            if (language < TextToSpeech.LANG_AVAILABLE) language = textToSpeech.setLanguage(new Locale("ar"));
+            if (language < TextToSpeech.LANG_AVAILABLE) language = textToSpeech.setLanguage(Locale.getDefault());
+            if (language < TextToSpeech.LANG_AVAILABLE) {
+                ttsReady = false;
+                dispatchTtsEvent("error", "حزمة الصوت العربية غير مثبتة على الجهاز.");
+                return;
+            }
+            if (Build.VERSION.SDK_INT >= 21) {
+                textToSpeech.setAudioAttributes(new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ASSISTANT)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build());
+            }
+            ttsReady = true;
+            if (pendingTtsText != null) {
+                String pending = pendingTtsText;
+                pendingTtsText = null;
+                speakNativeTextNow(pending);
+            }
+        });
         webView = new WebView(this);
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
@@ -64,6 +98,28 @@ public class MainActivity extends Activity {
         setContentView(webView);
         webView.loadUrl(appUrl);
         requestStartupPermissions();
+    }
+
+    private void dispatchTtsEvent(String event, String message) {
+        if (webView == null) return;
+        String script = "window.dispatchEvent(new CustomEvent('solina-native-tts',{detail:{event:"
+                + JSONObject.quote(event) + ",message:" + JSONObject.quote(message == null ? "" : message) + "}}));";
+        runOnUiThread(() -> { if (webView != null) webView.evaluateJavascript(script, null); });
+    }
+
+    private void speakNativeTextNow(String text) {
+        if (!ttsReady || textToSpeech == null) {
+            dispatchTtsEvent("error", "محرك الصوت في أندرويد غير جاهز.");
+            return;
+        }
+        textToSpeech.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+            @Override public void onStart(String utteranceId) { dispatchTtsEvent("start", ""); }
+            @Override public void onDone(String utteranceId) { dispatchTtsEvent("done", ""); }
+            @Override public void onError(String utteranceId) { dispatchTtsEvent("error", "محرك أندرويد فشل في إخراج الصوت."); }
+            @Override public void onError(String utteranceId, int errorCode) { dispatchTtsEvent("error", "فشل إخراج الصوت، رمز الخطأ " + errorCode); }
+        });
+        int result = textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "solina-" + System.currentTimeMillis());
+        if (result == TextToSpeech.ERROR) dispatchTtsEvent("error", "تعذر بدء النطق على الجهاز.");
     }
 
     void dispatchSpeechResult(JSONArray transcripts) {
@@ -171,6 +227,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onDestroy() {
         stopNativeSpeechRecognition();
+        if (textToSpeech != null) { textToSpeech.stop(); textToSpeech.shutdown(); textToSpeech = null; }
         if (webView != null) webView.destroy();
         super.onDestroy();
     }
@@ -410,6 +467,22 @@ public class MainActivity extends Activity {
             } catch (Exception ignored) { return "{\"platform\":\"android\"}"; }
         }
 
+        @JavascriptInterface public String speakText(String text) {
+            if (text == null || text.trim().isEmpty()) return "{\"ok\":false,\"error\":\"empty_text\"}";
+            String safeText = text.length() > 3900 ? text.substring(0, 3900) : text;
+            activity.runOnUiThread(() -> {
+                if (activity.ttsReady) activity.speakNativeTextNow(safeText);
+                else activity.pendingTtsText = safeText;
+            });
+            return "{\"ok\":true,\"queued\":true}";
+        }
+        @JavascriptInterface public void stopSpeaking() {
+            activity.runOnUiThread(() -> {
+                activity.pendingTtsText = null;
+                if (activity.textToSpeech != null) activity.textToSpeech.stop();
+            });
+        }
+        @JavascriptInterface public boolean isTtsReady() { return activity.ttsReady; }
         @JavascriptInterface public void startSpeechRecognition() { activity.startNativeSpeechRecognition(); }
         @JavascriptInterface public void stopSpeechRecognition() { activity.runOnUiThread(activity::stopNativeSpeechRecognition); }
     }
