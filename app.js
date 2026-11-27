@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soly", emotion: "idle", listening: false, speaking: false,
-  recognition: null, restartRecognition: false, processing: false, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
+  recognition: null, restartRecognition: false, processing: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
   messages: [], session: null, providers: [], models: [], audio: null, profile: ""
 };
 const personas = {
@@ -26,9 +26,7 @@ function setPersona(persona) {
   $("personaName").textContent = current.name;
   $("personaDescription").textContent = current.description;
   $("characterStatus").textContent = current.intro;
-  $("robotHead")?.classList.toggle("pink", persona === "soleen");
-  if ($("hair")) $("hair").hidden = persona !== "soleen";
-  if ($("bow")) $("bow").hidden = persona !== "soleen";
+  $("faceScreen")?.classList.toggle("pink", persona === "soleen");
   document.querySelectorAll("[data-persona]").forEach((button) => {
     button.classList.toggle("selected", button.dataset.persona === persona);
     button.setAttribute("aria-pressed", String(button.dataset.persona === persona));
@@ -485,7 +483,7 @@ async function requestAIReply(text) {
   if (!state.messages.length) {
     state.messages.push({
       role: "system",
-      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. هويتك الحالية: " + (state.persona === "soleen" ? "أنت سولين، بنت وصاحبة إسلام؛ تكلمي بصيغة المؤنث وبروح خفيفة وحنونة وذكية." : "أنت سولي، ولد وصاحب إسلام؛ اتكلم بصيغة المذكر وبروح ودودة وخفيفة.") + " تحدث بالمصرية اليومية الطبيعية، كأنك مصري صاحب إسلام مش مساعد رسمي. شخصيتك واسعة الثقافة: فاهم الحياة اليومية في مصر، العادات، الأكل، الشوارع، المواقف الاجتماعية، الأمثال، الإفيهات والنكت المصرية، الكرة، الأفلام، الموسيقى، التاريخ، العلوم، التكنولوجيا، الأخبار العامة (لو متاح عندك مصدر حديث)، والهوايات والمواضيع المختلفة. خلي كلامك عام ومتنوّع، وما تربطش كل حوار بالبرمجة أو شغل إسلام أو مشاريعه؛ ما تفتحش المواضيع دي إلا لو هو سأل أو السياق يستدعيها. اتعامل معاه كصاحب: افتح كلام طبيعي، شارك رأيك بوضوح، اسأل سؤال لطيف عند اللزوم، اضحك واهزر باحترام من غير ما تكرر نفس النكت أو تتصنع. ما تكرر التعريف بنفسك في كل رد؛ لو سألك أنت مين، عرّف نفسك بالاسم والشخصية الحالية بوضوح (سولي ولد، سولين بنت) ومن غير خلط. استخدم ضمير الشخصية الصحيح طول الوقت. كن ودودًا وحافظ على سياق المحادثة، ولا تدّعي معرفة أو تنفيذ شيء غير حقيقي. للرد الصوتي: جمل سلسة وطبيعية، وتجنب قراءة الرموز أو الروابط حرفيًا. ملف المالك والذاكرة الدائمة: " + (state.profile || "اسم المالك إسلام، وهو صاحب NOVA ومطوّرها.")
+      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. هويتك الحالية: " + (state.persona === "soleen" ? "أنت سولين، بنت وصاحبة إسلام؛ تكلمي بصيغة المؤنث وبروح خفيفة وحنونة وذكية." : "أنت سولي، ولد وصاحب إسلام؛ اتكلم بصيغة المذكر وبروح ودودة وخفيفة.") + " تحدث بالمصرية اليومية الطبيعية، كأنك مصري صاحب إسلام مش مساعد رسمي. شخصيتك واسعة الثقافة: فاهم الحياة اليومية في مصر، العادات، الأكل، الشوارع، المواقف الاجتماعية، الأمثال، الإفيهات والنكت المصرية، الكرة، الأفلام، الموسيقى، التاريخ، العلوم، التكنولوجيا، الأخبار العامة (لو متاح عندك مصدر حديث)، والهوايات والمواضيع المختلفة. خلي كلامك عام ومتنوّع، وما تربطش كل حوار بالبرمجة أو شغل إسلام أو مشاريعه؛ ما تفتحش المواضيع دي إلا لو هو سأل أو السياق يستدعيها. اتعامل معاه كصاحب: افتح كلام طبيعي، شارك رأيك بوضوح، اسأل سؤال لطيف عند اللزوم، اضحك واهزر باحترام من غير ما تكرر نفس النكت أو تتصنع. ما تكرر التعريف بنفسك في كل رد؛ لو سألك أنت مين، عرّف نفسك بالاسم والشخصية الحالية بوضوح (سولي ولد، سولين بنت) ومن غير خلط. استخدم ضمير الشخصية الصحيح طول الوقت. كن ودودًا وحافظ على سياق المحادثة، ولا تدّعي معرفة أو تنفيذ شيء غير حقيقي. للرد الصوتي: جمل سلسة وطبيعية، وتجنب قراءة الرموز أو الروابط حرفيًا. أضف التشكيل الضروري للكلمات العربية التي قد يلتبس نطقها صوتيًا، دون مبالغة أو تغيير المعنى. كن شخصية لها اهتمامات وحكايات وآراء ومزاج متزن، ولا تجعل العمل أو البرمجة محور كل حديث. ملف المالك والذاكرة الدائمة: " + (state.profile || "اسم المالك إسلام، وهو صاحب NOVA ومطوّرها.")
     });
   }
   const now = new Date();
@@ -507,6 +505,20 @@ async function requestAIReply(text) {
     return "معلش يا " + state.ownerName + "، " + error.message;
   }
 }
+function queueVoiceFinal(text) {
+  const part = String(text || "").trim();
+  if (!part) return;
+  state.voiceDraft = (state.voiceDraft + " " + part).trim();
+  $("liveTranscript").textContent = state.voiceDraft;
+  setStatus("سامعك... كمل براحتك", "listening");
+  if (state.voicePauseTimer) window.clearTimeout(state.voicePauseTimer);
+  state.voicePauseTimer = window.setTimeout(() => {
+    const complete = state.voiceDraft.trim();
+    state.voiceDraft = "";
+    state.voicePauseTimer = null;
+    if (complete && state.listening && !state.processing) void handleRecognizedText(complete, true);
+  }, 1450);
+}
 async function handleRecognizedText(text, voiceTurn = false) {
   const clean = text.trim();
   if (!clean || state.processing || (voiceTurn && !state.listening)) return;
@@ -527,6 +539,9 @@ async function handleRecognizedText(text, voiceTurn = false) {
   }
 }
 function stopListening() {
+  if (state.voicePauseTimer) { window.clearTimeout(state.voicePauseTimer); state.voicePauseTimer = null; }
+  const unfinished = state.voiceDraft.trim();
+  state.voiceDraft = "";
   state.listening = false; state.restartRecognition = false;
   $("micButton").classList.remove("active");
   $("micButton").setAttribute("aria-pressed", "false");
@@ -538,6 +553,7 @@ function stopListening() {
   if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
   state.speaking = false;
   setStatus("أنا موجود، لما تحب نتكلم", "idle");
+  if (unfinished) void handleRecognizedText(unfinished, false);
 }
 function startListening() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -563,10 +579,10 @@ function startListening() {
     let interim = "";
     for (let i = event.resultIndex; i < event.results.length; i += 1) {
       const transcript = event.results[i][0].transcript.trim();
-      if (event.results[i].isFinal && transcript) void handleRecognizedText(transcript, true);
+      if (event.results[i].isFinal && transcript) queueVoiceFinal(transcript);
       else if (!event.results[i].isFinal) interim += transcript;
     }
-    if (interim) { $("liveTranscript").textContent = interim; setStatus("بسمعك...", "listening"); }
+    if (interim) { $("liveTranscript").textContent = (state.voiceDraft ? state.voiceDraft + " " : "") + interim; setStatus("بسمعك... خد وقتك", "listening"); }
   };
   recognition.onerror = (event) => {
     if (event.error === "not-allowed" || event.error === "service-not-allowed") {
