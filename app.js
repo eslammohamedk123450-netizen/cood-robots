@@ -830,7 +830,7 @@ async function requestAIReply(text, signal) {
 function normalizeVoiceCommand(value) { return String(value || "").toLocaleLowerCase("ar").replace(/[ًٌٍَُِّْـ]/g, "").replace(/[،.!؟?]/g, " ").replace(/\s+/g, " ").trim(); }
 function isStopVoiceCommand(value) {
   const normalized = normalizeVoiceCommand(value);
-  const wake = /^(?:(?:يا|ي)\s*)?(?:نوفا|نوفة|nova|سولي|سولينا|سولين)(?=$|\s)\s*/i;
+  const wake = /^(?:(?:يا|ي)\s*)?سولينا(?=$|\s)\s*/i;
   const command = normalized.replace(wake, "").trim();
   return /^(?:اسكتي|اسكت|اسكتوا|توقف|توقفي|وقف|وقفي|الغاء|الغي|خلاص|بس|stop|cancel|quiet)$/i.test(command);
 }
