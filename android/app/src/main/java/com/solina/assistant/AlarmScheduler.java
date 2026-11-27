@@ -57,22 +57,20 @@ public final class AlarmScheduler {
     }
 
     public static void cancel(Context context, String id) {
-        for (String stage : new String[]{"alarm", "day", "hour", "ten", "due", "followup", "show"}) {
-            Intent receiver = stage.equals("show")
-                    ? new Intent(context, MainActivity.class)
-                    : new Intent(context, TaskReceiver.class).setAction(TaskReceiver.ACTION_FIRE)
-                        .putExtra("task_id", id).putExtra("stage", stage);
+        for (String stage : new String[]{"alarm", "day", "hour", "ten", "due", "followup"}) {
+            Intent receiver = new Intent(context, TaskReceiver.class).setAction(TaskReceiver.ACTION_FIRE)
+                    .putExtra("task_id", id).putExtra("stage", stage);
             PendingIntent pending = PendingIntent.getBroadcast(context, requestCode(id, stage), receiver,
                     PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
-            if (stage.equals("show")) {
-                pending = PendingIntent.getActivity(context, requestCode(id, stage), receiver,
-                        PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
-            }
             if (pending != null) {
                 ((AlarmManager) context.getSystemService(Context.ALARM_SERVICE)).cancel(pending);
                 pending.cancel();
             }
         }
+        Intent show = new Intent(context, MainActivity.class);
+        PendingIntent showPending = PendingIntent.getActivity(context, requestCode(id, "show"), show,
+                PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
+        if (showPending != null) showPending.cancel();
     }
 
     public static void rescheduleAll(Context context) {
