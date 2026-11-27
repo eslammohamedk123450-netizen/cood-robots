@@ -40,19 +40,20 @@ public class AlarmActivity extends Activity {
         brand.setTextSize(32);
         brand.setGravity(Gravity.CENTER);
         layout.addView(brand);
-        TextView message = new TextView(this);
         org.json.JSONObject task = TaskStore.find(this, taskId);
-        message.setText(task == null ? "حان موعد الاستيقاظ" : task.optString("title"));
+        boolean reminder = task != null && "reminder".equals(task.optString("type"));
+        TextView message = new TextView(this);
+        message.setText(task == null ? "حان موعدك" : task.optString("title"));
         message.setTextSize(24);
         message.setGravity(Gravity.CENTER);
         message.setPadding(0, 32, 0, 48);
         layout.addView(message);
         Button stop = new Button(this);
-        stop.setText("أنا قمت — إيقاف المنبه");
+        stop.setText(reminder ? "خلصت — إيقاف التذكير" : "أنا قمت — إيقاف المنبه");
         stop.setOnClickListener(view -> stopAlarm());
         layout.addView(stop);
         TextView voiceHint = new TextView(this);
-        voiceHint.setText("قولي: أنا قمت، أو خلاص، أو أوقفي المنبه");
+        voiceHint.setText(reminder ? "قولي: خلصت، أو خلاص، أو أوقفي التذكير" : "قولي: أنا قمت، أو خلاص، أو أوقفي المنبه");
         voiceHint.setTextSize(16);
         voiceHint.setGravity(Gravity.CENTER);
         layout.addView(voiceHint);
@@ -101,8 +102,9 @@ public class AlarmActivity extends Activity {
     private boolean isStopPhrase(String phrase) {
         String clean = phrase == null ? "" : phrase.toLowerCase(java.util.Locale.ROOT)
                 .replaceAll("[\\p{Punct}\\s]", "").replace("أ", "ا").replace("إ", "ا");
-        return clean.contains("انا قمت") || clean.contains("قمت") || clean.contains("صحيت") || clean.contains("صاحي") || clean.contains("خلاص")
-                || clean.contains("وقفت") || clean.contains("اوقفي المنبه") || clean.contains("بطلي");
+        return clean.contains("انا قمت") || clean.contains("قمت") || clean.contains("صحيت") || clean.contains("صاحي")
+                || clean.contains("خلصت") || clean.contains("انتهيت") || clean.contains("خلاص")
+                || clean.contains("وقفت") || clean.contains("اوقفي المنبه") || clean.contains("اوقفي التذكير") || clean.contains("بطلي");
     }
 
     private void launchWakeRecognition() {
