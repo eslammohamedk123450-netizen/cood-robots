@@ -6,6 +6,8 @@ const html = read("../index.html");
 const app = read("../app.js");
 const pin = read("../pin.js");
 const edge = read("../supabase/functions/nova-ai/index.ts");
+const taskManager = read("../task-manager.js");
+const personalItemsMigration = read("../supabase/migrations/20261128190000_nova_account_synced_personal_items.sql");
 const css = read("../style.css") + read("../solina-voice.css");
 const workflow = read("../.github/workflows/pages.yml");
 const scheduler = read("../android/app/src/main/java/com/solina/assistant/AlarmScheduler.java");
@@ -272,10 +274,35 @@ assert.match(app, /function updateMemoryMeta\(updatedAt = null\)/, "Memory setti
 assert.match(app, /result.updated_at/, "Memory timestamps returned by the server must be displayed");
 assert.match(html, /id="reloadOwnerMemory"/, "Owner must be able to refresh saved memory manually");
 assert.match(html, /id="memoryUpdated"/, "Memory panel must display its saved status and timestamp");
+assert.match(html, /id="noteTitle"/, "The account notebook must include a note title field");
+assert.match(html, /id="noteContent"/, "The account notebook must include a note body field");
+assert.match(html, /id="savedNotesList"/, "Saved account notes must be visible in the notebook");
+assert.match(html, /id="tasksFeedback"/, "The tasks page must show cloud synchronization status");
+assert.match(html, /كل المواعيد والمنبهات والمهام محفوظة في حسابك السحابي/, "The UI must explain that personal items are account-owned");
+assert.match(personalItemsMigration, /create table if not exists public\.nova_personal_items/, "Account-owned reminders, alarms, tasks and notes need a dedicated table");
+assert.match(personalItemsMigration, /enable row level security/, "Personal items must enable RLS");
+assert.match(personalItemsMigration, /using \(false\) with check \(false\)/, "Direct public and authenticated table access must be denied");
+assert.match(personalItemsMigration, /grant all on public\.nova_personal_items to service_role/, "Only the authenticated server function should access personal items");
+assert.match(edge, /action === "personal_items_list"/, "The owner API must list account-synced personal items");
+assert.match(edge, /action === "personal_item_save"/, "The owner API must save personal items");
+assert.match(edge, /action === "personal_item_update"/, "The owner API must update completion and snooze state");
+assert.match(edge, /action === "personal_item_delete"/, "The owner API must delete notes");
+assert.match(edge, /\.eq\("user_id", userId\)/, "Personal item queries must always be scoped to the validated owner");
+assert.match(app, /invokeNova\("personal_items_list"\)/, "The app must load items from the account rather than device storage");
+assert.match(app, /async function syncNativeTasks\(\)/, "Android alarms must be restored from account data on login");
+assert.match(app, /savePersonalItem\(\{ item_type: "note"/, "Notes must be saved to the account API");
+assert.match(app, /await savePersonalItem\(\{ id, item_type: intent\.type/, "Voice reminders must be saved in the account before native scheduling");
+assert.match(app, /التنبيه المحلي هيتفعّل عند فتح نسخة أندرويد/, "Web-created reminders must be honestly described as account-saved pending Android scheduling");
+assert.doesNotMatch(app, /قائمة التذكيرات والمنبهات تظهر هنا داخل تطبيق APK/, "Reminder visibility must no longer be APK-only");
+
 
 
 import { parseTaskCommand, normalizeTaskText } from "../task-manager.js";
 const fixedNow = new Date("2026-11-27T08:00:00+02:00");
+assert.equal(parseTaskCommand("سولينا سجلي ملاحظة أراجع فكرة التطبيق", fixedNow)?.action, "create_personal_item", "Voice note requests should route to account storage");
+assert.equal(parseTaskCommand("سيلينا سجلي ملاحظة أراجع فكرة التطبيق", fixedNow)?.type, "note", "Alternative wake-name pronunciation should still save notes");
+assert.equal(parseTaskCommand("ضيفي مهمة أراجع المحاضرة", fixedNow)?.type, "task", "Spoken task creation should create an account task");
+assert.equal(parseTaskCommand("وريني المهام", fixedNow)?.action, "list", "Voice requests to list tasks should read the account list");
 const reminderIntent = parseTaskCommand("فكريني أراجع المحاضرة الساعة 5 مساء", fixedNow);
 assert.equal(reminderIntent?.action, "create", "Arabic reminder command should be recognized");
 assert.equal(reminderIntent?.type, "reminder", "Reminder command should create a reminder");
