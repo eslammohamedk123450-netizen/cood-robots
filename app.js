@@ -433,6 +433,7 @@ async function speak(text, segments = []) {
     const speechVendor = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
     const voicePrefix = speechVendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
     const voiceId = speechVendor === "chatterbox" ? "" : (localStorage.getItem(voicePrefix + (persona === "soleen" ? "female" : "male")) || "");
+    if (speechVendor === "chatterbox" && engine !== "gemini") throw new Error("Chatterbox غير متصل بمسار التوليد في الخادم حاليًا؛ لم يتم إنشاء ملف صوت منه.");
     const speechAction = engine === "gemini" ? "tts_gemini" : "tts";
     const result = await invokeNova(speechAction, { text: spokenText, persona, voice_id: voiceId, provider: speechVendor });
     if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
@@ -495,7 +496,8 @@ async function speak(text, segments = []) {
     resetSpeechMouth();
     if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
     const reason = error?.name ? error.name + ": " + (error.message || "") : (error.message || "خطأ غير معروف");
-    if (engine !== "device") {
+    const selectedProvider = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
+    if (engine !== "device" && selectedProvider !== "chatterbox") {
       try {
         setStatus(personas[persona].name + " بيتحول لصوت الجهاز...", "thinking");
         state.speaking = true;
@@ -505,7 +507,7 @@ async function speak(text, segments = []) {
       } catch (deviceError) {
         showToast("فشل الصوت السحابي والجهاز: " + (deviceError.message || reason).slice(0, 150));
       }
-    } else showToast("تعذر تشغيل صوت الجهاز: " + reason.slice(0, 150));
+    } else showToast((selectedProvider === "chatterbox" ? "Chatterbox: " : "تعذر تشغيل صوت الجهاز: ") + reason.slice(0, 150));
     finish();
   }
 }
