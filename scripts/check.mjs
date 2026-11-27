@@ -398,3 +398,10 @@ console.log("Native Android speech recognition and reminder follow-up checks pas
 
 assert.match(app, /answerFits = pending\.stage === "needs_period"/, "Clarification answers must be interpreted against the pending question");
 assert.equal(parseTaskCommand("فكريني بعد دقيقتين بالظبط عشان اقوم اغسل سناني", new Date("2026-11-28T00:00:00")).title, "اقوم اغسل سناني", "Two-minute reminder title must exclude dual-minute timing and filler words");
+
+assert.match(androidMain, /TextToSpeech/, "Android APK must provide native text-to-speech output");
+assert.match(androidMain, /setLanguage\(new Locale\("ar", "EG"\)\)/, "Native speech must prefer Egyptian Arabic");
+assert.match(androidMain, /speakText\(String text\)/, "Web app must be able to request native Android speech");
+assert.match(androidMain, /solina-native-tts/, "Native TTS playback status must be returned to the web app");
+assert.match(app, /speakWithNativeDevice\(text, segments\)/, "Android app must use native TTS before browser speech synthesis");
+assert.match(app, /تعذر تشغيل صوت سولينا:/, "Speech failure must be visible instead of silently dropping audio");
