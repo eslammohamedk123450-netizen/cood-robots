@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=nova-luxury-v45">
+  <link rel="stylesheet" href="style.css?v=nova-elevenlabs-v46">
 </head>
 <body>
   <div class="auth-gate" id="authGate">
@@ -159,12 +159,18 @@
         <p class="settings-feedback" id="speechEngineFeedback" role="status">صوت الجهاز يعتمد على محرك TTS والأصوات المثبّتة في أندرويد.</p>
       </section>
       <section class="settings-section">
-        <h3>صوت Sonex Labs الثابت</h3>
-        <p class="security-note">أضف مفتاح Sonex Labs مرة واحدة. المفتاح يتحفظ في Supabase Vault ولا يظهر داخل التطبيق أو ملف APK. بعد الحفظ، حمّل قائمة الأصوات واختار صوتًا لسولي وصوتًا لسولينا.</p>
-        <label class="field-label">مفتاح Sonex Labs API
-          <input id="speechApiKey" type="password" maxlength="4096" autocomplete="new-password" placeholder="المفتاح يبدأ بـ vsk_" dir="ltr">
+        <h3>محرك الصوت السحابي</h3>
+        <p class="security-note">اختار مزود الصوت، ثم أدخل مفتاحه. المفتاح يُختبر قبل الحفظ، ويُخزَّن داخل Supabase Vault ولا يظهر في GitHub أو داخل التطبيق.</p>
+        <label class="field-label">مزود تحويل النص إلى صوت
+          <select id="speechProvider" class="provider-select" dir="ltr">
+            <option value="elevenlabs" selected>ElevenLabs</option>
+            <option value="sonexlabs">Sonex Labs</option>
+          </select>
         </label>
-        <button type="button" class="save-button enabled-button" id="saveSpeechSettings">حفظ مفتاح Sonex Labs بأمان</button>
+        <label class="field-label">مفتاح API
+          <input id="speechApiKey" type="password" maxlength="4096" autocomplete="new-password" placeholder="الصق مفتاح ElevenLabs هنا" dir="ltr">
+        </label>
+        <button type="button" class="save-button enabled-button" id="saveSpeechSettings">اختبار المفتاح وحفظه بأمان</button>
         <label class="field-label">صوت سولي (رجالي)
           <select id="speechMaleVoice" dir="rtl"><option value="">احفظ المفتاح وحمّل الأصوات أولًا</option></select>
         </label>
@@ -173,7 +179,7 @@
         </label>
         <button type="button" class="save-button" id="reloadSpeechVoices">تحديث قائمة الأصوات</button>
         <p class="settings-feedback" id="speechFeedback" role="status">لم يتم إعداد مفتاح Sonex Labs بعد.</p>
-        <p class="security-note">اختيار الصوت يُحفظ على الجهاز. جودة اللهجة المصرية تعتمد على الصوت المتاح الذي تختاره من قائمة Sonex.</p>
+        <p class="security-note">اختيار الصوت يُحفظ على الجهاز. في ElevenLabs اختار صوتًا يدعم العربية أو متعدد اللغات، وجرّب الصوت قبل الاعتماد عليه.</p>
       </section>
       <section class="settings-section">
         <h3>حساب المالك</h3>
@@ -207,6 +213,6 @@
 
   <div class="toast" id="toast" role="status"></div>
   <script src="pin.js?v=persistent-owner-session-v23"></script>
-  <script type="module" src="app.js?v=nova-luxury-v45"></script>
+  <script type="module" src="app.js?v=nova-elevenlabs-v46"></script>
 </body>
 </html>
