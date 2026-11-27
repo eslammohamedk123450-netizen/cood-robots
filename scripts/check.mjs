@@ -48,6 +48,11 @@ assert.match(app, /updateFaceSpeechProgress/, "Facial emotion must follow speech
 assert.match(app, /onboundary/, "Device speech must synchronize facial expression with spoken words");
 assert.match(app, /const rawReply = String\(result\.reply/, "AI reply must be read before emotion parsing");
 assert.match(app, /setFaceEmotion\("neutral"\)/, "Face must return to neutral after speech ends");
+assert.match(app, /connectSpeechAnalyser/, "Audio waveform must be analyzed for mouth movement");
+assert.match(app, /\[NOVA_EMOTION:/, "AI must provide emotion markers for speech segments");
+assert.match(app, /قسّم ردك إلى أجزاء طبيعية حسب تغيّر المعنى/, "AI prompt must request context-based emotion changes");
+assert.doesNotMatch(app, /Math\.random\(\).*setSpeechMouthLevel/, "Speech mouth movement must not be random");
+assert.match(app, /decodeAudioData/, "Android audio-context playback fallback must remain available");
 assert.match(html, /id="speechApiKey"/, "The UI must provide a secure speech key entry");
 assert.match(html, /id="speechMaleVoice"/, "The UI must provide a male voice selector");
 assert.match(html, /id="speechFemaleVoice"/, "The UI must provide a female voice selector");
