@@ -32,7 +32,7 @@ public class TaskReceiver extends BroadcastReceiver {
             context.stopService(new Intent(context, AlarmPlaybackService.class));
             AlarmScheduler.cancel(context, id);
             manager.cancel(id.hashCode());
-            TaskStore.recordPendingSync(context, new JSONObject().put("id", id).put("status", "completed"));
+            TaskStore.recordPendingSync(context, id, "completed", 0);
             TaskStore.remove(context, id);
             return;
         }
@@ -41,7 +41,7 @@ public class TaskReceiver extends BroadcastReceiver {
             if (task == null || !"reminder".equals(task.optString("type"))) return;
             context.stopService(new Intent(context, AlarmPlaybackService.class));
             long next = System.currentTimeMillis() + SNOOZE_INTERVAL;
-            TaskStore.recordPendingSync(context, new JSONObject().put("id", id).put("status", "active").put("scheduledAt", next));
+            TaskStore.recordPendingSync(context, id, "active", next);
             TaskStore.setNextFollowUp(context, id, next);
             AlarmScheduler.scheduleFollowUp(context, id, next);
             manager.cancel(id.hashCode());
