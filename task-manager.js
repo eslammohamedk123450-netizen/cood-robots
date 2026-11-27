@@ -28,7 +28,8 @@ function nextClockTime(hour, minute, dayPart, explicitDay, now) {
   } else if (target.getTime() <= now.getTime()) target.setDate(target.getDate() + 1);
   return target;
 }
-function parseSchedule(text, now = new Date()) {\n  if (/(?:بعد|كمان)\s+شويه|بعد\s+شوية|بعد\s+قليل/.test(text)) return new Date(now.getTime() + 5 * 60 * 1000);
+function parseSchedule(text, now = new Date()) {
+  if (/(?:بعد|كمان)\s+شويه|بعد\s+شوية|بعد\s+قليل/.test(text)) return new Date(now.getTime() + 5 * 60 * 1000);
   if (/بعد\s+(?:نص|نصف)\s+(?:ساعه|ساعة)/.test(text)) return new Date(now.getTime() + 30 * 60 * 1000);
   if (/بعد\s+ربع\s+(?:ساعه|ساعة)/.test(text)) return new Date(now.getTime() + 15 * 60 * 1000);
   if (/بعد\s+(?:دقيقتين|دقيقتان)/.test(text)) return new Date(now.getTime() + 2 * 60 * 1000);
