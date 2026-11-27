@@ -161,12 +161,12 @@ assert.match(edge, /سياق مسترجع من محادثات سابقة للش�
 assert.match(edge, /oldRowsResult\.error/, "Parallel history retrieval errors must be handled explicitly");
 assert.match(edge, /const \[\{ data: memoryRow, error: memoryReadError \}, \{ data: models, error \}, oldRowsResult\] = await Promise\.all\(/, "Independent memory, model, and history reads must run concurrently");
 assert.match(edge, /const secretEntries = await Promise\.all\(/, "Provider secrets must be fetched concurrently instead of serially");
-assert.match(html, /solina-voice-orb-v5/, "Solina client bundle must use a fresh cache version");
+assert.match(html, /solina-voice-orb-v6/, "Solina client bundle must use a fresh cache version");
 assert.match(css, /solina-orb-stage/, "Responsive Solina voice-first layout must be present");
 
 assert.match(app, /Keep the dedicated interrupt listener alive during playback/, "Voice interruption listener must remain active while NOVA speaks");
 assert.doesNotMatch(app, /if \(state\.listening\) startInterruptRecognition\(\);\s*stopInterruptRecognition\(\)/, "Speech playback must not immediately disable the interrupt listener");
-assert.match(html, /solina-voice-orb-v5/, "Solina client bundle must use a fresh cache version");
+assert.match(html, /solina-voice-orb-v6/, "Solina client bundle must use a fresh cache version");
 
 assert.match(app, /راجع ردك مرة أخيرة بصمت من ناحية الإملاء واختيار الكلمات واتساق المعنى/, "NOVA must proofread Egyptian Arabic contextually before replying");
 assert.match(app, /كلمة «بكير» تظل كما هي إذا كان معناها مقصودًا/, "Contextual proofreading must preserve valid words instead of blanket replacements");
@@ -193,3 +193,11 @@ assert.match(app, /async function restoreOwnerSession\(/, "App startup must inde
 assert.match(app, /action: "check_session", token: saved/, "Saved session must be validated against the live Edge Function");
 assert.match(app, /activateOwnerSession\(saved\)/, "Validated saved sessions must activate cloud services");
 assert.match(app, /جلسة سولينا غير متصلة/, "Missing authentication must be surfaced instead of returning a fake assistant reply");
+
+assert.match(app, /voiceSessionActive: false/, "Voice session must begin disarmed");
+assert.match(app, /if \(!state\.voiceSessionActive && !local\.addressed\)/, "Only Solina wake word may arm a hands-free session");
+assert.match(app, /state\.voiceSessionActive = true/, "Saying Solina must arm continuous conversational turns");
+assert.match(app, /}, 1100\);/, "AI turn must begin after a natural 1.1 second silence");
+assert.match(app, /ناديني: سولينا/, "The wake prompt must use Solina, never NOVA");
+assert.doesNotMatch(app, /مستني تناديني: نوفا|مستني تناديني يا نوفا/, "No stale NOVA wake prompt may remain");
+assert.match(app, /state\.voiceSessionActive = false;\s*cancelCurrentTurn/, "Stopping the microphone must close the armed voice session");
