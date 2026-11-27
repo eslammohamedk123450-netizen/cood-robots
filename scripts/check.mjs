@@ -46,7 +46,7 @@ assert.match(app, /state\.processing/, "Voice turns must be serialized to preven
 assert.match(app, /trackAudioElementFace/, "Cloud audio must drive live facial movement");
 assert.match(app, /updateFaceSpeechProgress/, "Facial emotion must follow speech segment timing");
 assert.match(app, /onboundary/, "Device speech must synchronize facial expression with spoken words");
-assert.match(app, /const rawReply = String\(result\.reply/, "AI reply must be read before emotion parsing");
+assert.match(app, /const rawReply = sanitizeInternalReply\(result\.reply/, "AI reply must be sanitized before emotion parsing");
 assert.match(app, /setFaceEmotion\("neutral"\)/, "Face must return to neutral after speech ends");
 assert.match(app, /connectSpeechAnalyser/, "Audio waveform must be analyzed for mouth movement");
 assert.match(app, /\[NOVA_EMOTION:/, "AI must provide emotion markers for speech segments");
