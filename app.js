@@ -1038,6 +1038,11 @@ $("speechProvider")?.addEventListener("change", () => {
   void loadSpeechVoices().catch(error => setFeedback("speechFeedback", error.message, true));
   if (!chatterbox) setFeedback("speechFeedback", "بعد تغيير المزود، أدخل مفتاحه واضغط اختبار المفتاح وحفظه.");
 });
+const savedSpeechProvider = localStorage.getItem("nova.speech.provider");
+if (savedSpeechProvider && $("speechProvider")) {
+  $("speechProvider").value = savedSpeechProvider;
+  $("speechProvider").dispatchEvent(new Event("change"));
+}
 
 const speechEngineSelect = $("speechEngine");
 if (speechEngineSelect) {
