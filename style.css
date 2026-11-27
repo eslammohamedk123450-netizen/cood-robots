@@ -243,3 +243,41 @@ body[data-mood="speaking"] #novaFaceMount .face-mouth{will-change:height,opacity
  #novaFaceMount .face-screen[data-emotion="surprised"] .face-mouth{top:130px}
 }
 
+
+
+/* Audio-reactive face: mouth shape is driven by decoded speech waveform, not a looping fake talk animation. */
+body[data-mood="speaking"] #novaFaceMount #novaFaceAvatar .face-mouth{
+  animation:none!important;
+  transition:height .045s linear,width .045s linear,opacity .045s linear,border-radius .06s linear!important;
+}
+body[data-mood="speaking"] #novaFaceMount #novaFaceAvatar .face-eye{
+  animation:face-blink 5.3s infinite!important;
+}
+#novaFaceMount .face-screen{
+  --voice-energy:0;
+  --voice-glow:.25;
+  transition:box-shadow .12s linear,filter .12s linear;
+  box-shadow:0 0 18px color-mix(in srgb,var(--persona) 65%,transparent),0 0 calc(38px + var(--voice-energy)*42px) color-mix(in srgb,var(--persona) calc(30% + var(--voice-energy)*35%),transparent),inset 0 0 34px #1b6bb633,inset 0 0 0 7px #091321;
+}
+.face-brows{position:absolute;top:43px;left:0;right:0;display:flex;justify-content:center;gap:75px;pointer-events:none}
+.face-brow{width:48px;height:7px;border-top:4px solid #8feaff;border-radius:50%;opacity:.8;transition:transform .2s,border-color .2s}
+.face-brow.left{transform:rotate(-8deg)}.face-brow.right{transform:rotate(8deg)}
+.face-cheek{position:absolute;top:139px;width:28px;height:13px;border-radius:50%;background:#ff7abf;filter:blur(8px);opacity:0;transition:opacity .12s}
+.face-cheek.left{left:54px}.face-cheek.right{right:54px}
+#novaFaceMount .face-screen[data-emotion="happy"] .face-brow{transform:translateY(4px) scaleX(1.08)}
+#novaFaceMount .face-screen[data-emotion="happy"] .face-cheek,
+#novaFaceMount .face-screen[data-emotion="playful"] .face-cheek{opacity:.65}
+#novaFaceMount .face-screen[data-emotion="sad"] .face-brow.left{transform:rotate(12deg) translateY(5px)}
+#novaFaceMount .face-screen[data-emotion="sad"] .face-brow.right{transform:rotate(-12deg) translateY(5px)}
+#novaFaceMount .face-screen[data-emotion="surprised"] .face-brow{transform:translateY(-10px) scaleX(1.12)}
+#novaFaceMount .face-screen[data-emotion="concerned"] .face-brow{transform:translateY(4px) rotate(12deg)}
+#novaFaceMount .face-screen.audio-laugh{animation:nova-face-laugh .22s ease-in-out infinite alternate,nova-face-hover 4.4s ease-in-out infinite!important}
+#novaFaceMount .face-screen.audio-laugh .face-cheek{opacity:.95}
+#novaFaceMount .face-screen.pink{filter:none!important;border-color:#ff9bd4;background:radial-gradient(ellipse at 50% 42%,#56234f 0%,#28112f 56%,#100817 100%);box-shadow:0 0 22px #ff78c888,0 0 75px #e83eaa55,inset 0 0 38px #ff69c522,inset 0 0 0 7px #210d25}
+#novaFaceMount .face-screen.pink .face-eye{background:linear-gradient(180deg,#fff0fa,#ff9bd4 55%,#ed4ba7);box-shadow:0 0 12px #ff9bd4,0 0 30px #f34eae,0 0 50px #f34eae77}
+#novaFaceMount .face-screen.pink .face-brow{border-color:#ffb5df}
+#novaFaceMount .face-screen.pink .face-mouth{border-color:#ff8acb;box-shadow:0 0 10px #ff70c4,0 0 25px #ec3ca7;background:#f34eae22}
+#novaFaceMount .face-screen.pink .face-spark{background:#ffd8ef;box-shadow:0 0 12px 4px #ff64bb}
+#novaFaceMount .face-screen.pink .face-cheek{background:#ff62ad}
+@keyframes nova-face-laugh{from{transform:translateY(-2px) rotate(-1.4deg) scale(1.01)}to{transform:translateY(-8px) rotate(1.4deg) scale(1.035)}}
+@media(max-width:700px){.face-brows{top:34px;gap:63px}.face-brow{width:40px}.face-cheek{top:119px}.face-cheek.left{left:42px}.face-cheek.right{right:42px}}
