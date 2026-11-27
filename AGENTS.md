@@ -20,7 +20,7 @@ These rules are mandatory for every human contributor, AI agent, automation, and
 - The current product is a personal, voice-first companion for Islam, not a command dashboard.
 - Do not add camera, face recognition, device control, desktop permissions, alarms, smart-home features, or physical robot control to V1.
 - Keep text input as a secondary accessibility option. Voice is the primary interaction.
-- Preserve the Soly (blue) and Soleen (pink) identities and the existing NOVA visual direction.
+- Preserve Solina as the only supported character, with one consistent feminine identity and voice.
 - Do not claim AI, 3D, memory, or voice features are fully functional until implemented and tested.
 
 ## Safe changes
