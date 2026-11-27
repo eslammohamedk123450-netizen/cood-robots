@@ -5,7 +5,7 @@ Legend: [x] implemented or deployed; [ ] not yet implemented or not yet verified
 ## Core meeting experience
 - [x] Character-first meeting screen; removed camera, face-recognition, guest and command-dashboard demos.
 - [x] Voice-first controls with optional text entry and conversation transcript.
-- [x] Soly (blue), Soleen (pink), dark/gold NOVA identity.
+- [x] Solina only; legacy dual-persona identity removed.
 - [x] Dedicated 3D character mount.
 - [x] Original procedural full-body 3D robot scene implemented in `nova-3d.js` using Three.js primitives (not an imported GLB asset).
 - [ ] Verify Three.js CDN loading, rendering, resizing and performance on Android Chrome and desktop.
