@@ -207,3 +207,36 @@ body[data-mood="error"] .robot-head{animation:error-tilt .5s ease-in-out 2}
 @keyframes speak-arm-right{from{transform:rotate(-12deg)}to{transform:rotate(-30deg)}}
 @keyframes error-tilt{0%,100%{transform:rotate(0)}50%{transform:rotate(-9deg)}}
 @media(prefers-reduced-motion:reduce){.robot-body,.robot-head,.eye,.eye span,.antenna span,.torso-core,.arm{animation:none!important}}
+
+/* Luminous screen-face avatar */
+.character-stage{height:390px}
+.character-stage .stage-orbit{opacity:.25}
+.character-fallback.face-avatar{width:min(88vw,430px);height:260px;transform:none;display:grid;place-items:center}
+.face-screen{position:relative;width:min(88vw,390px);height:228px;border:2px solid color-mix(in srgb,var(--persona) 80%,white);border-radius:42% 42% 38% 38% / 48% 48% 40% 40%;background:radial-gradient(ellipse at 50% 45%,#122a4c 0%,#071426 55%,#030812 100%);box-shadow:0 0 18px color-mix(in srgb,var(--persona) 65%,transparent),0 0 65px color-mix(in srgb,var(--persona) 35%,transparent),inset 0 0 34px #1b6bb633,inset 0 0 0 7px #091321;overflow:hidden;animation:face-float 3.8s ease-in-out infinite;transition:border-color .3s,box-shadow .3s}
+.face-screen:before{content:"";position:absolute;inset:9px;border:1px solid color-mix(in srgb,var(--persona) 22%,transparent);border-radius:inherit;pointer-events:none}
+.face-screen.pink{filter:hue-rotate(285deg)}
+.face-scanline{position:absolute;inset:0;background:repeating-linear-gradient(to bottom,transparent 0 4px,#59baff08 5px 6px);pointer-events:none}
+.face-eyes{position:absolute;top:61px;left:0;right:0;display:flex;justify-content:center;gap:75px}
+.face-eye{position:relative;width:47px;height:61px;border-radius:48% 48% 44% 44%;background:linear-gradient(180deg,#c6f7ff,#48c8ff 55%,#1685ff);box-shadow:0 0 10px #51d5ff,0 0 28px #168bff,0 0 48px #168bff66;animation:face-blink 5.3s infinite;transform-origin:center}
+.face-eye:after{content:"";position:absolute;inset:8px 12px 13px;border-radius:50%;background:#efffff;opacity:.7;filter:blur(3px)}
+.face-mouth{position:absolute;left:50%;top:151px;transform:translateX(-50%);width:72px;height:9px;border:3px solid #53d9ff;border-top:0;border-radius:0 0 50px 50px;box-shadow:0 0 9px #38cfff,0 0 23px #168bff;transition:all .18s}
+.face-mouth i{display:block;width:100%;height:100%;background:#39bfff22;border-radius:inherit}
+.face-spark{position:absolute;width:5px;height:5px;border-radius:50%;background:#a7f5ff;box-shadow:0 0 12px 4px #27bfff;animation:sparkle 2.2s ease-in-out infinite}
+.spark-one{left:56px;top:44px}.spark-two{right:55px;bottom:39px;animation-delay:1.1s}
+body[data-mood="listening"] .face-screen{box-shadow:0 0 25px var(--persona),0 0 90px color-mix(in srgb,var(--persona) 50%,transparent),inset 0 0 40px #1b6bb655}
+body[data-mood="listening"] .face-eye{height:68px;animation:eye-listen 1.2s ease-in-out infinite alternate}
+body[data-mood="thinking"] .face-eye{height:43px;transform:translateY(5px);animation:eye-think .9s ease-in-out infinite alternate}
+body[data-mood="thinking"] .face-mouth{width:22px;height:22px;border:3px solid #53d9ff;border-radius:50%;top:145px}
+body[data-mood="speaking"] .face-mouth{width:52px;height:36px;top:137px;border:3px solid #53d9ff;border-radius:45%;background:#168bff55;animation:face-talk .22s ease-in-out infinite alternate}
+body[data-mood="speaking"] .face-eye{animation:eye-talk 1.1s ease-in-out infinite alternate}
+body[data-mood="error"] .face-mouth{width:40px;height:13px;border:3px solid #ff718d;border-bottom:0;border-radius:50px 50px 0 0}
+body[data-mood="happy"] .face-mouth{width:86px;height:24px;border-bottom:4px solid #53d9ff;border-radius:0 0 60px 60px}
+@keyframes face-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes face-blink{0%,44%,48%,100%{transform:scaleY(1)}46%{transform:scaleY(.08)}}
+@keyframes face-talk{from{transform:translateX(-50%) scaleY(.28) scaleX(.82)}to{transform:translateX(-50%) scaleY(1.12) scaleX(1.08)}}
+@keyframes eye-listen{from{transform:scaleY(.9)}to{transform:scaleY(1.12)}}
+@keyframes eye-think{from{transform:translateY(3px) scale(.92)}to{transform:translateY(-2px) scale(1.04)}}
+@keyframes eye-talk{from{transform:scaleY(.92)}to{transform:scaleY(1.06)}}
+@keyframes sparkle{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1.3)}}
+@media(max-width:700px){.character-stage{height:315px}.character-fallback.face-avatar{height:230px}.face-screen{height:190px;width:min(88vw,340px)}.face-eyes{top:48px;gap:63px}.face-eye{width:40px;height:52px}.face-mouth{top:128px}body[data-mood="speaking"] .face-mouth{top:115px}body[data-mood="thinking"] .face-mouth{top:121px}}
+@media(prefers-reduced-motion:reduce){.face-screen,.face-eye,.face-spark,.face-mouth{animation:none!important}}
