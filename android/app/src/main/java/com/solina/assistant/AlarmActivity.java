@@ -13,7 +13,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class AlarmActivity extends Activity {
-    private Ringtone ringtone;
+    private SpeechRecognizer speechRecognizer;
     private String taskId = "";
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -48,12 +48,15 @@ public class AlarmActivity extends Activity {
         stop.setText("إيقاف المنبه");
         stop.setOnClickListener(view -> stopAlarm());
         layout.addView(stop);
+        TextView voiceHint = new TextView(this);
+        voiceHint.setText("قولي: أنا قمت — لإيقاف المنبه بالصوت");
+        voiceHint.setTextSize(16);
+        voiceHint.setGravity(Gravity.CENTER);
+        layout.addView(voiceHint);
         setContentView(layout);
-        android.net.Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-        if (uri == null) uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
-        ringtone = RingtoneManager.getRingtone(this, uri);
-        if (Build.VERSION.SDK_INT >= 28 && ringtone != null) ringtone.setLooping(true);
-        if (ringtone != null) ringtone.play();
+        Intent audio = new Intent(this, AlarmPlaybackService.class).setAction(AlarmPlaybackService.ACTION_START);
+        if (Build.VERSION.SDK_INT >= 26) startForegroundService(audio); else startService(audio);
+        startWakeWordRecognition();
     }
 
     private void stopAlarm() {
@@ -63,8 +66,63 @@ public class AlarmActivity extends Activity {
         finish();
     }
 
+    private void startWakeWordRecognition() {
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) return;
+        try {
+            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+            speechRecognizer.setRecognitionListener(new RecognitionListener() {
+                @Override public void onReadyForSpeech(android.os.Bundle params) { }
+                @Override public void onBeginningOfSpeech() { }
+                @Override public void onRmsChanged(float rmsdB) { }
+                @Override public void onBufferReceived(byte[] buffer) { }
+                @Override public void onEndOfSpeech() { }
+                @Override public void onError(int error) { restartWakeRecognition(); }
+                @Override public void onResults(android.os.Bundle results) {
+                    ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                    if (matches != null) for (String phrase : matches) if (isStopPhrase(phrase)) { runOnUiThread(() -> stopAlarm()); return; }
+                    restartWakeRecognition();
+                }
+                @Override public void onPartialResults(android.os.Bundle partial) {
+                    ArrayList<String> matches = partial.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                    if (matches != null) for (String phrase : matches) if (isStopPhrase(phrase)) { runOnUiThread(() -> stopAlarm()); return; }
+                }
+                @Override public void onEvent(int eventType, android.os.Bundle params) { }
+            });
+            launchWakeRecognition();
+        } catch (Exception ignored) { }
+    }
+
+    private boolean isStopPhrase(String phrase) {
+        String clean = phrase == null ? "" : phrase.toLowerCase(java.util.Locale.ROOT)
+                .replaceAll("[\\\\p{Punct}\\\\s]", "").replace("أ", "ا").replace("إ", "ا");
+        return clean.contains("انا قمت") || clean.contains("قمت") || clean.contains("خلاص")
+                || clean.contains("وقفت") || clean.contains("اوقفي المنبه") || clean.contains("بطلي");
+    }
+
+    private void launchWakeRecognition() {
+        if (speechRecognizer == null || isFinishing()) return;
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ar-EG");
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
+        try { speechRecognizer.startListening(intent); } catch (Exception ignored) { restartWakeRecognition(); }
+    }
+
+    private void restartWakeRecognition() {
+        if (speechRecognizer == null || isFinishing()) return;
+        new android.os.Handler(getMainLooper()).postDelayed(() -> launchWakeRecognition(), 650);
+    }
+
+    private void stopWakeWordRecognition() {
+        if (speechRecognizer != null) {
+            try { speechRecognizer.cancel(); speechRecognizer.destroy(); } catch (Exception ignored) { }
+            speechRecognizer = null;
+        }
+    }
+
     @Override protected void onDestroy() {
-        if (ringtone != null) ringtone.stop();
+        stopWakeWordRecognition();
         super.onDestroy();
     }
 }
