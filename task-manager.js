@@ -31,9 +31,14 @@ function nextClockTime(hour, minute, dayPart, explicitDay, now) {
 function parseSchedule(text, now = new Date()) {
   if (/بعد\s+(?:نص|نصف)\s+(?:ساعه|ساعة)/.test(text)) return new Date(now.getTime() + 30 * 60 * 1000);
   if (/بعد\s+ربع\s+(?:ساعه|ساعة)/.test(text)) return new Date(now.getTime() + 15 * 60 * 1000);
+  if (/بعد\s+(?:دقيقتين|دقيقتان)/.test(text)) return new Date(now.getTime() + 2 * 60 * 1000);
+  if (/بعد\s+(?:ثلاث\s+دقايق|ثلاث\s+دقائق)/.test(text)) return new Date(now.getTime() + 3 * 60 * 1000);
+  if (/بعد\s+(?:خمس\s+دقايق|خمس\s+دقائق)/.test(text)) return new Date(now.getTime() + 5 * 60 * 1000);
+  if (/بعد\s+(?:عشر\s+دقايق|عشر\s+دقائق)/.test(text)) return new Date(now.getTime() + 10 * 60 * 1000);
+  if (/بعد\s+(?:دقيقه|دقيقة)(?:\s+واحده|\s+واحدة)?/.test(text)) return new Date(now.getTime() + 60 * 1000);
   if (/بعد\s+ساعتين/.test(text)) return new Date(now.getTime() + 2 * 60 * 60 * 1000);
   if (/بعد\s+(?:ساعه|ساعة)/.test(text)) return new Date(now.getTime() + 60 * 60 * 1000);
-  const relative = text.match(/بعد\s+(\d+)\s*(دقيقه|دقيقة|دقائق|ساعه|ساعة|ساعات)/);
+  const relative = text.match(/بعد\s+(\d+)\s*(دقيقه|دقيقة|دقائق|دقايق|ساعه|ساعة|ساعات)/);
   if (relative) {
     const amount = Number(relative[1]);
     const ms = /ساع/.test(relative[2]) ? amount * 60 * 60 * 1000 : amount * 60 * 1000;
@@ -59,7 +64,7 @@ export function parseTaskCommand(value, now = new Date()) {
   const text = normalizeTaskText(value);
   if (!text) return null;
   const isFajr = /الفجر|صلاه الفجر|صلاة الفجر/.test(text);
-  const isAlarm = /صحيني|اصحيني|اصحى|(?:اعملي|اعمل|سجلي|سجل|اضبطي|اضبط)\s+منبه|منبه\s+(?:الساعه|الساعة|\d)/.test(text);
+  const isAlarm = /صحيني|صحييني|اصحيني|اصحى|صحينيلي|صحينى|منبه|المنبه|(?:اعملي|اعمل|سجلي|سجل|اضبطي|اضبط|ظبطي|ظبط|ظبطلي)\s+(?:لي\s+)?منبه/.test(text);
   const isReminder = /فكريني|فكرني|ذكريني|ذكرني|تذكير|تذكيرني|سجل.*مهمه|سجلي.*مهمه/.test(text);
   const isList = /(?:وريني|اعرضي|اعرض|قوليلي|شوفي).*(?:التذكيرات|التذكير|المنبهات|المنبه|المهام)|(?:التذكيرات|التذكير|المنبهات|المنبه|المهام).*(?:عندي|المحفوظ|الموجود)/.test(text);
   const isCancel = /(?:الغي|الغى|احذفي|امسحي|الغاء).*(?:تذكير|منبه|مهمه)|(?:الغى|الغي).*(?:كل|اخر|آخر).*(?:التذكيرات|المنبهات)/.test(text);
