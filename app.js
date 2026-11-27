@@ -145,6 +145,7 @@ function speakWithDevice(text, persona) {
     utterance.pitch = persona === "soleen" ? 1.16 : 0.82;
     const voice = getDeviceArabicVoice(persona);
     if (voice) utterance.voice = voice;
+    utterance.onstart = () => setStatus(personas[persona].name + " بيتكلم...", "speaking");
     utterance.onend = resolve;
     utterance.onerror = (event) => reject(new Error("محرك الجهاز فشل في النطق: " + (event.error || "unknown")));
     window.speechSynthesis.speak(utterance);
