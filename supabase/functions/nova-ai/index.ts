@@ -638,7 +638,7 @@ Deno.serve(async (req: Request) => {
             let memorySaved = false;
             const memoryMatch = rawReply.match(/<NOVA_MEMORY>\s*([\s\S]*?)\s*<\/NOVA_MEMORY>/i);
             if (memoryMatch) {
-              reply = rawReply.replace(/\\s*<NOVA_MEMORY>[\\s\\S]*?<\\/NOVA_MEMORY>\\s*/ig, "").trim();
+              reply = rawReply.replace(/\s*<NOVA_MEMORY>[\s\S]*?<\/NOVA_MEMORY>\s*/ig, "").trim();
               try {
                 const parsedMemory = JSON.parse(memoryMatch[1]);
                 const facts = Array.isArray(parsedMemory?.facts)
@@ -662,7 +662,7 @@ Deno.serve(async (req: Request) => {
               }
             } else {
               // Keep internal memory metadata out of the visible conversation if a provider omits or alters the marker.
-              reply = rawReply.replace(/<NOVA_MEMORY>[\\s\\S]*$/i, "").trim();
+              reply = rawReply.replace(/\s*<NOVA_MEMORY>[\s\S]*?<\/NOVA_MEMORY>\s*/ig, "").trim();
             }
             return json({ reply, model: model.model_id, provider: providerType, memory_saved: memorySaved }, 200, origin);
           }
