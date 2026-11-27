@@ -1263,7 +1263,7 @@ async function syncNativeTasks() {
     } catch (error) { console.warn("SOLINA native task cloud sync pending:", error); }
   }
   const desired = state.personalItems.filter(item => item.status === "active" &&
-    ["alarm", "reminder"].includes(item.item_type) && personalItemDate(item) > Date.now());
+    ["alarm", "reminder"].includes(item.item_type));
   const desiredIds = new Set(desired.map(item => String(item.id)));
   const local = readNativeTasks();
   for (const saved of local) {
@@ -1273,12 +1273,16 @@ async function syncNativeTasks() {
   }
   let scheduled = 0, permissionMissing = false;
   for (const item of desired) {
-    const at = personalItemDate(item);
+    const storedAt = personalItemDate(item);
     const existing = local.find(saved => String(saved.id) === String(item.id));
-    if (existing && Number(existing.at) === at && String(existing.title) === String(item.title) && String(existing.type) === item.item_type) {
+    if (existing && String(existing.title) === String(item.title) && String(existing.type) === item.item_type &&
+        (Number(existing.at) === storedAt || storedAt <= Date.now())) {
+      // Keep overdue native reminders alive so their hourly follow-up can continue.
       scheduled++;
       continue;
     }
+    if (storedAt <= Date.now() && item.item_type === "alarm") continue;
+    const at = storedAt > Date.now() ? storedAt : Date.now() + 2000;
     try {
       const result = JSON.parse(bridge.scheduleTask(JSON.stringify({ id: item.id, type: item.item_type, title: item.title, at })));
       if (result.ok) scheduled++;
