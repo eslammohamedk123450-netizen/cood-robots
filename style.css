@@ -384,3 +384,83 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opac
 #novaFaceMount .face-screen.pink .face-pupil{background:radial-gradient(circle at 35% 28%,#fff 0 10%,#552044 20%,#180a20 72%)}
 @keyframes nova-eye-blink{0%,43%,47%,100%{top:-105%}45%{top:-2%}}
 @media(max-width:700px){#novaFaceMount .face-eyes{gap:66px}#novaFaceMount .face-eye{width:43px;height:55px}#novaFaceMount .face-brows{top:33px;gap:66px}#novaFaceMount .face-brow{width:43px}#novaFaceMount .face-cheek{top:119px}}
+
+
+/* NOVA full articulated CSS robot: head, torso, arms, hands and legs. */
+.character-stage{height:520px!important;overflow:visible!important;perspective:1000px}
+.nova-robot{--robot-metal:#26364d;--robot-light:#91b8dc;--robot-edge:#536e91;--robot-glow:var(--persona);position:absolute;z-index:3;left:50%;top:8px;width:330px;height:490px;transform:translateX(-50%);transform-style:preserve-3d;filter:drop-shadow(0 18px 24px #0008);animation:robot-idle-float 4.8s ease-in-out infinite}
+.robot-shadow{position:absolute;bottom:2px;left:50%;width:220px;height:23px;transform:translateX(-50%);border-radius:50%;background:#0009;filter:blur(10px);animation:robot-shadow-pulse 4.8s ease-in-out infinite}
+.robot-head-group{position:absolute;z-index:5;left:50%;top:0;width:240px;height:174px;transform:translateX(-50%);transform-origin:50% 88%;animation:robot-head-idle 6s ease-in-out infinite}
+#novaFaceMount{position:absolute!important;inset:0!important;display:grid!important;place-items:center!important;overflow:visible!important}
+#novaFaceMount #novaFaceAvatar.face-avatar{width:100%!important;height:100%!important;display:grid!important;place-items:center!important;transform:none!important}
+#novaFaceMount #novaFaceAvatar.face-avatar>.face-screen{width:224px!important;height:148px!important;border-radius:48px!important;border:5px solid var(--robot-edge)!important;outline:2px solid color-mix(in srgb,var(--robot-light) 55%,transparent);background:radial-gradient(ellipse at 50% 32%,#173b60 0%,#07182b 70%,#020812 100%)!important;box-shadow:inset 0 0 0 7px #0b1727,inset 0 0 30px #168bff55,0 0 24px color-mix(in srgb,var(--persona) 60%,transparent),0 8px 15px #0009!important;animation:robot-face-glow 3s ease-in-out infinite!important}
+.robot-ear{position:absolute;top:62px;width:23px;height:46px;border:3px solid var(--robot-light);border-radius:9px;background:linear-gradient(90deg,#17263a,#526d8e,#1b2b41);box-shadow:0 0 14px color-mix(in srgb,var(--persona) 40%,transparent)}
+.robot-ear:after{content:"";position:absolute;inset:12px 5px;border-radius:5px;background:var(--persona);box-shadow:0 0 9px var(--persona)}
+.robot-ear.left{left:0}.robot-ear.right{right:0}
+.robot-neck{position:absolute;z-index:2;top:155px;left:50%;width:66px;height:48px;transform:translateX(-50%);border:3px solid var(--robot-edge);border-radius:14px;background:linear-gradient(90deg,#101c2d,#536d8d 48%,#17263a);display:flex;justify-content:space-evenly;align-items:center}
+.robot-neck i{height:25px;width:5px;border-radius:4px;background:#9bb7d5;box-shadow:0 0 8px #6dbdff}
+.robot-torso{position:absolute;z-index:3;top:190px;left:50%;width:166px;height:174px;transform:translateX(-50%);transform-origin:50% 12%;border:3px solid var(--robot-edge);border-radius:42px 42px 34px 34px;background:linear-gradient(105deg,#101d30 0%,#405a79 24%,#1c2d45 48%,#526b88 72%,#111e31 100%);box-shadow:inset 0 0 0 7px #182940,inset 0 -18px 25px #050b14,0 12px 22px #0008;animation:robot-torso-breathe 3.6s ease-in-out infinite}
+.robot-chest-core{position:absolute;top:36px;left:50%;width:46px;height:46px;transform:translateX(-50%);display:grid;place-items:center;border:3px solid var(--robot-light);border-radius:50%;background:#091626;box-shadow:0 0 15px color-mix(in srgb,var(--persona) 60%,transparent),inset 0 0 12px var(--persona)}
+.robot-chest-core span{width:17px;height:17px;border-radius:50%;background:var(--persona);box-shadow:0 0 15px 5px var(--persona);animation:robot-core-pulse 1.8s ease-in-out infinite}
+.robot-chest-line{position:absolute;left:25px;right:25px;top:101px;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,var(--robot-light),transparent);opacity:.8}
+.robot-torso-detail{position:absolute;top:42px;width:13px;height:45px;border-radius:8px;background:linear-gradient(90deg,#101b2a,#91a9c5,#17283d);opacity:.85}
+.robot-torso-detail.left{left:17px}.robot-torso-detail.right{right:17px}
+.robot-waist{position:absolute;bottom:-13px;left:50%;width:106px;height:25px;transform:translateX(-50%);border:3px solid var(--robot-edge);border-radius:10px;background:linear-gradient(90deg,#1a2a40,#7189a4,#1a2a40)}
+.robot-arm{position:absolute;z-index:4;top:202px;width:70px;height:190px;transform-origin:35px 24px;transform-style:preserve-3d}
+.robot-arm-left{left:20px;transform:rotate(9deg);animation:robot-arm-left-idle 4.2s ease-in-out infinite}
+.robot-arm-right{right:20px;transform:rotate(-9deg);animation:robot-arm-right-idle 4.6s ease-in-out infinite}
+.robot-shoulder{position:absolute;top:0;left:8px;width:54px;height:54px;border:4px solid var(--robot-edge);border-radius:50%;background:radial-gradient(circle at 35% 30%,#91a9c5,#263d59 58%,#101c2e);box-shadow:0 0 12px #0009}
+.robot-upper-arm{position:absolute;top:37px;left:19px;width:32px;height:67px;border:3px solid var(--robot-edge);border-radius:15px;background:linear-gradient(90deg,#17263a,#7890aa,#253b56)}
+.robot-elbow{position:absolute;top:94px;left:13px;width:44px;height:44px;border:4px solid var(--robot-edge);border-radius:50%;background:radial-gradient(circle,#9cb5d1 0 18%,#344e6d 24% 65%,#142238 70%);box-shadow:0 0 10px #0008}
+.robot-forearm{position:absolute;top:127px;left:18px;width:34px;height:48px;border:3px solid var(--robot-edge);border-radius:13px 13px 10px 10px;background:linear-gradient(90deg,#1a2b41,#718aa7,#1a2b41)}
+.robot-hand{position:absolute;top:164px;left:12px;width:46px;height:34px;border:3px solid var(--robot-edge);border-radius:14px 14px 17px 17px;background:linear-gradient(110deg,#233852,#829ab4,#263b55);display:flex;justify-content:center;gap:3px;padding-top:19px}
+.robot-hand i{display:block;width:6px;height:15px;margin-top:5px;border-radius:5px;background:linear-gradient(#9db4cd,#344b68);transform-origin:top}
+.robot-hand i:nth-child(2),.robot-hand i:nth-child(3){height:18px;margin-top:2px}
+.robot-leg{position:absolute;z-index:2;top:350px;width:78px;height:132px;transform-origin:38px 8px}
+.robot-leg-left{left:89px;animation:robot-leg-left-idle 2.8s ease-in-out infinite}
+.robot-leg-right{right:89px;animation:robot-leg-right-idle 2.8s ease-in-out infinite}
+.robot-thigh{position:absolute;top:0;left:13px;width:52px;height:63px;border:3px solid var(--robot-edge);border-radius:16px;background:linear-gradient(90deg,#192a40,#647e9b,#1c2d43)}
+.robot-knee{position:absolute;top:53px;left:17px;width:44px;height:37px;border:4px solid var(--robot-edge);border-radius:13px;background:radial-gradient(circle,#8da8c5,#263c58 65%);z-index:2}
+.robot-shin{position:absolute;top:80px;left:20px;width:38px;height:43px;border:3px solid var(--robot-edge);border-radius:12px;background:linear-gradient(90deg,#1b2a3d,#7890aa,#1b2a3d)}
+.robot-foot{position:absolute;top:113px;left:3px;width:70px;height:23px;border:3px solid var(--robot-edge);border-radius:13px 19px 9px 9px;background:linear-gradient(#617b98,#1b2d43);box-shadow:0 7px 8px #0008}
+.nova-robot[data-mood="speaking"] .robot-head-group{animation:robot-head-talk .48s ease-in-out infinite alternate}
+.nova-robot[data-mood="speaking"] .robot-torso{animation:robot-torso-talk .65s ease-in-out infinite alternate}
+.nova-robot[data-mood="speaking"] .robot-arm-left{animation:robot-explain-left 1.8s ease-in-out infinite}
+.nova-robot[data-mood="speaking"] .robot-arm-right{animation:robot-explain-right 1.55s ease-in-out infinite}
+.nova-robot[data-mood="listening"] .robot-head-group{animation:robot-listen-tilt 2.2s ease-in-out infinite alternate}
+.nova-robot[data-mood="listening"] .robot-arm{animation:robot-listen-arms 2.5s ease-in-out infinite alternate}
+.nova-robot[data-mood="thinking"] .robot-head-group{animation:robot-think-head 1.5s ease-in-out infinite alternate}
+.nova-robot[data-mood="thinking"] .robot-arm-right{animation:robot-think-hand 1.5s ease-in-out infinite alternate}
+.nova-robot[data-mood="happy"] .robot-head-group{animation:robot-happy-bounce .55s ease-in-out 3}
+.nova-robot[data-mood="happy"] .robot-arm-left{animation:robot-wave 0.55s ease-in-out 5}
+.nova-robot[data-mood="happy"] .robot-arm-right{animation:robot-wave 0.55s ease-in-out 5 reverse}
+.nova-robot.gesture-wave .robot-arm-right{animation:robot-wave .42s ease-in-out 5!important}
+.nova-robot.gesture-happy{animation:robot-full-bounce .45s ease-in-out 3}
+.nova-robot.gesture-thinking .robot-arm-right{animation:robot-think-hand .7s ease-in-out 2!important}
+.nova-robot.gesture-nod .robot-head-group{animation:robot-head-nod .4s ease-in-out 3!important}
+.nova-robot.gesture-wave .robot-head-group{animation:robot-head-talk .6s ease-in-out 3}
+@keyframes robot-idle-float{0%,100%{translate:0 0}50%{translate:0 -5px}}
+@keyframes robot-shadow-pulse{0%,100%{scale:1;opacity:.65}50%{scale:.88;opacity:.42}}
+@keyframes robot-head-idle{0%,100%{rotate:0deg}35%{rotate:1.3deg}70%{rotate:-1deg}}
+@keyframes robot-face-glow{0%,100%{box-shadow:inset 0 0 0 7px #0b1727,inset 0 0 30px #168bff44,0 0 20px color-mix(in srgb,var(--persona) 50%,transparent)}50%{box-shadow:inset 0 0 0 7px #0b1727,inset 0 0 35px #168bff77,0 0 34px color-mix(in srgb,var(--persona) 75%,transparent)}}
+@keyframes robot-torso-breathe{0%,100%{scale:1 1}50%{scale:1 1.012}}
+@keyframes robot-core-pulse{0%,100%{scale:.82;opacity:.75}50%{scale:1.12;opacity:1}}
+@keyframes robot-arm-left-idle{0%,100%{rotate:0deg}50%{rotate:5deg}}
+@keyframes robot-arm-right-idle{0%,100%{rotate:0deg}50%{rotate:-5deg}}
+@keyframes robot-leg-left-idle{0%,100%{rotate:0deg}50%{rotate:1.8deg}}
+@keyframes robot-leg-right-idle{0%,100%{rotate:0deg}50%{rotate:-1.8deg}}
+@keyframes robot-head-talk{from{rotate:-2deg;translate:0 0}to{rotate:2deg;translate:0 -3px}}
+@keyframes robot-torso-talk{from{transform:translateX(-50%) rotate(-.8deg)}to{transform:translateX(-50%) rotate(.8deg) translateY(-2px)}}
+@keyframes robot-explain-left{0%,100%{rotate:9deg}50%{rotate:29deg}}
+@keyframes robot-explain-right{0%,100%{rotate:-9deg}50%{rotate:-31deg}}
+@keyframes robot-listen-tilt{from{rotate:-5deg}to{rotate:5deg}}
+@keyframes robot-listen-arms{from{rotate:0deg}to{rotate:-8deg}}
+@keyframes robot-think-head{from{rotate:0deg}to{rotate:-8deg}}
+@keyframes robot-think-hand{from{rotate:-9deg}to{rotate:-48deg}}
+@keyframes robot-happy-bounce{0%,100%{translate:0 0}50%{translate:0 -12px;rotate:3deg}}
+@keyframes robot-wave{0%,100%{rotate:0deg}25%{rotate:-28deg}65%{rotate:22deg}}
+@keyframes robot-full-bounce{0%,100%{translate:0 0}50%{translate:0 -16px}}
+@keyframes robot-head-nod{0%,100%{rotate:0deg}40%{rotate:8deg}75%{rotate:-3deg}}
+@media(max-width:700px){.character-stage{height:470px!important}.nova-robot{top:0;transform:translateX(-50%) scale(.88);transform-origin:top center}.character-caption{bottom:2px}}
+@media(max-width:390px){.nova-robot{transform:translateX(-50%) scale(.78)}.character-stage{height:430px!important}}
+@media(prefers-reduced-motion:reduce){.nova-robot,.nova-robot *{animation:none!important;transition:none!important}}
