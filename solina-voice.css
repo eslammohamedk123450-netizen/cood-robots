@@ -25,3 +25,10 @@ body{overflow:hidden;background:#070812}
 @media(max-width:700px){.app-shell.solina-shell{padding-inline:13px}.solina-topbar{height:62px;min-height:62px}.solina-orb-stage{height:min(62svh,560px);min-height:280px;width:100%}.solina-status{bottom:8%}.solina-transcript{bottom:1%;width:94%}.solina-mic{width:72px;height:72px}.solina-cancel{right:calc(50% - 112px)}.solina-hint{font-size:11px;margin-bottom:8px}.solina-drawer{width:min(360px,90vw)}}
 @media(max-height:650px){.solina-orb-stage{height:54svh;min-height:240px}.solina-main{gap:8px}.solina-mic{width:62px;height:62px}.solina-hint{margin-bottom:4px}}
 @media(prefers-reduced-motion:reduce){.orb-halo{animation:none}}
+
+/* Drawer visibility and touch behavior: closed means fully absent, not a dimmed overlay. */
+.solina-drawer.hidden{display:none!important;visibility:hidden!important;pointer-events:none!important}
+.solina-drawer-backdrop.hidden{display:none!important;visibility:hidden!important;pointer-events:none!important}
+.solina-drawer:not(.hidden){visibility:visible;pointer-events:auto;z-index:40}
+.solina-drawer-backdrop:not(.hidden){z-index:35}
+body.drawer-open{touch-action:pan-y}
