@@ -209,4 +209,9 @@ assert.match(app, /جاري تحميل مفاتيح API المحفوظة/, "Prov
 assert.match(app, /تعذر تحميل المفاتيح من الخادم:/, "Provider list failures must be shown as errors, not as an empty key list");
 assert.match(html, /id="reloadProvidersButton"/, "Settings must provide a manual API key list refresh control");
 
-assert.match(app, /const savedOwnerSession = localStorage\.getItem\("nova\.owner\.session\.v2"\)/, "App module must adopt the already validated session if pin.js finishes first");
+assert.match(app, /window\.solinaActivateOwnerSession = \(token\) => activateOwnerSession\(token\)/, "The app must expose a direct validated-session handoff callback");
+assert.match(app, /window\.__solinaPendingOwnerToken/, "The app must replay a session token if the auth event arrived before module startup");
+assert.match(pin, /window\.solinaActivateOwnerSession\?\.\(token\)/, "PIN bootstrap must call the app directly as well as dispatching the auth event");
+assert.match(pin, /window\.novaEnsureOwnerSession = ensureOwnerSession/, "Protected app actions must be able to restore the owner session on demand");
+assert.match(pin, /temporary network failure must never erase a still-valid owner token/, "Transient network failures must not destroy the saved owner session");
+assert.match(app, /await window\.novaEnsureOwnerSession\(\)/, "Protected API calls must recover a missing owner session before failing");
