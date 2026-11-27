@@ -163,22 +163,29 @@ function trackAudioElementFace(audio, segments) {
   audio.addEventListener("timeupdate", () => {
     if (state.speaking && Number.isFinite(audio.duration) && audio.duration > 0) updateFaceSpeechProgress(segments, audio.currentTime / audio.duration);
   });
+  let analyser = null;
   try {
     if (!speechAudioContext) {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextClass) return;
       speechAudioContext = new AudioContextClass();
     }
+    // Attach the analyser before playback so the first audible frame is animated.
     const source = speechAudioContext.createMediaElementSource(audio);
-    const analyser = connectSpeechAnalyser(source);
-    if (!analyser) return;
+    analyser = connectSpeechAnalyser(source);
     if (speechAudioContext.state === "suspended") void speechAudioContext.resume().catch(() => {});
-    animateFaceFromAudio(analyser, () => state.audio?.element === audio, () => {
-      if (Number.isFinite(audio.duration) && audio.duration > 0) updateFaceSpeechProgress(segments, audio.currentTime / audio.duration);
-    });
   } catch (error) {
     console.warn("NOVA speech waveform tracking unavailable.", error);
   }
+  let started = false;
+  audio.addEventListener("playing", () => {
+    if (started || !state.speaking || state.audio?.element !== audio) return;
+    started = true;
+    setStatus(personas[state.persona].name + " بيتكلم...", "speaking");
+    if (analyser) animateFaceFromAudio(analyser, () => state.audio?.element === audio, () => {
+      if (Number.isFinite(audio.duration) && audio.duration > 0) updateFaceSpeechProgress(segments, audio.currentTime / audio.duration);
+    });
+  });
 }
 function setPersona(persona) {
   if (!personas[persona]) return;
@@ -357,7 +364,7 @@ function speakWithDevice(text, persona, segments = []) {
     };
     utterance.onstart = () => {
       startedAt = performance.now();
-      setStatus(personas[persona].name + " بيتكلم...", "speaking");
+      setStatus(personas[persona].name + " بيجهز الصوت...", "thinking");
       rafId = requestAnimationFrame(tick);
     };
     utterance.onboundary = (event) => {
@@ -438,9 +445,9 @@ async function speak(text, segments = []) {
     }, { once: true });
     state.audio = { pause: () => { audio.pause(); finish(); }, element: audio };
     try {
+      trackAudioElementFace(audio, speechSegments);
       await audio.play();
       audioPlaybackStarted = true;
-      trackAudioElementFace(audio, speechSegments);
     } catch (playError) {
       // Android can reject delayed HTMLAudio playback; decode through the unlocked AudioContext.
       try { audio.pause(); audio.removeAttribute("src"); audio.load(); } catch (_) {}
@@ -462,6 +469,7 @@ async function speak(text, segments = []) {
           updateFaceSpeechProgress(speechSegments, Math.min(1, (performance.now() - startedAt) / (buffer.duration * 1000)));
         });
       }
+      setStatus(personas[persona].name + " بيتكلم...", "speaking");
       source.start(0);
     }
   } catch (error) {
