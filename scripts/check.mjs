@@ -111,7 +111,7 @@ assert.match(workflow, /npm test/, "CI must run repository tests");
 assert.doesNotMatch(html + app + css + workflow, /nova-3d\\.js|initNOVACharacter3D|character3D|legacy-mannequin|old-robot-renderer|has-3d/, "Legacy mannequin renderer must stay removed");
 assert.doesNotMatch(html, /novaRobot/, "Legacy full avatar must be removed");
 assert.doesNotMatch(html, /robot-neck|robot-torso|robot-arm|robot-leg/, "No robot body parts remain");
-assert.equal((html.match(/data-settings-page="/g) || []).length, 5, "Settings must expose five independent pages");
+assert.equal((html.match(/data-settings-page="/g) || []).length, 6, "Settings must expose six independent pages including device permissions");
 assert.match(html, /data-settings-home/, "Settings must open on a clear category home");
 assert.match(html, /id="settingsBackButton"/, "Settings pages must provide back navigation");
 assert.match(html, /data-open-settings-page="memory"/, "The notebook must be reachable from the settings catalog");
@@ -242,7 +242,7 @@ assert.match(app, /ناديني: سولينا/, "The wake prompt must use Solina
 assert.doesNotMatch(app, /مستني تناديني: نوفا|مستني تناديني يا نوفا/, "No stale NOVA wake prompt may remain");
 assert.match(app, /state\.voiceSessionActive = false;\s*cancelCurrentTurn/, "Stopping the microphone must close the armed voice session");
 
-assert.match(app, /function openSettings\(\) \{[\s\S]*?showSettingsHome\(\);[\s\S]*?\$\("settingsDialog"\)\.showModal\(\);[\s\S]*?Promise\.allSettled\(\[loadProviders\(\), loadOwnerMemory\(\), loadSpeechSettings\(\)\]\);[\s\S]*?\}/, "Opening settings must show the category home and refresh providers, owner memory, and speech settings");
+assert.match(app, /function openSettings\(\) \{[\s\S]*?showSettingsHome\(\);[\s\S]*?\$\("settingsDialog"\)\.showModal\(\);[\s\S]*?Promise\.allSettled\(\[loadProviders\(\), loadOwnerMemory\(\), loadSpeechSettings\(\), refreshPermissionCards\(\)\]\);[\s\S]*?\}/, "Opening settings must show the category home and refresh providers, memory, speech, and device permissions");
 assert.match(app, /جاري تحميل مفاتيح API المحفوظة/, "Provider list must show a loading state instead of a false empty state");
 assert.match(app, /تعذر تحميل المفاتيح من الخادم:/, "Provider list failures must be shown as errors, not as an empty key list");
 assert.match(html, /id="reloadProvidersButton"/, "Settings must provide a manual API key list refresh control");
@@ -325,6 +325,15 @@ assert.match(app, /if \(intent\.action === "create"\) return \{ handled: true, i
 assert.match(app, /pendingTaskPermissionIntent/, "A reminder must be retained while Android permissions are requested");
 assert.match(app, /pendingTaskDraft/, "Pending task details must remain available between voice turns");
 assert.match(app, /window\.SolinaNative/, "Task actions must use the native Android bridge");
+assert.equal(parseTaskCommand("عايز أديك الصلاحية", fixedNow)?.action, "open_permissions", "Permission requests must open the native permission center, not fall through to AI");
+assert.equal(parseTaskCommand("افتحي صلاحيات التطبيق", fixedNow)?.action, "open_permissions", "Spoken request to open permissions must be handled locally");
+assert.match(html, /data-settings-page="permissions"/, "Settings must include a dedicated device permissions page");
+assert.match(html, /data-permission-action="exactAlarms"/, "Exact alarm access must be controllable from the permission center");
+assert.match(app, /function refreshPermissionCards\(/, "Permission statuses must be read from the Android bridge");
+assert.match(androidMain, /permissionInfo\(\)/, "Android bridge must report real device permission state");
+assert.match(androidMain, /requestPermission\(String name\)/, "Android bridge must request or open each permission directly");
+assert.match(css, /\.solina-transcript\{display:none!important\}/, "Idle voice text must not cover the visible conversation transcript");
+assert.match(html, /class="conversation-log solina-conversation-feed" id="conversationLog"/, "Conversation transcript must remain visible below voice controls");
 assert.match(html, /id="scheduledTasksList"/, "Settings should expose saved reminders and alarms");
 console.log("Arabic task parser checks passed.");
 
