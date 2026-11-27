@@ -347,6 +347,7 @@ const alarmService = read("../android/app/src/main/java/com/solina/assistant/Ala
 assert.match(alarmService, /setLooping\(true\)/, "Alarm sound must loop until stopped");
 assert.match(alarmActivity, /isStopPhrase/, "Alarm must accept spoken stop commands");
 assert.match(alarmActivity, /انا قمت|قمت/, "Alarm must recognize the user confirming they woke up");
+assert.match(alarmActivity, /صحيت|صاحي/, "Alarm must also stop when the user says «أنا صحيت» or «أنا صاحي»");
 const alarmScheduler = read("../android/app/src/main/java/com/solina/assistant/AlarmScheduler.java");
 const taskReceiver = read("../android/app/src/main/java/com/solina/assistant/TaskReceiver.java");
 const taskStore = read("../android/app/src/main/java/com/solina/assistant/TaskStore.java");
