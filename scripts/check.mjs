@@ -43,9 +43,7 @@ assert.match(edge, /nova_speech_settings/, "Fixed voice configuration must be st
 assert.match(app, /loadSpeechSettings/, "Client must load fixed voice settings");
 assert.match(app, /saveSpeechSettings/, "Client must save fixed voice settings");
 assert.match(app, /state\.processing/, "Voice turns must be serialized to prevent overlapping conversations");
-assert.match(app, /trackAudioElementFace/, "Cloud audio must drive live facial movement");
 assert.match(app, /updateFaceSpeechProgress/, "Facial emotion must follow speech segment timing");
-assert.match(app, /onboundary/, "Device speech must synchronize facial expression with spoken words");
 assert.match(app, /const rawReply = sanitizeInternalReply\(result\.reply/, "AI reply must be sanitized before emotion parsing");
 assert.match(app, /setFaceEmotion\("neutral"\)/, "Face must return to neutral after speech ends");
 assert.match(app, /connectSpeechAnalyser/, "Audio waveform must be analyzed for mouth movement");
@@ -91,15 +89,23 @@ assert.match(workflow, /npm test/, "CI must run repository tests");
 assert.doesNotMatch(html + app + css + workflow, /nova-3d\\.js|initNOVACharacter3D|character3D|legacy-mannequin|old-robot-renderer|has-3d/, "Legacy mannequin renderer must stay removed");
 assert.doesNotMatch(html, /novaRobot/, "Legacy full avatar must be removed");
 assert.doesNotMatch(html, /robot-neck|robot-torso|robot-arm|robot-leg/, "No robot body parts remain");
+assert.match(html, /id="novaAudioOrb"/, "NOVA must use the audio orb instead of a robot avatar");
+assert.doesNotMatch(html, /faceScreen|novaFaceMount|novaFaceOnly|faceMouth/, "No robot face markup may remain");
+assert.match(app, /orb\.dataset\.mood = mood/, "The audio orb must follow live conversation states");
+assert.match(app, /trackAudioElementOrb\(audio, speechSegments\);\s*await audio\.play\(\)/, "The audio analyser must attach before playback");
+assert.match(app, /animateOrbFromAudio/, "The orb must react continuously to actual speech waveform");
+assert.match(app, /getByteFrequencyData/, "The orb must react to audio frequencies as well as amplitude");
+assert.match(app, /--audio-level/, "Live speech amplitude must drive the orb visualization");
+assert.match(css, /\.nova-audio-orb/, "The audio orb must have dedicated styling");
+assert.match(css, /orb-ring/, "The audio orb must include expanding light pulses");
+assert.match(css, /orb-particle/, "The audio orb must include subtle moving particles");
+assert.match(css, /body\[data-mood="listening"\].*nova-audio-orb/, "The orb must visually react while listening");
 
 assert.match(app, /robot\.dataset\.mood = mood/, "Robot body motion must follow live conversation mood");
 assert.match(app, /robot\.dataset\.emotion = safe/, "Robot body language must follow the current emotional speech segment");
 
 assert.match(app, /robot\?\.classList\.add\(className\)/, "Body gestures must be triggered with character actions");
 assert.match(app, /audio.addEventListener\("playing"/, "Body and face speech animation must start on actual audio playback");
-assert.match(app, /trackAudioElementFace\(audio, speechSegments\);\s*await audio\.play\(\)/, "Audio analysis must be attached before playback begins");
-assert.match(html, /id="faceScreen"/, "OLED face must remain the only avatar");
-assert.match(html, /id="novaFaceMount"/, "Dedicated OLED face mount must exist");
 
 const secretPatterns = [
   /sk-[A-Za-z0-9]{20,}/,
@@ -112,18 +118,8 @@ for (const [name, source] of [["index.html", html], ["app.js", app], ["style.css
 }
 console.log("NOVA repository checks passed.");
 
-assert.match(app, /animateFaceFromAudio/, "The face must react continuously to the actual decoded speech waveform");
-assert.match(app, /getByteFrequencyData/, "Audio-reactive facial effects must use frequency analysis as well as amplitude");
-assert.match(css, /body\[data-mood="speaking"\].*face-mouth[\s\S]*?animation:none!important/, "CSS must not override waveform-driven mouth movement with fake looping talk");
-assert.match(css, /nova-face-laugh/, "A playful laugh must animate the face");
-assert.match(css, /face-cheek/, "The face must include expressive cheek details");
 assert.match(css, /face-screen\.pink/, "Solina must have a dedicated feminine pink OLED appearance");
 
-assert.match(app, /animateFaceFromAudio/, "The face must react continuously to the actual decoded speech waveform");
-assert.match(app, /getByteFrequencyData/, "Audio-reactive facial effects must use frequency analysis as well as amplitude");
-assert.match(css, /body\[data-mood="speaking"\] #novaFaceMount #novaFaceAvatar \.face-mouth\{\s*animation:none!important/, "CSS must not override waveform-driven mouth movement with fake looping talk");
-assert.match(css, /nova-face-laugh/, "A playful laugh must animate the face");
-assert.match(css, /face-cheek/, "The face must include expressive cheek details");
 assert.match(css, /face-screen\.pink/, "Solina must have a dedicated pink OLED appearance");
 
 assert.match(app, /messagesByPersona: \{ soly: \[\], soleen: \[\] \}/, "Soly and Solina must have separate conversation histories");
@@ -131,21 +127,12 @@ assert.match(app, /state\.messagesByPersona\[state\.persona\] = state\.messages\
 assert.match(app, /state\.messages = \(state\.messagesByPersona\[persona\] \|\| \[\]\)\.slice\(\)/, "Switching persona must restore only that persona's history");
 assert.match(app, /ابدأ محادثة جديدة مع /, "Persona switch must visually separate the conversation");
 
-assert.match(html, /face-pupil/, "The robot face must include animated eye pupils");
-assert.match(css, /nova-eye-blink/, "The robot face must blink with animated eyelids");
-assert.match(css, /data-emotion="surprised".*face-eye/, "Expressions must visibly change eye shape");
-assert.match(css, /data-emotion="happy".*face-mouth/, "Happy and playful expressions must shape the mouth into a smile");
 assert.match(app, /إفيهات مصرية ذكية ومواقف يومية/, "The AI persona must use natural Egyptian humor");
 assert.match(app, /الصدق أساسي/, "The AI persona must explicitly prioritize honesty and uncertainty");
-assert.match(app, /--face-talk-energy/, "Speech energy must animate facial details beyond the mouth");
 
 assert.match(app, /function sanitizeInternalReply\(/, "Client must sanitize internal memory tags before display and TTS");
 assert.match(app, /sanitizeInternalReply/, "Client reply sanitizer must be used");
 assert.match(edge, /function sanitizeInternalReplyText\(/, "Server must sanitize internal memory metadata");
 assert.match(edge, /sanitizeInternalReplyText/, "Server reply sanitizer must be used");
 
-assert.match(html, /class="face-art"/, "Facial features must be drawn as inline SVG vectors");
-assert.match(html, /class="face-lashes"/, "Each eye must have individually drawn vector lashes");
-assert.match(html, /class="face-brow left"/, "Eyebrows must be separate vector paths");
 assert.match(app, /mouth\.setAttribute\("d"/, "Mouth shape must be driven by measured audio amplitude");
-assert.match(css, /nova-vector-blink 3\.15s/, "Vector eyelids must blink about every three seconds");
