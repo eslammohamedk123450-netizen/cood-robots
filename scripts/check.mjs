@@ -6,7 +6,7 @@ const html = read("../index.html");
 const app = read("../app.js");
 const pin = read("../pin.js");
 const edge = read("../supabase/functions/nova-ai/index.ts");
-const css = read("../style.css");
+const css = read("../style.css") + read("../solina-voice.css");
 const workflow = read("../.github/workflows/pages.yml");
 
 const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map((m) => m[1]);
@@ -55,7 +55,7 @@ assert.doesNotMatch(html, /سولين(?!ا)/, "The old female persona name must 
 assert.doesNotMatch(app, /Math\.random\(\).*setSpeechMouthLevel/, "Orb audio response must not be random");
 assert.match(app, /decodeAudioData/, "Android audio-context playback fallback must remain available");
 assert.match(html, /id="speechApiKey"/, "The UI must provide a secure speech key entry");
-assert.match(html, /id="speechMaleVoice"/, "The UI must provide a male voice selector");
+assert.doesNotMatch(html, /label class="field-label">صوت سولي \(رجالي\)/, "Only Solina voice settings may be visible");
 assert.match(html, /id="speechFemaleVoice"/, "The UI must provide a female voice selector");
 assert.match(html, /ElevenLabs/, "The UI must expose ElevenLabs as a speech provider");
 assert.match(html, /id="speechProvider"/, "The UI must allow selecting the speech provider");
@@ -96,7 +96,7 @@ assert.match(workflow, /npm test/, "CI must run repository tests");
 assert.doesNotMatch(html + app + css + workflow, /nova-3d\\.js|initNOVACharacter3D|character3D|legacy-mannequin|old-robot-renderer|has-3d/, "Legacy mannequin renderer must stay removed");
 assert.doesNotMatch(html, /novaRobot/, "Legacy full avatar must be removed");
 assert.doesNotMatch(html, /robot-neck|robot-torso|robot-arm|robot-leg/, "No robot body parts remain");
-assert.match(html, /id="novaAudioOrb"/, "NOVA must use the audio orb instead of a robot avatar");
+assert.match(html, /id="solinaWaveCanvas"/, "The home screen must show Solina audio sphere");
 assert.doesNotMatch(html, /faceScreen|novaFaceMount|novaFaceOnly|faceMouth/, "No robot face markup may remain");
 assert.match(app, /orb\.dataset\.mood = mood/, "The audio orb must follow live conversation states");
 assert.match(app, /trackAudioElementOrb\(audio, speechSegments\);\s*await audio\.play\(\)/, "The audio analyser must attach before playback");
@@ -110,7 +110,7 @@ assert.match(css, /body\[data-mood="listening"\].*nova-audio-orb/, "The orb must
 assert.match(app, /setSpeechSegmentTone\("neutral"\)/, "Speech segment tone must reset when playback ends");
 assert.match(app, /function isStopVoiceCommand\(/, "Stop phrases must be detected locally");
 assert.match(app, /history_append/, "Every user and assistant message must be persisted independently");
-assert.match(app, /historyQueues: \{ soly: Promise\.resolve\(\), soleen: Promise\.resolve\(\) \}/, "History writes must be serialized independently per persona");
+assert.match(app, /historyQueues: \{ soleen: Promise\.resolve\(\) \}/, "Only Solina conversation history may be active");
 assert.match(app, /database round trip before NOVA starts thinking/, "Chat processing must not wait for the user-history write");
 assert.match(app, /Start speech immediately\. History writes are serialized in the background\./, "Speech playback must begin without waiting for history persistence");
 assert.match(app, /history_search/, "Both personas must be able to search persistent conversation history");
@@ -134,7 +134,7 @@ console.log("NOVA repository checks passed.");
 
 
 
-assert.match(app, /messagesByPersona: \{ soly: \[\], soleen: \[\] \}/, "Soly and Solina must have separate conversation histories");
+assert.match(app, /messagesByPersona: \{ soleen: \[\] \}/, "The app must keep only Solina persona state");
 assert.match(app, /state\.messagesByPersona\[state\.persona\] = state\.messages\.slice\(\)/, "Current persona history must be saved independently");
 assert.match(app, /state\.messages = \(state\.messagesByPersona\[persona\] \|\| \[\]\)\.slice\(\)/, "Switching persona must restore only that persona's history");
 assert.match(app, /ابدأ محادثة جديدة مع /, "Persona switch must visually separate the conversation");
@@ -161,26 +161,26 @@ assert.match(edge, /سياق مسترجع من محادثات سابقة للش�
 assert.match(edge, /oldRowsResult\.error/, "Parallel history retrieval errors must be handled explicitly");
 assert.match(edge, /const \[\{ data: memoryRow, error: memoryReadError \}, \{ data: models, error \}, oldRowsResult\] = await Promise\.all\(/, "Independent memory, model, and history reads must run concurrently");
 assert.match(edge, /const secretEntries = await Promise\.all\(/, "Provider secrets must be fetched concurrently instead of serially");
-assert.match(html, /nova-smart-tts-cache-v61/, "Client cache version must be refreshed after UX changes");
+assert.match(html, /solina-voice-orb-v2/, "Solina client bundle must use a fresh cache version");
 assert.match(css, /NOVA responsive voice-first polish/, "Responsive voice-first visual polish must be present");
 
 assert.match(app, /Keep the dedicated interrupt listener alive during playback/, "Voice interruption listener must remain active while NOVA speaks");
 assert.doesNotMatch(app, /if \(state\.listening\) startInterruptRecognition\(\);\s*stopInterruptRecognition\(\)/, "Speech playback must not immediately disable the interrupt listener");
-assert.match(html, /nova-smart-tts-cache-v61/, "Client bundle cache must refresh after the interrupt fix");
+assert.match(html, /solina-voice-orb-v2/, "Solina client bundle must use a fresh cache version");
 
 assert.match(app, /راجع ردك مرة أخيرة بصمت من ناحية الإملاء واختيار الكلمات واتساق المعنى/, "NOVA must proofread Egyptian Arabic contextually before replying");
 assert.match(app, /كلمة «بكير» تظل كما هي إذا كان معناها مقصودًا/, "Contextual proofreading must preserve valid words instead of blanket replacements");
 assert.match(app, /اجعل النص الذي تعرضه هو نفسه النص الذي يُرسل للصوت/, "Displayed and spoken replies must use the same corrected text");
 
 assert.match(app, /orb\.dataset\.expression = state\.replyEmotion/, "Speech emotion must drive the hologram face expression");
-assert.match(app, /"--mouth-scale", \(0\.48 \+ amount \* 1\.75\)/, "Hologram mouth movement must follow measured speech amplitude");
-assert.match(css, /holo-natural-blink/, "Hologram eyes must blink naturally");
-assert.match(css, /data-expression="happy"/, "Hologram must visually reflect emotional speech segments");
+assert.match(app, /window\.solinaWave\?\.setLevel\(amount, energy\)/, "Wave motion must follow measured audio amplitude");
+assert.match(css, /solina-wave-canvas/, "Solina audio orb canvas must be styled");
+assert.match(css, /solina-wordmark/, "Solina must be the only visible product identity");
 
-assert.match(html, /id="novaAvatarCanvas"/, "The supplied animated NOVA avatar canvas must be mounted on the home screen");
-assert.match(html, /nova-avatar\.css/, "The supplied avatar visual layer must be loaded");
+assert.match(html, /id="solinaWaveCanvas"/, "Solina voice orb must be mounted");
+assert.match(html, /solina-voice\.css/, "Solina visual layer must be loaded");
 assert.match(app, /novaAvatar\?\.setSpeechLevel\(amount, energy\)/, "The supplied avatar mouth must follow the live speech analyser");
 assert.match(app, /novaAvatar\?\.setExpression\(state\.replyEmotion\)/, "The supplied avatar must follow live emotional segments");
-assert.match(css, /\.character-stage\{height:clamp\(460px,62svh,600px\)!important/, "Character stage must reserve enough vertical space");
-assert.match(css, /holo-listen-body/, "NOVA body must visibly animate while listening");
-assert.match(css, /holo-speaking-body/, "NOVA body must visibly animate while speaking");
+assert.match(css, /solina-orb-stage/, "Large central audio visualizer must be present");
+assert.match(css, /solina-breathe/, "Solina audio orb must pulse");
+assert.match(app, /window\.solinaWave\?\.setLevel\(amount, energy\)/, "Audio orb must follow real playback amplitude");
