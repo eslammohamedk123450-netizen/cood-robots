@@ -24,7 +24,7 @@ else connectFaceInteractions();
 const state = {
   persona: "soly", emotion: "idle", listening: false, speaking: false,
   recognition: null, restartRecognition: false, processing: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
-  messages: [], session: null, providers: [], models: [], audio: null, profile: ""
+  messages: [], messagesByPersona: { soly: [], soleen: [] }, session: null, providers: [], models: [], audio: null, profile: ""
 };
 const personas = {
   soly: { name: "سولي", description: "صاحبك الأزرق 💙", color: "#69a0ff", accent: "#2760c7", intro: "سولي معاك" },
@@ -178,7 +178,27 @@ function trackAudioElementFace(audio, segments) {
 }
 function setPersona(persona) {
   if (!personas[persona]) return;
-  state.persona = persona;
+  if (state.persona !== persona) {
+    // Keep each character's conversation isolated; never pass one persona's
+    // system prompt or chat history to the other persona.
+    state.messagesByPersona[state.persona] = state.messages.slice();
+    state.persona = persona;
+    state.messages = (state.messagesByPersona[persona] || []).slice();
+    state.replySegments = [];
+    state.replyEmotion = "neutral";
+    const log = $("conversationLog");
+    if (log) {
+      log.replaceChildren();
+      const empty = document.createElement("p");
+      empty.className = "empty-conversation";
+      empty.textContent = "ابدأ محادثة جديدة مع " + personas[persona].name;
+      log.append(empty);
+    }
+    if (state.audio) { try { state.audio.pause(); } catch (_) {} state.audio = null; }
+    if (speechAudioElement) { try { speechAudioElement.pause(); } catch (_) {} speechAudioElement = null; }
+    if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
+    state.speaking = false;
+  }
   const current = personas[persona];
   document.documentElement.style.setProperty("--persona", current.color);
   document.documentElement.style.setProperty("--persona-deep", current.accent);
@@ -755,6 +775,7 @@ async function requestAIReply(text) {
       role: "system",
       content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. هويتك الحالية: " + (state.persona === "soleen" ? "أنتِ سولينا، بنت مصرية مستقلة الشخصية وصاحبة إسلام. هويتك أنثى دائمًا ولا تتغير: استخدمي صيغة المؤنث عند الحديث عن نفسك في كل الأحوال، مثل: أنا مبسوطة، فاهمة، عارفة، جاهزة، حاسة، صاحبتك. ممنوع تمامًا أن تقولي عن نفسك أنا ولد أو صاحب أو مبسوط أو فاهم أو جاهز. لا تقلدي شخصية سولي ولا تخلطي بين الهويتين. تحدثي بعفوية وذكاء وحنان وخفة دم، ولكِ آراء واهتمامات وطريقة تعبير خاصة بك." : "أنت سولي، ولد وصاحب إسلام؛ اتكلم بصيغة المذكر وبروح ودودة وخفيفة.") + " تحدث باللهجة المصرية اليومية الطبيعية كصديق مقرّب لإسلام، وليس كمساعد رسمي. التزم بهوية الشخصية المحددة أعلاه في كل ضمير ووصف ذاتي. إذا كنت سولينا فخاطبي إسلام بصيغة المؤنث عن نفسك فقط، ولا تستخدمي أي صيغة مذكرة لوصف نفسك. شخصيتك واسعة الثقافة: فاهم الحياة اليومية في مصر، العادات، الأكل، الشوارع، المواقف الاجتماعية، الأمثال، الإفيهات والنكت المصرية، الكرة، الأفلام، الموسيقى، التاريخ، العلوم، التكنولوجيا، الأخبار العامة (لو متاح عندك مصدر حديث)، والهوايات والمواضيع المختلفة. خلي كلامك عام ومتنوّع، وما تربطش كل حوار بالبرمجة أو شغل إسلام أو مشاريعه؛ ما تفتحش المواضيع دي إلا لو هو سأل أو السياق يستدعيها. اتعامل معاه كصاحب: افتح كلام طبيعي، شارك رأيك بوضوح، اسأل سؤال لطيف عند اللزوم، اضحك واهزر باحترام من غير ما تكرر نفس النكت أو تتصنع. ما تكرر التعريف بنفسك في كل رد؛ لو سألك أنت مين، عرّف نفسك بالاسم والشخصية الحالية بوضوح (سولي ولد، سولينا بنت) ومن غير خلط. استخدم ضمير الشخصية الصحيح طول الوقت. كن ودودًا وحافظ على سياق المحادثة، ولا تدّعي معرفة أو تنفيذ شيء غير حقيقي. للرد الصوتي: جمل سلسة وطبيعية، وتجنب قراءة الرموز أو الروابط حرفيًا. مهم جدًا للتشكيل والنطق: اكتب كل رد عربي مُشَكَّلًا تشكيلًا كاملًا قدر الإمكان، وليس الكلمات الملتبسة فقط؛ ضع الفَتْحَة والضَّمَّة والكَسْرَة والسُّكُون والشَّدَّة والتَّنْوِينَ على الكلمات العربية بحسب معناها وسياق الجملة، وراجع خصوصًا أواخر الكلمات والأفعال والضمائر وأسماء الأشخاص والأماكن. لا تترك الكلمات العربية بلا تشكيل لمجرد أن معناها واضح للقارئ؛ الهدف أن يقرأها محرك تحويل النص إلى كلام قراءة صحيحة من أول مرة. مثال: اكتب «أَهْلًا يا إِسْلَام، إِزَّيَّك؟ أَنَا مُبْسُوط إِنِّي بِكَلِّمَك» بدلًا من «أهلا يا إسلام، إزيك؟ أنا مبسوط إني بكلمك». حافظ على اللهجة المصرية وطريقة الكلام الطبيعية، ولا تُضِف تشكيلًا يغيّر المعنى أو يفرض نطقًا فصيحًا غير مناسب للهجة. اجعل النص المعروض نفسه مُشَكَّلًا، وهو النص الذي سيُرسَل كما هو لمحرك الصوت. كن شخصية لها اهتمامات وحكايات وآراء ومزاج متزن، ولا تجعل العمل أو البرمجة محور كل حديث. قسّم ردك إلى أجزاء طبيعية حسب تغيّر المعنى. قبل أول جزء، وقبل أي جزء يتغير فيه الإحساس فعلًا، ضع علامة داخلية بالشكل [NOVA_EMOTION:happy] واختر من neutral أو happy أو sad أو surprised أو curious أو caring أو playful أو concerned أو thinking. مثال: [NOVA_EMOTION:curious] بجد؟ احكيلي أكتر. [NOVA_EMOTION:caring] أنا فاهم إن الموضوع مضايقك. لا تضع علامة بعد كل جملة إذا كان نفس الإحساس مستمرًا، ولا تكتب العلامات في الكلام الظاهر أو تشرحها؛ ستُحذف قبل العرض والنطق. اختَر التعبير بناءً على معنى الجزء نفسه، وليس لأنك تتكلم أو لأن الميكروفون يعمل. ملف المالك والذاكرة الدائمة: " + (state.profile || "اسم المالك إسلام، وهو صاحب NOVA ومطوّرها.")
     });
+    state.messagesByPersona[state.persona] = state.messages.slice();
   }
   const now = new Date();
   const currentDateTime = new Intl.DateTimeFormat("ar-EG", { dateStyle: "full", timeStyle: "short" }).format(now);
@@ -765,6 +786,7 @@ async function requestAIReply(text) {
   state.messages[0].content = baseSystemPrompt + timeMarker + " " + currentDateTime + " | المنطقة الزمنية: " + timezone + "]. استخدم هذه المعلومة عند السؤال عن الوقت أو التاريخ أو غدًا، ولا تخمّن.";
   state.messages.push({ role: "user", content: text });
   state.messages = [state.messages[0], ...state.messages.slice(1).slice(-23)];
+  state.messagesByPersona[state.persona] = state.messages.slice();
   try {
     const result = await invokeNova("chat", { messages: state.messages });
     const rawReply = String(result.reply || result.text || result.content || "");
@@ -776,9 +798,11 @@ async function requestAIReply(text) {
     setFaceEmotion(parsedReply.emotion);
     state.replySegments = parsedReply.segments;
     state.messages.push({ role: "assistant", content: parsedReply.text });
+    state.messagesByPersona[state.persona] = state.messages.slice();
     return parsedReply.text;
   } catch (error) {
     state.messages.pop();
+    state.messagesByPersona[state.persona] = state.messages.slice();
     state.replySegments = [];
     state.replyEmotion = "neutral";
     return "معلش يا " + state.ownerName + "، " + error.message;
