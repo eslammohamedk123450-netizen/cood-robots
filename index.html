@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=nova-immersive-hero-v52">
+  <link rel="stylesheet" href="style.css?v=nova-hologram-person-v53">
 </head>
 <body>
   <div class="auth-gate" id="authGate">
@@ -51,11 +51,37 @@
           <div class="stage-glow"></div>
           <div class="stage-orbit orbit-one"></div>
           <div class="stage-orbit orbit-two"></div>
-          <div class="nova-audio-orb" id="novaAudioOrb" data-mood="idle" role="img" aria-label="مؤشر NOVA الصوتي">
-<div class="orb-aura orb-aura-one"></div><div class="orb-aura orb-aura-two"></div>
-<div class="orb-rings"><span></span><span></span><span></span></div>
-<div class="orb-core"><div class="orb-core-shine"></div><div class="orb-core-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
-<div class="orb-particles"><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="character-caption">
+          <div class="nova-audio-orb nova-hologram" id="novaAudioOrb" data-mood="idle" role="img" aria-label="شخصية NOVA الافتراضية المضيئة">
+<div class="holo-aura"></div><div class="holo-grid"></div>
+<svg class="holo-person" viewBox="0 0 420 520" aria-hidden="true">
+<defs>
+ <linearGradient id="holoStroke" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9f8ff"/><stop offset=".45" stop-color="#48caff"/><stop offset="1" stop-color="#176cff"/></linearGradient>
+ <radialGradient id="holoFill"><stop offset="0" stop-color="#44caff" stop-opacity=".28"/><stop offset="1" stop-color="#176cff" stop-opacity=".025"/></radialGradient>
+ <filter id="holoGlow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+ <clipPath id="holoClip"><path d="M210 45 C145 45 112 92 112 163 C112 225 148 265 210 265 C272 265 308 225 308 163 C308 92 275 45 210 45Z"/></clipPath>
+</defs>
+<g class="holo-back-rings" fill="none" stroke="url(#holoStroke)"><ellipse cx="210" cy="474" rx="155" ry="25"/><ellipse cx="210" cy="474" rx="115" ry="16"/></g>
+<g class="holo-body" filter="url(#holoGlow)">
+ <path class="holo-shoulders" d="M112 285 C72 296 42 333 30 405 L20 468 Q210 510 400 468 L390 405 C378 333 348 296 308 285 L270 270 L150 270Z" fill="url(#holoFill)" stroke="url(#holoStroke)" stroke-width="3"/>
+ <path d="M150 270 L210 330 L270 270 M210 330 L210 476 M92 355 L155 385 M328 355 L265 385" fill="none" stroke="#65d9ff" stroke-opacity=".8" stroke-width="2"/>
+ <path d="M170 268 L170 300 Q210 328 250 300 L250 268" fill="url(#holoFill)" stroke="#6bdcff" stroke-width="2"/>
+ <circle cx="210" cy="385" r="23" fill="#06274d" stroke="#8cecff" stroke-width="2"/><circle cx="210" cy="385" r="8" fill="#9af4ff" class="holo-core"/>
+ <path d="M62 438 Q210 470 358 438" fill="none" stroke="#b8f8ff" stroke-width="2" opacity=".8"/>
+</g>
+<g class="holo-head" filter="url(#holoGlow)">
+ <path d="M210 45 C145 45 112 92 112 163 C112 225 148 265 210 265 C272 265 308 225 308 163 C308 92 275 45 210 45Z" fill="url(#holoFill)" stroke="url(#holoStroke)" stroke-width="3"/>
+ <path d="M119 147 Q105 194 145 236 M301 147 Q315 194 275 236" fill="none" stroke="#62d7ff" stroke-width="5" opacity=".65"/>
+ <g class="holo-face">
+  <path d="M151 158 Q177 143 193 158 M227 158 Q243 143 269 158" fill="none" stroke="#c4f8ff" stroke-width="5" stroke-linecap="round"/>
+  <ellipse class="holo-eye" cx="174" cy="171" rx="8" ry="12" fill="#c9fbff"/><ellipse class="holo-eye" cx="246" cy="171" rx="8" ry="12" fill="#c9fbff"/>
+  <path d="M210 173 L201 205 Q210 212 219 205" fill="none" stroke="#6edfff" stroke-width="3" stroke-linecap="round"/>
+  <path class="holo-mouth" d="M184 226 Q210 239 236 226" fill="none" stroke="#d5fbff" stroke-width="4" stroke-linecap="round"/>
+ </g>
+</g>
+<g class="holo-particles" fill="#b7f7ff"><circle cx="69" cy="182" r="3"/><circle cx="344" cy="128" r="4"/><circle cx="82" cy="316" r="2"/><circle cx="350" cy="320" r="3"/><circle cx="135" cy="45" r="2"/><circle cx="288" cy="35" r="2"/></g>
+</svg>
+<div class="holo-scan"></div><div class="holo-caption">NOVA <span>•</span> AI COMPANION</div>
+</div><div class="character-caption">
             <span class="caption-dot"></span>
             <span id="characterStatus">سولي معاك</span>
           </div>
