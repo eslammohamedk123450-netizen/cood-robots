@@ -1,3 +1,4 @@
+import { parseTaskCommand, formatTaskDate } from "./task-manager.js";
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soleen", emotion: "idle", listening: false, speaking: false,
@@ -1040,6 +1041,113 @@ function queueVoiceFinal(text, alternatives = []) {
     }
   }, VOICE_TURN_PAUSE_MS);
 }
+function nativeTaskBridge() {
+  return window.SolinaNative && typeof window.SolinaNative.scheduleTask === "function" ? window.SolinaNative : null;
+}
+function readNativeTasks() {
+  const bridge = nativeTaskBridge();
+  if (!bridge) return [];
+  try {
+    const tasks = JSON.parse(bridge.listTasks());
+    return Array.isArray(tasks) ? tasks : [];
+  } catch (_) { return []; }
+}
+function renderScheduledTasks() {
+  const container = $("scheduledTasksList");
+  if (!container) return;
+  const tasks = readNativeTasks().sort((a, b) => Number(a.at) - Number(b.at));
+  if (!nativeTaskBridge()) {
+    container.textContent = "قائمة التذكيرات والمنبهات تظهر هنا داخل تطبيق APK.";
+    return;
+  }
+  if (!tasks.length) {
+    container.textContent = "مفيش تذكيرات أو منبهات محفوظة حاليًا.";
+    return;
+  }
+  container.replaceChildren();
+  for (const task of tasks) {
+    const item = document.createElement("div");
+    item.className = "scheduled-task";
+    const details = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = task.type === "alarm" ? "منبه الاستيقاظ" : "تذكير";
+    const description = document.createElement("p");
+    description.textContent = String(task.title || "مهمة") + " — " + formatTaskDate(Number(task.at));
+    details.append(title, description);
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "secondary-button";
+    cancel.textContent = "إلغاء";
+    cancel.addEventListener("click", () => {
+      const result = JSON.parse(nativeTaskBridge().cancelTask(String(task.id)));
+      if (result.ok) { showToast("اتلغى الموعد."); renderScheduledTasks(); }
+      else showToast("ماقدرتش ألغي الموعد.");
+    });
+    item.append(details, cancel);
+    container.append(item);
+  }
+}
+async function executeTaskIntent(intent) {
+  const bridge = nativeTaskBridge();
+  if (intent.action === "needs_fajr_time") return "أقدر أصحيك للفجر، بس محتاجة أعرف المدينة أو ميعاد الفجر اللي تحب أعتمده. مش هخمن وقت الصلاة.";
+  if (intent.action === "needs_time") return "تمام، عايزني أظبطه على الساعة كام بالظبط؟ قولّي الساعة والدقايق.";
+  if (intent.action === "needs_title") return "حاضر، أفكّرك بإيه في المعاد ده؟";
+  if (!bridge) return "أوامر المنبهات والتذكيرات الفعلية متاحة في تطبيق سولينا APK، مش في صفحة الويب؛ عشان أضمن إنها تشتغل بعد قفل التطبيق.";
+  if (intent.action === "list") {
+    const tasks = readNativeTasks().sort((a, b) => Number(a.at) - Number(b.at));
+    if (!tasks.length) return "راجعت قائمة الهاتف، ومفيش تذكيرات أو منبهات محفوظة.";
+    return "دي مواعيدك المحفوظة:\n" + tasks.map((task, index) => (index + 1) + ". " + (task.type === "alarm" ? "منبه" : "تذكير") + ": " + task.title + " — " + formatTaskDate(Number(task.at))).join("\n");
+  }
+  if (intent.action === "cancel") {
+    const tasks = readNativeTasks().filter(task => !intent.type || task.type === intent.type);
+    const selected = intent.all ? tasks : tasks.slice(0, 1);
+    if (!selected.length) return "ملقتش موعد من النوع ده عشان ألغيه.";
+    for (const task of selected) {
+      const result = JSON.parse(bridge.cancelTask(String(task.id)));
+      if (!result.ok) return "حصلت مشكلة وأنا بلغي الموعد. جرب تاني من قائمة التذكيرات.";
+    }
+    renderScheduledTasks();
+    return intent.all ? "ألغيت كل المواعيد المطابقة من الهاتف." : "ألغيت آخر موعد محفوظ من النوع ده.";
+  }
+  if (intent.action === "create") {
+    let info = {};
+    try { info = JSON.parse(bridge.platformInfo()); } catch (_) {}
+    if (!info.notifications) {
+      bridge.requestNotificationPermission();
+      return "محتاجة تسمح لسولينا بالإشعارات من نافذة أندرويد اللي ظهرت، وبعدها كرر الأمر عشان أسجل الموعد.";
+    }
+    if (!info.exactAlarms) {
+      bridge.requestExactAlarmPermission();
+      return "فتحتلك إعداد السماح بالمنبهات الدقيقة. فعّل السماح لسولينا، وارجع كرر الأمر عشان أسجل الموعد.";
+    }
+    const task = {
+      id: (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : "solina-" + Date.now() + "-" + Math.random().toString(36).slice(2)),
+      type: intent.type,
+      title: intent.title,
+      at: new Date(intent.scheduledAt).getTime()
+    };
+    let result;
+    try { result = JSON.parse(bridge.scheduleTask(JSON.stringify(task))); }
+    catch (_) { return "حصل خطأ وأنا بحاول أحفظ الموعد على الهاتف."; }
+    if (!result.ok) {
+      if (result.error === "exact_alarm_permission_required") {
+        bridge.requestExactAlarmPermission();
+        return "فعّل صلاحية المنبهات الدقيقة لسولينا، وبعدها كرر الأمر.";
+      }
+      if (result.error === "notification_permission_required") {
+        bridge.requestNotificationPermission();
+        return "اسمح بإشعارات سولينا، وبعدها كرر الأمر.";
+      }
+      return "مقدرتش أحفظ الموعد على الهاتف: " + (result.error || "خطأ غير معروف");
+    }
+    renderScheduledTasks();
+    const when = formatTaskDate(task.at);
+    return intent.type === "alarm"
+      ? "اتسجل المنبه على الهاتف بنجاح. هصحّيك " + when + "."
+      : "حفظت التذكير على الهاتف بنجاح: " + intent.title + "، " + when + ".";
+  }
+  return null;
+}
 async function handleRecognizedText(text, voiceTurn = false, voiceAlternatives = []) {
   const clean = text.trim();
   if (!clean || state.processing || (voiceTurn && !state.listening)) return;
@@ -1055,6 +1163,18 @@ async function handleRecognizedText(text, voiceTurn = false, voiceAlternatives =
     // wait for a database round trip before NOVA starts thinking.
     void persistConversationMessage("user", clean).catch((historyError) => console.warn("NOVA user message save failed:", historyError));
     addConversationLine(clean, "owner");
+    const taskIntent = parseTaskCommand(clean);
+    if (taskIntent) {
+      const taskReply = await executeTaskIntent(taskIntent);
+      if (controller.signal.aborted || requestId !== state.requestSequence || (voiceTurn && !state.listening)) return;
+      addConversationLine(taskReply, "nova");
+      $("liveTranscript").textContent = taskReply;
+      const taskHistorySave = persistConversationMessage("assistant", taskReply).catch((historyError) => console.warn("NOVA task response save failed:", historyError));
+      await speak(taskReply, [], controller.signal);
+      await taskHistorySave;
+      renderScheduledTasks();
+      return;
+    }
     setStatus("بفكر في كلامك...", "thinking");
     animateCharacter("thinking");
     const reply = await requestAIReply(clean, controller.signal, voiceAlternatives);
@@ -1209,6 +1329,8 @@ $("textForm").addEventListener("submit", (event) => { event.preventDefault(); su
 $("clearConversation").addEventListener("click", () => { state.messages = []; state.messagesByPersona[state.persona] = []; state.conversationIds[state.persona] = null; localStorage.removeItem("nova.activeConversation." + state.persona); if ($("conversationHistorySelect")) $("conversationHistorySelect").value = ""; $("conversationLog").innerHTML = '<p class="empty-conversation">محادثة جديدة — ابدأ كلامنا ❤️</p>'; });
 $("conversationHistorySelect")?.addEventListener("change", event => { if (event.target.value) void openSavedConversation(event.target.value); });
 $("settingsButton").addEventListener("click", openSettings);
+$("refreshScheduledTasks")?.addEventListener("click", renderScheduledTasks);
+renderScheduledTasks();
 
 const savedOwnerName = localStorage.getItem("solina.owner.name");
 if (savedOwnerName) state.ownerName = savedOwnerName.slice(0, 40);
