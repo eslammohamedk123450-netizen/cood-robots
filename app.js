@@ -374,10 +374,10 @@ async function speak(text, segments = []) {
       return;
     }
     if (engine === "auto" && !localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
-    const speechProvider = $("speechProvider")?.value || "elevenlabs";
-    const voiceId = localStorage.getItem((speechProvider === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.") + (persona === "soleen" ? "female" : "male")) || "";
-    const speechProvider = engine === "gemini" ? "tts_gemini" : "tts";
-    const result = await invokeNova(speechProvider, { text: spokenText, persona, voice_id: voiceId });
+    const speechVendor = $("speechProvider")?.value || "elevenlabs";
+    const voiceId = localStorage.getItem((speechVendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.") + (persona === "soleen" ? "female" : "male")) || "";
+    const speechAction = engine === "gemini" ? "tts_gemini" : "tts";
+    const result = await invokeNova(speechAction, { text: spokenText, persona, voice_id: voiceId });
     if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
     const mime = String(result.mime_type || "").split(";")[0].trim().toLowerCase();
     if (!["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav"].includes(mime)) {
