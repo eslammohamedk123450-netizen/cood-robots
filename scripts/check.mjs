@@ -43,6 +43,11 @@ assert.match(edge, /nova_speech_settings/, "Fixed voice configuration must be st
 assert.match(app, /loadSpeechSettings/, "Client must load fixed voice settings");
 assert.match(app, /saveSpeechSettings/, "Client must save fixed voice settings");
 assert.match(app, /state\.processing/, "Voice turns must be serialized to prevent overlapping conversations");
+assert.match(app, /trackAudioElementFace/, "Cloud audio must drive live facial movement");
+assert.match(app, /updateFaceSpeechProgress/, "Facial emotion must follow speech segment timing");
+assert.match(app, /onboundary/, "Device speech must synchronize facial expression with spoken words");
+assert.match(app, /const rawReply = String\(result\.reply/, "AI reply must be read before emotion parsing");
+assert.match(app, /setFaceEmotion\("neutral"\)/, "Face must return to neutral after speech ends");
 assert.match(html, /id="speechApiKey"/, "The UI must provide a secure speech key entry");
 assert.match(html, /id="speechMaleVoice"/, "The UI must provide a male voice selector");
 assert.match(html, /id="speechFemaleVoice"/, "The UI must provide a female voice selector");
