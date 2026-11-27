@@ -283,15 +283,62 @@ function speakWithDevice(text, persona, segments = []) {
     utterance.pitch = persona === "soleen" ? 1.16 : 0.82;
     const voice = getDeviceArabicVoice(persona);
     if (voice) utterance.voice = voice;
-    utterance.onstart = () => setStatus(personas[persona].name + " بيتكلم...", "speaking");
+
+    // Android's SpeechSynthesis often emits no boundary events and exposes no audio
+    // waveform. Drive the OLED face from a speech-timed syllable envelope instead.
+    let rafId = 0;
+    let startedAt = 0;
+    let estimatedDuration = Math.max(1800, (text.length / 13.5) * 1000 / utterance.rate);
+    let lastBoundaryProgress = 0;
+    let ended = false;
+    const face = $("faceScreen");
+    const tick = (now) => {
+      if (ended || !state.speaking) return;
+      const elapsed = Math.max(0, now - startedAt);
+      const progress = Math.min(0.995, elapsed / estimatedDuration);
+      // Keep the visual timing aligned when a browser does provide word boundaries.
+      const visualProgress = Math.max(progress * 0.72, lastBoundaryProgress);
+      updateFaceSpeechProgress(segments, visualProgress);
+      const charIndex = Math.min(text.length - 1, Math.floor(progress * text.length));
+      const currentChar = text[charIndex] || "";
+      const isPause = /[،,.!?؟؛\\n]/.test(currentChar);
+      const syllableRate = 5.2 + (currentChar.charCodeAt(0) % 4) * 0.45;
+      const pulse = Math.abs(Math.sin(elapsed / 1000 * Math.PI * syllableRate));
+      const emphasis = /[اويىةآ]/.test(currentChar) ? 1 : 0.72;
+      const mouthLevel = isPause ? 0.035 : 0.12 + pulse * emphasis * 0.72;
+      setSpeechMouthLevel(mouthLevel, isPause ? 0.08 : 0.22 + pulse * 0.55);
+      if (face) {
+        face.style.setProperty("--speech-bob", (Math.sin(elapsed / 190) * 2.2).toFixed(1) + "px");
+        face.classList.toggle("device-speech-active", !isPause);
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    const stopVisuals = () => {
+      ended = true;
+      if (rafId) cancelAnimationFrame(rafId);
+      if (face) {
+        face.classList.remove("device-speech-active");
+        face.style.removeProperty("--speech-bob");
+      }
+      resetSpeechMouth();
+    };
+    utterance.onstart = () => {
+      startedAt = performance.now();
+      setStatus(personas[persona].name + " بيتكلم...", "speaking");
+      rafId = requestAnimationFrame(tick);
+    };
     utterance.onboundary = (event) => {
       if (Number.isFinite(event.charIndex) && text.length) {
-        updateFaceSpeechProgress(segments, event.charIndex / text.length);
-        setSpeechMouthLevel(0.25 + Math.min(0.7, (event.charLength || 4) / 12));
+        lastBoundaryProgress = Math.max(lastBoundaryProgress, event.charIndex / text.length);
+        // Some Android engines send only a few boundaries; use them to correct
+        // the estimated clock without making the mouth jump or freeze.
+        updateFaceSpeechProgress(segments, lastBoundaryProgress);
       }
     };
-    utterance.onend = resolve;
-    utterance.onerror = (event) => reject(new Error("محرك الجهاز فشل في النطق: " + (event.error || "unknown")));
+    utterance.onend = () => { stopVisuals(); resolve(); };
+    utterance.onerror = (event) => { stopVisuals(); reject(new Error("محرك الجهاز فشل في النطق: " + (event.error || "unknown"))); };
+    utterance.onpause = () => { if (rafId) cancelAnimationFrame(rafId); };
+    utterance.onresume = () => { if (!ended) rafId = requestAnimationFrame(tick); };
     window.speechSynthesis.speak(utterance);
   });
 }
