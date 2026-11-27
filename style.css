@@ -562,3 +562,8 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opac
 #novaFaceMount .face-screen.pink .face-mouth{stroke:#ff8acb}
 @keyframes nova-vector-blink{0%,91%,95%,100%{transform:scaleY(1)}93%{transform:scaleY(.08)}}
 @media(prefers-reduced-motion:reduce){#novaFaceMount .face-eye{animation:none}}
+
+#cancelTurnButton{width:42px;height:42px;border-radius:50%;border:1px solid rgba(245,120,120,.35);color:#ffb2b2;background:rgba(160,45,55,.13);font-size:15px}
+#cancelTurnButton:active{transform:scale(.94)}
+.history-picker-label{display:block;padding:10px 14px 4px;color:var(--muted,#9eabc0);font-size:11px}
+.history-picker{display:block;width:calc(100% - 28px);margin:4px 14px 10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#151b29;color:inherit;font:inherit;font-size:12px}
