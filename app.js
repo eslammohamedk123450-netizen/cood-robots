@@ -1902,6 +1902,13 @@ $("permissionList")?.addEventListener("click", event => {
   if (button && !button.disabled) requestDevicePermission(button.dataset.permissionAction);
 });
 renderScheduledTasks();
+window.addEventListener("focus", () => { if (state.session) void loadPersonalItems(); });
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && state.session) void loadPersonalItems();
+});
+setInterval(() => {
+  if (state.session && !document.hidden) void loadPersonalItems();
+}, 45000);
 
 const savedOwnerName = localStorage.getItem("solina.owner.name");
 if (savedOwnerName) state.ownerName = savedOwnerName.slice(0, 40);
