@@ -102,11 +102,11 @@ assert.match(app, /window\.solinaWave\?\.setMood\(mood\)/, "The Solina audio orb
 assert.match(app, /trackAudioElementOrb\(audio, speechSegments\);\s*await audio\.play\(\)/, "The audio analyser must attach before playback");
 assert.match(app, /animateOrbFromAudio/, "The orb must react continuously to actual speech waveform");
 assert.match(app, /getByteFrequencyData/, "The orb must react to audio frequencies as well as amplitude");
-assert.match(app, /--audio-level/, "Live speech amplitude must drive the orb visualization");
-assert.match(css, /\.nova-audio-orb/, "The audio orb must have dedicated styling");
-assert.match(css, /orb-ring/, "The audio orb must include expanding light pulses");
-assert.match(css, /orb-particle/, "The audio orb must include subtle moving particles");
-assert.match(css, /body\[data-mood="listening"\].*nova-audio-orb/, "The orb must visually react while listening");
+assert.match(app, /window\.solinaWave\?\.setLevel\(amount, energy\)/, "Measured speech amplitude must drive the Solina orb");
+assert.match(css, /solina-wave-canvas/, "Solina waveform canvas must have dedicated styling");
+assert.match(css, /solina-wave-canvas/, "Solina orb has its own layered visual styling");
+assert.match(css, /solina-breathe/, "Solina orb includes soft pulsing motion");
+assert.match(css, /solina-breathe/, "Solina orb animates in listening state");
 assert.match(app, /setSpeechSegmentTone\("neutral"\)/, "Speech segment tone must reset when playback ends");
 assert.match(app, /function isStopVoiceCommand\(/, "Stop phrases must be detected locally");
 assert.match(app, /history_append/, "Every user and assistant message must be persisted independently");
