@@ -369,7 +369,7 @@ assert.match(taskReceiver, /بعد 10 دقايق/, "Reminder notifications must 
 assert.match(taskStore, /setNextFollowUp/, "The next follow-up time must be persisted");
 assert.match(androidMain, /completeTask\(String id\)/, "Solina must be able to complete reminders from voice chat");
 assert.match(androidMain, /snoozeTask\(String id, int minutes\)/, "Solina must be able to snooze reminders from voice chat");
-assert.match(app, /قولي بس «احفظي» أو «إلغاء»/, "Confirmation retry should be concise");
+assert.match(app, /Do not let unrelated conversation be trapped in the confirmation flow|state\.pendingTaskDraft = null;/, "A new question must not be trapped behind an old confirmation");
 assert.match(app, /complete_task/, "The spoken «خلصت» command must complete the active reminder");
 assert.match(app, /snooze_task/, "The spoken snooze command must defer the active reminder");
 console.log("Native Android speech recognition and reminder follow-up checks passed.");
