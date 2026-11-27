@@ -184,7 +184,7 @@ assert.match(edge, /NOVA_PROVIDER_TIMING/, "Provider latency must be logged per 
 assert.match(app, /if \(!state\.voiceSessionActive && !local\.addressed\)/, "Ambient speech must not trigger AI until Solina is addressed");
 assert.match(app, /const wakePattern = .*سولينا/, "Only Solina wake word should arm hands-free voice");
 assert.ok(app.includes(String.raw`سو\s*إلينا`), "Speech recognition must normalize split Su Elina pronunciations");
-assert.ok(app.includes("سولينه|سيلينه|سيلينا|سلينا|سيليا|سولينا"), "Speech recognition must normalize common Solina name substitutions");
+assert.match(app, /سولينه\|سولينا\|سيلينه\|سيلينا\|سلينا\|سيليا/, "Speech recognition must normalize common Solina name substitutions");
 assert.match(app, /Canonicalize common phonetic spellings/, "Wake-word aliases must be documented and normalized before matching");
 assert.match(app, /text: original/, "Wake-word requests must preserve the complete utterance before and after Solina");
 assert.match(app, /Wake-word detection is position-independent/, "Solina wake word must be detected anywhere in the utterance");
