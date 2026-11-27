@@ -757,4 +757,5 @@ body{background:radial-gradient(ellipse at 50% 43%,rgba(28,51,86,.46),transparen
 @media(max-width:700px){.character-stage{height:clamp(440px,60svh,540px)!important;min-height:440px!important}.holo-person{width:100%!important;height:100%!important}}
 @media(max-width:390px){.character-stage{height:440px!important;min-height:440px!important}.holo-person{width:100%!important}}
 @media(prefers-reduced-motion:reduce){.holo-person,.holo-body,.holo-head{animation:none!important}}
-\n/* NOVA supplied avatar canvas is loaded by index.html. */\n
+
+/* NOVA supplied avatar canvas is loaded by index.html. */
