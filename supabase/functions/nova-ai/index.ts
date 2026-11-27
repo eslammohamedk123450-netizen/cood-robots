@@ -76,12 +76,13 @@ function normalizeMessages(value: unknown): Array<{role:"system"|"user"|"assista
 function sanitizeInternalReplyText(input: unknown): string {
   let text = String(input ?? "");
   const entities: Record<string,string> = { "&lt;":"<", "&gt;":">", "&quot;":"\"", "&#91;":"[", "&#93;":"]", "&amp;":"&", "&#60;":"<", "&#62;":">" };
-  for (let pass = 0; pass < 3; pass++) text = text.replace(/&lt;|&gt;|&quot;|&#91;|&#93;|&amp;|&#60;|&#62;/gi, (entity) => entities[entity.toLowerCase()] ?? entity);  text = text.replace(/(NOVA|NOA)\\[_-]?MEMORY/gi, "$1_MEMORY");
-
-  text = text.replace(/<\s*(?:NOVA|NOA)[_-]?MEMORY\b[^>]*>[\s\S]*?<\s*\/\s*(?:NOVA|NOA)[_-]?MEMORY\s*>/gi, "");
-  text = text.replace(/<\s*\/?\s*(?:NOVA|NOA)[_-]?MEMORY\b[^>]*>/gi, "");
-  text = text.replace(/<\s*\/?\s*(?:OWNER|NOVA)[_-]?(?:MEMORY|MEMORY_DATA)\b[^>]*>/gi, "");
-  text = text.replace(/\b(?:NOVA|NOA)[_-]?MEMORY\b\s*[:=]?\s*\{\s*["']facts["']\s*:\s*\[[\s\S]*?\]\s*\}/gi, "");
+  for (let pass = 0; pass < 3; pass++) text = text.replace(/&lt;|&gt;|&quot;|&#91;|&#93;|&amp;|&#60;|&#62;/gi, (entity) => entities[entity.toLowerCase()] ?? entity);  // Remove complete internal memory envelopes before any text reaches chat or TTS.
+  text = text.replace(/<\\s*(?:NOVA|NOA)[_\\s-]?MEMORY\\b[^>]*>[\\s\\S]*?<\\s*\\/\\s*(?:NOVA|NOA)[_\\s-]?MEMORY\\s*>/gi, "");
+  text = text.replace(/<\\s*\\/?\\s*(?:NOVA|NOA)[_\\s-]?MEMORY\\b[^>]*>/gi, "");
+  text = text.replace(/<\\s*\\/?\\s*(?:OWNER|NOVA)[_\\s-]?(?:MEMORY|MEMORY_DATA)\\b[^>]*>/gi, "");
+  // Some providers echo the marker as ordinary words instead of preserving its wrapper.
+  // Drop only the affected sentence so nearby useful text remains visible.
+  text = text.replace(/[^.!؟\\n]*\\b(?:NOVA|NOA)\\s*[_ -]?\\s*MEMORY(?:_DATA)?\\b[^.!؟\\n]*(?:[.!؟]|$)/gi, " ");
   // Never expose internal face-emotion control tokens, even if the model omits brackets.
   text = text.replace(/\[?\s*(?:NOVA|NOA)[\s_-]*EMOTION\s*[:=]\s*(?:neutral|happy|sad|surprised|curious|caring|playful|concerned|thinking)\s*(?:→|->|➜)?\s*\?*\s*\]?/gi, " ");
   return text.replace(/\s{2,}/g, " ").trim();
@@ -866,10 +867,15 @@ Deno.serve(async (req: Request) => {
         if (!provider) continue;
         const apiKey = secretMap.get(model.api_key_id);
         if (!apiKey) { failures.push(model.model_id + ": vault unavailable"); continue; }
+        const providerStartedAt = performance.now();
         try {
           const providerType = provider.provider as ProviderType;
           if (!providerTypes.has(providerType)) { failures.push(model.model_id + ": unsupported provider"); continue; }
           const rawReply = await requestProviderChat(providerType, provider.base_url, apiKey, model.model_id, messages, req.signal);
+          console.info("NOVA_PROVIDER_TIMING", JSON.stringify({
+            model: model.model_id, provider: providerType,
+            duration_ms: Math.round(performance.now() - providerStartedAt), outcome: "success"
+          }));
           if (rawReply) {
             let reply = rawReply;
             let memorySaved = false;
@@ -907,7 +913,13 @@ Deno.serve(async (req: Request) => {
           failures.push(model.model_id + ": empty response");
         } catch (error) {
           if (req.signal.aborted || (error instanceof DOMException && error.name === "AbortError")) return json({ error: "تم إلغاء الطلب." }, 499, origin);
-          failures.push(model.model_id + ": " + (error instanceof Error ? error.message : "request failed"));
+          const errorMessage = error instanceof Error ? error.message : "request failed";
+          console.warn("NOVA_PROVIDER_TIMING", JSON.stringify({
+            model: model.model_id, provider: provider.provider,
+            duration_ms: Math.round(performance.now() - providerStartedAt), outcome: "error",
+            error: errorMessage.slice(0, 120)
+          }));
+          failures.push(model.model_id + ": " + errorMessage);
         }
       }
       return json({ error: "كل النماذج المفعّلة فشلت في الرد. راجع المفاتيح أو حالة النماذج.", failures: failures.slice(0, 8) }, 502, origin);
