@@ -86,7 +86,7 @@
       </section>
       <section class="settings-section">
         <h3>محرك إخراج الصوت</h3>
-        <p class="security-note">صوت الجهاز يستخدم صوتًا عربيًا نسائيًا مثبتًا فقط. Gemini يستخدم صوت Kore النسائي، وباقي المزودين لا يعرضون إلا الأصوات النسائية التي تم التحقق منها. عند فشل الصوت السحابي لا يتم التحويل إلى صوت افتراضي غير معروف.</p>
+        <p class="security-note">الوضع التلقائي يستخدم صوت Gemini السحابي النسائي (Kore)، ولا يحتاج إلى تثبيت صوت على الهاتف. يمكنك اختيار ElevenLabs أو Sonex يدويًا، أو اختيار صوت الجهاز إذا كان مثبتًا. لا يتم التحويل إلى صوت الهاتف تلقائيًا عند فشل السحابة.</p>
         <label class="field-label">مصدر الصوت
           <select id="speechEngine" dir="rtl">
             <option value="auto">تلقائي — المحرك السحابي المحدد</option>
@@ -151,6 +151,6 @@
   <div class="toast" id="toast" role="status"></div>
   <script src="pin.js?v=persistent-owner-session-v25"></script>
   <script src="solina-wave.js?v=2"></script>
-  <script type="module" src="app.js?v=solina-fast-turn-v18"></script>
+  <script type="module" src="app.js?v=solina-cloud-female-tts-v19"></script>
 </body>
 </html>
