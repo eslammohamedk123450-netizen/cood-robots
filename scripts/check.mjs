@@ -283,6 +283,11 @@ assert.equal(parseTaskCommand("وريني المنبهات", fixedNow)?.action, 
 assert.equal(parseTaskCommand("إيه معنى المنبه؟", fixedNow), null, "Ordinary questions about alarms must go to the AI");
 assert.equal(parseTaskCommand("منبه الساعة 10", fixedNow)?.type, "alarm", "Direct alarm scheduling phrase should be recognized");
 assert.equal(new Date(parseTaskCommand("صحيني الساعة تسعة", fixedNow).scheduledAt).getHours(), 9, "Spoken Egyptian number words should be parsed as clock times");
+const spokenMinuteAlarm = parseTaskCommand("صحيني الساعة تمانية وخمسة وأربعين دقيقة", fixedNow);
+assert.equal(spokenMinuteAlarm?.action, "create", "Compound spoken Arabic alarm time should be recognized");
+assert.equal(new Date(spokenMinuteAlarm.scheduledAt).getHours(), 8, "Spoken hour should be preserved");
+assert.equal(new Date(spokenMinuteAlarm.scheduledAt).getMinutes(), 45, "Spoken minute phrase should parse to 45 minutes");
+
 assert.equal(parseTaskCommand("فكريني بكرة أذاكر الساعة 9", fixedNow)?.action, "create", "Tomorrow reminders should be recognized");
 assert.equal(parseTaskCommand("فكريني بعد نص ساعة أذاكر", fixedNow)?.action, "create", "Relative reminder durations should be recognized");
 assert.equal(parseTaskCommand("الغى كل التذكيرات", fixedNow)?.all, true, "Bulk task cancellation should be recognized");
@@ -297,4 +302,9 @@ assert.match(app, /solina-native-speech-result/, "The app must consume Android n
 assert.match(app, /state\.nativeSpeech/, "The app must keep native speech capture active across turns");
 assert.match(androidMain, /SpeechRecognizer\.createSpeechRecognizer/, "The Android app must provide native speech recognition");
 assert.match(androidMain, /EXTRA_LANGUAGE, "ar-EG"/, "Native speech recognition must prefer Egyptian Arabic");
+const alarmActivity = read("../android/app/src/main/java/com/solina/assistant/AlarmActivity.java");
+const alarmService = read("../android/app/src/main/java/com/solina/assistant/AlarmPlaybackService.java");
+assert.match(alarmService, /setLooping\(true\)/, "Alarm sound must loop until stopped");
+assert.match(alarmActivity, /isStopPhrase/, "Alarm must accept spoken stop commands");
+assert.match(alarmActivity, /انا قمت|قمت/, "Alarm must recognize the user confirming they woke up");
 console.log("Native Android speech recognition checks passed.");
