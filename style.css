@@ -266,7 +266,7 @@ body[data-mood="happy"] .face-mouth{width:86px;height:24px;border-bottom:4px sol
 body[data-mood="speaking"] #characterFallback.face-avatar .face-mouth{animation:nova-mouth-speech .17s ease-in-out infinite alternate!important}
 body[data-mood="speaking"] #characterFallback.face-avatar .face-screen{animation:nova-face-talking .8s ease-in-out infinite alternate,nova-face-hover 4.4s ease-in-out infinite!important}
 body[data-mood="listening"] #characterFallback.face-avatar .face-screen{animation:nova-face-listen 1.8s ease-in-out infinite alternate,nova-face-hover 4.4s ease-in-out infinite!important}
-.face-screen.face-gesture-face-gesture-wave{animation:nova-face-wave .7s ease-in-out 2!important}
+.face-screen.face-gesture-wave{animation:nova-face-wave .7s ease-in-out 2!important}
 .face-screen.face-gesture-happy{animation:nova-face-bounce .42s ease-in-out 3!important}
 .face-screen.face-gesture-thinking{animation:nova-face-think .8s ease-in-out 2!important}
 .face-screen.face-gesture-nod{animation:nova-face-nod .42s ease-in-out 3!important}
