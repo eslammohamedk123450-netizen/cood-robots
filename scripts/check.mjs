@@ -34,7 +34,9 @@ assert.match(edge, /action === "tts"/, "Server must expose authenticated neural 
 assert.match(edge, /requestSonexSpeech/, "Speech must use Sonex Labs through the Supabase Edge Function");
 assert.match(edge, /api\.sonexlabs\.com\/v1\/speech/, "Sonex speech must be requested server-side");
 assert.match(edge, /api\.sonexlabs\.com\/v1\/voices/, "Sonex voice list must be loaded server-side");
-assert.doesNotMatch(edge, /requestGeminiSpeech|gemini-3\.8-flash-tts/, "Speech must not depend on Gemini");
+assert.match(edge, /action === "tts_gemini"/, "Server must expose Gemini AI Studio TTS");
+assert.match(edge, /requestGeminiTTS/, "Gemini speech must be generated through the server-side TTS helper");
+assert.match(edge, /gemini-2\.5-flash-preview-tts/, "Gemini TTS must use a supported audio generation model");
 assert.match(edge, /action === "speech_get"/, "Speech settings must be readable through the owner session");
 assert.match(edge, /action === "speech_save"/, "Speech API keys must be saved through the secure server");
 assert.match(edge, /nova_speech_settings/, "Fixed voice configuration must be stored server-side");
@@ -45,7 +47,8 @@ assert.match(html, /id="speechApiKey"/, "The UI must provide a secure speech key
 assert.match(html, /id="speechMaleVoice"/, "The UI must provide a male voice selector");
 assert.match(html, /id="speechFemaleVoice"/, "The UI must provide a female voice selector");
 assert.match(html, /Sonex Labs API/, "The UI must identify the Sonex API key field");
-assert.match(app, /invokeNova\("tts"/, "Client must request generated speech from the server");
+assert.match(app, /invokeNova\(speechProvider/, "Client must dispatch TTS to the selected cloud provider");
+assert.match(app, /engine === "gemini" \? "tts_gemini" : "tts"/, "Gemini TTS selection must route to its dedicated server action");
 assert.match(app, /SpeechSynthesisUtterance/, "The optional on-device speech engine must remain available");
 assert.match(app, /audio\/mpeg/, "The client must accept Sonex MP3 audio");
 assert.match(app, /nova:authenticated/, "The app must receive the authenticated server session");
