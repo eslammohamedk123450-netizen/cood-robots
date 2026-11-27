@@ -270,6 +270,10 @@ const alarmIntent = parseTaskCommand("صحيني الساعة 9", fixedNow);
 assert.equal(alarmIntent?.type, "alarm", "Wake-up phrase should create an alarm");
 assert.equal(new Date(alarmIntent.scheduledAt).getHours(), 9, "Morning alarm should preserve the requested hour");
 assert.equal(parseTaskCommand("صحيني الفجر", fixedNow)?.action, "needs_fajr_time", "Fajr alarm must request a real prayer time");
+assert.equal(parseTaskCommand("صحيني بعد دقيقتين", fixedNow)?.action, "create", "Two-minute wake-up command should be recognized");
+assert.equal(new Date(parseTaskCommand("صحيني بعد دقيقتين", fixedNow).scheduledAt).getTime(), fixedNow.getTime() + 120000, "Two-minute alarm should preserve the relative delay");
+assert.equal(parseTaskCommand("ظبطيلي منبه بعد دقيقتين", fixedNow)?.type, "alarm", "Colloquial alarm setup command should be recognized");
+
 assert.equal(parseTaskCommand("وريني المنبهات", fixedNow)?.action, "list", "Task list command should be recognized");
 assert.equal(parseTaskCommand("إيه معنى المنبه؟", fixedNow), null, "Ordinary questions about alarms must go to the AI");
 assert.equal(parseTaskCommand("منبه الساعة 10", fixedNow)?.type, "alarm", "Direct alarm scheduling phrase should be recognized");
