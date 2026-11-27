@@ -846,7 +846,7 @@ async function getStopAudioCache() {
   const vendor = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
   const voicePrefix = vendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
   const voiceId = localStorage.getItem(voicePrefix + "female") || "";
-  const key = "nova.stopAudio.cache.v1." + encodeURIComponent([engine,vendor,voiceId,state.persona].join("|"));
+  const key = "nova.stopAudio.cache.v2." + encodeURIComponent([engine,vendor,voiceId,state.persona].join("|"));
   try { const cached = JSON.parse(localStorage.getItem(key) || "null"); if (cached?.audio && ["audio/mpeg","audio/mp3","audio/wav","audio/x-wav"].includes(cached.mime)) return cached; } catch (_) {}
   const action = engine === "gemini" ? "tts_gemini" : "tts";
   const result = await invokeNova(action, { text: "حاضر، سكت.", persona: state.persona, voice_id: voiceId, provider: vendor });
