@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=expressive-robot-v31">
+  <link rel="stylesheet" href="style.css?v=soly-face-screen-v32">
 </head>
 <body>
   <div class="auth-gate" id="authGate">
@@ -53,23 +53,12 @@
           <div class="stage-orbit orbit-two"></div>
           <!-- 3D character mount: load the licensed Soly/Soleen GLB scene here in the 3D implementation phase. -->
           <div id="character3dMount" class="character-3d-mount" aria-label="مساحة عرض الشخصية ثلاثية الأبعاد">
-            <div class="character-fallback" id="characterFallback" aria-hidden="true">
-              <div class="robot-shadow"></div>
-              <div class="robot-body" id="robotBody">
-                <div class="antenna"><span></span></div>
-                <div class="ear ear-left"></div><div class="ear ear-right"></div>
-                <div class="robot-head" id="robotHead">
-                  <div class="hair" id="hair"></div><div class="bow" id="bow"></div>
-                  <div class="brow brow-left"></div><div class="brow brow-right"></div>
-                  <div class="eye eye-left"><span></span></div><div class="eye eye-right"><span></span></div>
-                  <div class="cheek cheek-left"></div><div class="cheek cheek-right"></div>
-                  <div class="mouth" id="mouth"></div>
-                </div>
-                <div class="neck"></div>
-                <div class="robot-torso"><span class="torso-core"></span><span class="torso-line"></span></div>
-                <div class="arm arm-left" id="armLeft"><span></span></div>
-                <div class="arm arm-right" id="armRight"><span></span></div>
-                <div class="leg leg-left"></div><div class="leg leg-right"></div>
+            <div class="character-fallback face-avatar" id="characterFallback" aria-hidden="true">
+              <div class="face-screen" id="faceScreen">
+                <div class="face-scanline"></div>
+                <div class="face-eyes"><span class="face-eye left"></span><span class="face-eye right"></span></div>
+                <div class="face-mouth" id="faceMouth"><i></i></div>
+                <span class="face-spark spark-one"></span><span class="face-spark spark-two"></span>
               </div>
             </div>
           </div>
@@ -216,6 +205,6 @@
 
   <div class="toast" id="toast" role="status"></div>
   <script src="pin.js?v=persistent-owner-session-v23"></script>
-  <script type="module" src="app.js?v=nova-gemini-tts-v29"></script>
+  <script type="module" src="app.js?v=soly-face-screen-v32"></script>
 </body>
 </html>
