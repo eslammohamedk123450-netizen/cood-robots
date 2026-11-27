@@ -214,7 +214,9 @@ body[data-mood="listening"] #novaFaceAvatar.face-avatar .face-screen{animation:n
 }
 
 /* Only the OLED face is rendered in the character mount. */
-/* Semantic expressions: the face reacts to the meaning of NOVA's reply. */
+/* Semantic expressions: face follows meaning and live speech amplitude. */
+#novaFaceMount .face-mouth{transition:height .055s linear,opacity .055s linear;}
+body[data-mood="speaking"] #novaFaceMount .face-mouth{will-change:height,opacity;}
 #novaFaceMount .nova-face-avatar{pointer-events:none}
 #novaFaceMount .face-screen[data-emotion="happy"] .face-mouth{width:88px;height:25px;border-bottom:4px solid #70f2c0;border-radius:0 0 60px 60px}
 #novaFaceMount .face-screen[data-emotion="happy"] .face-eye{height:48px;transform:scaleY(.82)}
