@@ -50,7 +50,12 @@ assert.match(app, /const rawReply = String\(result\.reply/, "AI reply must be re
 assert.match(app, /setFaceEmotion\("neutral"\)/, "Face must return to neutral after speech ends");
 assert.match(app, /connectSpeechAnalyser/, "Audio waveform must be analyzed for mouth movement");
 assert.match(app, /\[NOVA_EMOTION:/, "AI must provide emotion markers for speech segments");
-assert.match(app, /قسّم ردك إلى أجزاء طبيعية حسب تغيّر المعنى/, "AI prompt must request context-based emotion changes");\nassert.match(app, /أنتِ سولينا، بنت مصرية مستقلة الشخصية/, "Solina must have a distinct, consistently feminine identity");\nassert.match(app, /ممنوع تمامًا أن تقولي عن نفسك أنا ولد/, "Solina prompt must explicitly forbid masculine self-reference");\nassert.match(app, /تفاصيل النماذج:/, "Provider failures must expose safe model diagnostics to the owner");\nassert.match(html, /سولينا/, "The female persona must be named Solina in the UI");\nassert.doesNotMatch(html, /سولين(?!ا)/, "The old female persona name must not remain in the UI");
+assert.match(app, /قسّم ردك إلى أجزاء طبيعية حسب تغيّر المعنى/, "AI prompt must request context-based emotion changes");
+assert.match(app, /أنتِ سولينا، بنت مصرية مستقلة الشخصية/, "Solina must have a distinct, consistently feminine identity");
+assert.match(app, /ممنوع تمامًا أن تقولي عن نفسك أنا ولد/, "Solina prompt must explicitly forbid masculine self-reference");
+assert.match(app, /تفاصيل النماذج:/, "Provider failures must expose safe model diagnostics to the owner");
+assert.match(html, /سولينا/, "The female persona must be named Solina in the UI");
+assert.doesNotMatch(html, /سولين(?!ا)/, "The old female persona name must not remain in the UI");
 assert.doesNotMatch(app, /Math\.random\(\).*setSpeechMouthLevel/, "Speech mouth movement must not be random");
 assert.match(app, /decodeAudioData/, "Android audio-context playback fallback must remain available");
 assert.match(html, /id="speechApiKey"/, "The UI must provide a secure speech key entry");
