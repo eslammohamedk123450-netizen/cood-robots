@@ -2,7 +2,7 @@ const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soleen", emotion: "idle", listening: false, speaking: false,
   recognition: null, restartRecognition: false, processing: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
-  messages: [], messagesByPersona: { soly: [], soleen: [] }, conversationIds: { soly: null, soleen: null }, historyQueues: { soly: Promise.resolve(), soleen: Promise.resolve() }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: ""
+  messages: [], messagesByPersona: { soleen: [] }, conversationIds: { soleen: null }, historyQueues: { soleen: Promise.resolve() }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: ""
 };
 const personas = { soleen: { name: "سولينا", description: "مساعدتك الصوتية 💗", color: "#b9a5ff", accent: "#7959d6", intro: "سولينا معاكي" } };
 let speechAudioContext = null;
@@ -40,7 +40,6 @@ function setStatus(label, mood = "idle") {
   const statusNode = $("characterStatus"); if (statusNode) statusNode.textContent = label;
   $("voiceState").textContent = label;
   document.body.dataset.mood = mood;
-  const orb = $("novaAudioOrb"); if (orb) { orb.dataset.mood = mood; if (mood !== "speaking") orb.dataset.expression = mood === "thinking" ? "thinking" : "neutral"; }
   window.solinaWave?.setMood(mood);
 }
 const NOVA_EMOTIONS = new Set(["neutral","happy","sad","surprised","curious","caring","playful","concerned","thinking"]);
