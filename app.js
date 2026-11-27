@@ -1092,6 +1092,7 @@ function renderScheduledTasks() {
 }
 async function executeTaskIntent(intent) {
   const bridge = nativeTaskBridge();
+  if (intent.action === "unsupported_device") return "فهمت إنك عايزني أنفّذ أمر على الهاتف، لكن التحكم ده لسه مش مفعّل عندي. مش هحوّل الأمر لرد من الذكاء الاصطناعي أو أدّعي إني نفّذته.";
   if (intent.action === "open_settings") {
     if (!bridge || typeof bridge.openSettings !== "function") return "فتح إعدادات الهاتف متاح من تطبيق سولينا APK فقط.";
     try {
