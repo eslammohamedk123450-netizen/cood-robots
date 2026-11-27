@@ -293,6 +293,7 @@ assert.match(edge, /action === "personal_item_delete"/, "The owner API must dele
 assert.match(edge, /\.eq\("user_id", userId\)/, "Personal item queries must always be scoped to the validated owner");
 assert.match(app, /invokeNova\("personal_items_list"\)/, "The app must load items from the account rather than device storage");
 assert.match(app, /async function syncNativeTasks\(\)/, "Android alarms must be restored from account data on login");
+assert.match(app, /migrated_from_device: true/, "Existing local-only reminders must be migrated into the owner account before reconciliation");
 assert.match(app, /Keep overdue native reminders alive/, "Account reconciliation must not cancel due reminders before the owner completes them");
 assert.match(app, /setInterval\(\(\) => \{\s*if \(state\.session && !document\.hidden\) void loadPersonalItems\(\);\s*\}, 45000\)/, "Open devices must periodically refresh account items");
 assert.match(androidMain, /pendingTaskSyncEvents\(\)/, "Android must expose completion and snooze events to the account sync layer");
