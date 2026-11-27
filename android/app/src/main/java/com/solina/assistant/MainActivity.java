@@ -176,6 +176,51 @@ public class MainActivity extends Activity {
             }
         }
 
+        @JavascriptInterface public String openApp(String requestedName) {
+            try {
+                String wanted = normalizeAppLabel(requestedName);
+                if (wanted.isEmpty()) return new JSONObject().put("ok", false).put("error", "empty_app_name").toString();
+                Intent query = new Intent(Intent.ACTION_MAIN, null);
+                query.addCategory(Intent.CATEGORY_LAUNCHER);
+                java.util.List<android.content.pm.ResolveInfo> apps = activity.getPackageManager().queryIntentActivities(query, 0);
+                android.content.pm.ResolveInfo best = null;
+                int bestScore = 0;
+                for (android.content.pm.ResolveInfo info : apps) {
+                    CharSequence label = info.loadLabel(activity.getPackageManager());
+                    String candidate = normalizeAppLabel(label == null ? "" : label.toString());
+                    if (candidate.isEmpty()) continue;
+                    int score = candidate.equals(wanted) ? 100 : candidate.contains(wanted) ? 80 : wanted.contains(candidate) ? 60 : 0;
+                    if (score > bestScore) { best = info; bestScore = score; }
+                }
+                if (best == null || bestScore < 60) return new JSONObject().put("ok", false).put("error", "app_not_found").toString();
+                String packageName = best.activityInfo.packageName;
+                Intent launch = activity.getPackageManager().getLaunchIntentForPackage(packageName);
+                if (launch == null) return new JSONObject().put("ok", false).put("error", "app_not_launchable").toString();
+                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                activity.runOnUiThread(() -> activity.startActivity(launch));
+                return new JSONObject().put("ok", true).put("app", best.loadLabel(activity.getPackageManager()).toString()).toString();
+            } catch (Exception error) {
+                try { return new JSONObject().put("ok", false).put("error", "open_app_failed").toString(); }
+                catch (Exception ignored) { return "{\\"ok\\":false}"; }
+            }
+        }
+
+        @JavascriptInterface public String openSettings() {
+            try {
+                Intent intent = new Intent(android.provider.Settings.ACTION_SETTINGS);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                activity.runOnUiThread(() -> activity.startActivity(intent));
+                return new JSONObject().put("ok", true).toString();
+            } catch (Exception error) {
+                return "{\\"ok\\":false,\\"error\\":\\"settings_unavailable\\"}";
+            }
+        }
+
+        private String normalizeAppLabel(String value) {
+            return String.valueOf(value == null ? "" : value).toLowerCase(java.util.Locale.ROOT)
+                    .replaceAll("[\\\\s\\\\p{Punct}]", "").replace("ال", "");
+        }
+
         @JavascriptInterface public String listTasks() { return TaskStore.all(activity).toString(); }
 
         @JavascriptInterface public String cancelTask(String id) {
