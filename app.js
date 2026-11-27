@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soleen", emotion: "idle", listening: false, speaking: false,
-  recognition: null, restartRecognition: false, processing: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
+  recognition: null, restartRecognition: false, processing: false, voiceSessionActive: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
   messages: [], messagesByPersona: { soleen: [] }, conversationIds: { soleen: null }, historyQueues: { soleen: Promise.resolve() }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: ""
 };
 const personas = { soleen: { name: "سولينا", description: "مساعدتك الصوتية 💗", color: "#b9a5ff", accent: "#7959d6", intro: "سولينا معاكي" } };
@@ -956,21 +956,36 @@ function queueVoiceFinal(text) {
   $("liveTranscript").textContent = state.voiceDraft;
   setStatus("سامعك... كمل براحتك", "listening");
   if (state.voicePauseTimer) window.clearTimeout(state.voicePauseTimer);
+  // Wait for a natural pause after the LAST recognized phrase, not after
+  // every partial result. Keep collecting speech while the wake session is armed.
   state.voicePauseTimer = window.setTimeout(() => {
     const complete = state.voiceDraft.trim();
     state.voiceDraft = "";
     state.voicePauseTimer = null;
     if (!complete || !state.listening || state.processing) return;
-    // Wake-word gate: ambient speech is transcribed locally but never sent to AI.
-    // Only a phrase addressed to NOVA/Soly/Soleen may trigger a turn.
+
     const local = handleLocalVoiceCommand(complete);
-    if (!local.addressed && !local.handled) {
-      $("liveTranscript").textContent = "سمعتك، مستني تناديني: نوفا.";
-      setStatus("مستني تناديني يا نوفا", "listening");
+    if (local.handled) {
+      if (local.addressed) state.voiceSessionActive = true;
       return;
     }
-    if (!local.handled && local.text) void handleRecognizedText(local.text, true);
-  }, 950);
+
+    if (!state.voiceSessionActive && !local.addressed) {
+      $("liveTranscript").textContent = "أنا معاكي. ناديني: سولينا.";
+      setStatus("مستنياكي تقولي سولينا", "listening");
+      return;
+    }
+
+    // Saying "سولينا" once opens a hands-free conversation. Subsequent
+    // utterances are accepted until the user stops the microphone session.
+    if (local.addressed) state.voiceSessionActive = true;
+    const spokenText = local.addressed ? local.text : complete;
+    if (spokenText) void handleRecognizedText(spokenText, true);
+    else {
+      $("liveTranscript").textContent = "أيوه، سامعاك. كمّل كلامك.";
+      setStatus("سامعاك... كمّل براحتك", "listening");
+    }
+  }, 1100);
 }
 async function handleRecognizedText(text, voiceTurn = false) {
   const clean = text.trim();
@@ -1017,6 +1032,7 @@ function cancelCurrentTurn(showMessage = true) {
 function stopListening() {
   if (state.voicePauseTimer) { window.clearTimeout(state.voicePauseTimer); state.voicePauseTimer = null; }
   state.voiceDraft = "";
+  state.voiceSessionActive = false;
   cancelCurrentTurn(false);
   state.listening = false; state.restartRecognition = false;
   $("micButton").classList.remove("active");
