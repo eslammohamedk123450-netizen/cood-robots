@@ -63,9 +63,15 @@ function stripCommandWords(text) {
 export function parseTaskCommand(value, now = new Date()) {
   const text = normalizeTaskText(value);
   if (!text) return null;
-  const isFajr = /الفجر|صلاه الفجر|صلاة الفجر/.test(text);
-  const isAlarm = /صحيني|صحييني|اصحيني|اصحى|صحينيلي|صحينى|(?:اعملي|اعمل|سجلي|سجل|اضبطي|اضبط|ظبطي|ظبط|ظبطلي)\s+(?:لي\s+)?منبه|منبه\s+(?:الساعه|الساعة|\d|بعد|بكره|بكرة|الفجر)/.test(text);
-  const isReminder = /فكريني|فكرني|ذكريني|ذكرني|تذكير|تذكيرني|سجل.*مهمه|سجلي.*مهمه/.test(text);
+  const isFajr = /الفجر|صلاه الفجر/.test(text);
+  const settingsCommand = text.match(/^(?:(?:يا\s*)?سولينا\s*)?(?:افتحي|افتح|شغلي|شغل)\s+(?:(?:لي|لنا)\s+)?(?:تطبيق\s+)?(.+)$/);
+  if (settingsCommand) {
+    const appName = settingsCommand[1].replace(/^(?:ال)?(?:اعدادات|إعدادات|ضبط|settings)$/i, "الإعدادات").trim();
+    if (/^(?:ال)?(?:اعدادات|إعدادات|ضبط|settings)$/i.test(appName)) return { action: "open_settings" };
+    if (appName.length >= 2 && appName.length <= 60) return { action: "open_app", appName };
+  }
+  const isAlarm = /صحيني|صحييني|اصحيني|اصحى|صحينيلي|صحينى|فوقيني|نبهيني|(?:اعملي|اعمل|سجلي|سجل|اضبطي|اضبط|ظبطي|ظبط|ظبطلي)\\s+(?:لي\\s+)?منبه|منبه\\s+(?:الساعه|الساعة|\\d|بعد|بكره|بكرة|الفجر)/.test(text);
+  const isReminder = /فكريني|فكرني|ذكريني|ذكرني|نبهيني|نبهني|تذكير|تذكيرني|سجل.*مهمه|سجلي.*مهمه/.test(text);
   const isList = /(?:وريني|اعرضي|اعرض|قوليلي|شوفي).*(?:التذكيرات|التذكير|المنبهات|المنبه|المهام)|(?:التذكيرات|التذكير|المنبهات|المنبه|المهام).*(?:عندي|المحفوظ|الموجود)/.test(text);
   const isCancel = /(?:الغي|الغى|احذفي|امسحي|الغاء).*(?:تذكير|منبه|مهمه)|(?:الغى|الغي).*(?:كل|اخر|آخر).*(?:التذكيرات|المنبهات)/.test(text);
   if (isList) return { action: "list" };
