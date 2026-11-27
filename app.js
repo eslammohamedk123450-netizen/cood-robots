@@ -17,16 +17,7 @@ function setStatus(label, mood = "idle") {
   const orb = $("novaAudioOrb"); if (orb) orb.dataset.mood = mood;
 }
 const NOVA_EMOTIONS = new Set(["neutral","happy","sad","surprised","curious","caring","playful","concerned","thinking"]);
-function setFaceEmotion(emotion) {
-  const safe = NOVA_EMOTIONS.has(emotion) ? emotion : "neutral";
-  state.replyEmotion = safe;
-  const face = $("faceScreen");
-  const robot = $("novaFaceOnly");
-  if (face) face.dataset.emotion = safe;
-  if (robot) robot.dataset.emotion = safe;
-  const avatar = $("novaFaceOnly");
-  if (avatar) avatar.dataset.emotion = safe;
-}
+function setFaceEmotion(emotion) { state.replyEmotion = NOVA_EMOTIONS.has(emotion) ? emotion : "neutral"; }
 function inferFaceEmotion(reply) {
   const value = String(reply || "").toLowerCase();
   const patterns = [
@@ -95,22 +86,14 @@ function updateFaceSpeechProgress(segments, progress) {
   setFaceEmotion(segments[segments.length - 1].emotion);
 }
 function setSpeechMouthLevel(level, brightness = 0) {
-  const mouth = $("faceMouth"), face = $("faceScreen");
-  if (!mouth || !face) return;
+  const orb = $("novaAudioOrb"); if (!orb) return;
   const amount = Math.max(0, Math.min(1, level)), energy = Math.max(0, Math.min(1, brightness));
-  const opening = 2 + amount * 31, width = 13 + amount * 18;
-  mouth.setAttribute("d", "M " + (160-width) + " 145 Q 160 " + (145+opening*1.18) + " " + (160+width) + " 145 Q 160 " + (145+opening*.48) + " " + (160-width) + " 145 Z");
-  mouth.style.opacity = String(.78 + amount*.22);
-  face.style.setProperty("--voice-energy", energy.toFixed(3));
-  face.style.setProperty("--voice-glow", (.25 + energy*.75).toFixed(3));
-  face.style.setProperty("--face-talk-energy", amount.toFixed(3));
-  face.classList.toggle("audio-laugh", state.replyEmotion === "playful" && energy > .22);
-  face.classList.toggle("face-speaking-emphasis", amount > .48);
+  orb.style.setProperty("--audio-level", amount.toFixed(3));
+  orb.style.setProperty("--audio-brightness", energy.toFixed(3));
 }
 function resetSpeechMouth() {
-  const mouth = $("faceMouth"), face = $("faceScreen");
-  if (mouth) { mouth.setAttribute("d", "M 126 145 Q 160 159 194 145"); mouth.style.opacity = ""; }
-  if (face) { face.style.removeProperty("--voice-energy"); face.style.removeProperty("--voice-glow"); face.style.removeProperty("--face-talk-energy"); face.classList.remove("audio-laugh","face-speaking-emphasis"); }
+  const orb = $("novaAudioOrb");
+  if (orb) { orb.style.setProperty("--audio-level", "0"); orb.style.setProperty("--audio-brightness", ".12"); }
 }
 function connectSpeechAnalyser(source) {
   try {
