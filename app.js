@@ -10,6 +10,35 @@ const personas = {
 };
 let speechAudioContext = null;
 
+// Reuse identical Gemini TTS output during this page session. This cache is
+// memory-only; conversation text and generated audio are not persisted.
+const speechAudioCache = new Map();
+const SPEECH_AUDIO_CACHE_MAX_ENTRIES = 6;
+const SPEECH_AUDIO_CACHE_MAX_BYTES = 4 * 1024 * 1024;
+let speechAudioCacheBytes = 0;
+function getSpeechAudioCache(key) {
+  const cached = speechAudioCache.get(key);
+  if (!cached) return null;
+  speechAudioCache.delete(key);
+  speechAudioCache.set(key, cached);
+  return cached.result;
+}
+function rememberSpeechAudio(key, result) {
+  if (!key || !result?.audio || result.audio.length > SPEECH_AUDIO_CACHE_MAX_BYTES) return;
+  const previous = speechAudioCache.get(key);
+  if (previous) speechAudioCacheBytes -= previous.bytes;
+  const entry = { result: { audio: result.audio, mime_type: result.mime_type, provider: result.provider, voice: result.voice }, bytes: result.audio.length };
+  speechAudioCache.delete(key);
+  speechAudioCache.set(key, entry);
+  speechAudioCacheBytes += entry.bytes;
+  while (speechAudioCache.size > SPEECH_AUDIO_CACHE_MAX_ENTRIES || speechAudioCacheBytes > SPEECH_AUDIO_CACHE_MAX_BYTES) {
+    const oldestKey = speechAudioCache.keys().next().value;
+    const oldest = speechAudioCache.get(oldestKey);
+    speechAudioCacheBytes -= oldest?.bytes || 0;
+    speechAudioCache.delete(oldestKey);
+  }
+}
+
 function setStatus(label, mood = "idle") {
   $("characterStatus").textContent = label;
   $("voiceState").textContent = label;
@@ -356,7 +385,10 @@ async function speak(text, segments = [], signal) {
     const voicePrefix = speechVendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
     const voiceId = engine === "chatterbox" ? "" : (localStorage.getItem(voicePrefix + (persona === "soleen" ? "female" : "male")) || "");
     const speechAction = engine === "chatterbox" ? "tts_chatterbox" : engine === "gemini" ? "tts_gemini" : "tts";
-    const result = await invokeNova(speechAction, { text: spokenText, persona, voice_id: voiceId, provider: speechVendor }, { signal });
+    // Gemini receives the complete reply in ONE request, never one request per sentence.
+    const geminiCacheKey = engine === "gemini" ? JSON.stringify([persona, "gemini-2.5-flash-preview-tts", spokenText]) : "";
+    let result = geminiCacheKey ? getSpeechAudioCache(geminiCacheKey) : null;
+    if (!result) result = await invokeNova(speechAction, { text: spokenText, persona, voice_id: voiceId, provider: speechVendor }, { signal });
     if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
     const mime = String(result.mime_type || "").split(";")[0].trim().toLowerCase();
     if (!["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav"].includes(mime)) {
@@ -367,6 +399,7 @@ async function speak(text, segments = [], signal) {
     if ((mime === "audio/wav" || mime === "audio/x-wav") && (binary.slice(0, 4) !== "RIFF" || binary.slice(8, 12) !== "WAVE")) {
       throw new Error("ملف WAV المستلم غير صالح.");
     }
+    if (geminiCacheKey && !signal?.aborted && !speechAudioCache.has(geminiCacheKey)) rememberSpeechAudio(geminiCacheKey, result);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     const audioBlob = new Blob([bytes], { type: mime });
@@ -1069,7 +1102,7 @@ $("speechFemaleVoice")?.addEventListener("change", (event) => {
 function speechEngineDescription(engine) {
   return engine === "device" ? "صوت الجهاز فقط."
     : engine === "chatterbox" ? "Chatterbox عبر الخادم — بدون مفتاح API، وبدون الرجوع التلقائي لصوت الجهاز عند فشله."
-    : engine === "gemini" ? "Gemini AI Studio TTS."
+    : engine === "gemini" ? "Gemini AI Studio TTS: طلب واحد للرد الكامل، مع إعادة استخدام الصوت المطابق داخل الجلسة الحالية."
     : engine === "server" ? "المزود السحابي المحدد (ElevenLabs أو Sonex) مع الرجوع لصوت الجهاز عند تعذر الاتصال."
     : "تلقائي: يستخدم المزود السحابي المحفوظ، ثم صوت الجهاز عند تعذر الاتصال.";
 }
