@@ -197,7 +197,7 @@ assert.match(app, /جلسة سولينا غير متصلة/, "Missing authentica
 assert.match(app, /voiceSessionActive: false/, "Voice session must begin disarmed");
 assert.match(app, /if \(!state\.voiceSessionActive && !local\.addressed\)/, "Only Solina wake word may arm a hands-free session");
 assert.match(app, /state\.voiceSessionActive = true/, "Saying Solina must arm continuous conversational turns");
-assert.match(app, /}, 1100\);/, "AI turn must begin after a natural 1.1 second silence");
+assert.match(app, /}, 600\);/, "AI turn must begin after a short 600ms natural silence");
 assert.match(app, /ناديني: سولينا/, "The wake prompt must use Solina, never NOVA");
 assert.doesNotMatch(app, /مستني تناديني: نوفا|مستني تناديني يا نوفا/, "No stale NOVA wake prompt may remain");
 assert.match(app, /state\.voiceSessionActive = false;\s*cancelCurrentTurn/, "Stopping the microphone must close the armed voice session");
