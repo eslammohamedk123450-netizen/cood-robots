@@ -1,3 +1,4 @@
+// Android APK build refresh: settings pages + staged native reminder bridge.
 import { parseTaskCommand, formatTaskDate } from "./task-manager.js?v=solina-device-router-v2";
 const $ = (id) => document.getElementById(id);
 const state = {
