@@ -769,20 +769,20 @@ Deno.serve(async (req: Request) => {
         if (!response.ok) throw new Error("محرك البحث غير متاح حاليًا.");
         const html = (await response.text()).slice(0, 1_200_000);
         const results: Array<{ title: string; url: string; snippet: string }> = [];
-        const blocks = html.match(/<div class="result[^"]*"[s\S]*?<\/div>\s*<\/div>/gi) ?? [];
-        for (const item of blocks) {
-          const linkMatch = item.match(/<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
-          if (!linkMatch) continue;
-          let target = linkMatch[1].replace(/&amp;/g, "&");
+        const results: Array<{ title: string; url: string; snippet: string }> = [];
+        const clean = (value: string) => value.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/\s+/g, " ").trim();
+        const linkPattern = /<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+        for (const match of html.matchAll(linkPattern)) {
+          let target = match[1].replace(/&amp;/g, "&");
           try {
             const parsed = new URL(target, "https://duckduckgo.com");
             const redirected = parsed.searchParams.get("uddg");
             if (redirected) target = redirected;
           } catch (_) { continue; }
           if (!/^https?:\/\//i.test(target)) continue;
-          const clean = (value: string) => value.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/\s+/g, " ").trim();
-          const snippetMatch = item.match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a?>/i);
-          results.push({ title: clean(linkMatch[2]), url: target.slice(0, 1000), snippet: clean(snippetMatch?.[1] ?? "").slice(0, 600) });
+          const tail = html.slice((match.index ?? 0) + match[0].length, (match.index ?? 0) + match[0].length + 1800);
+          const snippetMatch = tail.match(/class="result__snippet"[^>]*>([\s\S]*?)<\/(?:a|td|div)>/i);
+          results.push({ title: clean(match[2]), url: target.slice(0, 1000), snippet: clean(snippetMatch?.[1] ?? "").slice(0, 600) });
           if (results.length >= 6) break;
         }
         return json({ kind, query, results, source: "DuckDuckGo", checked_at: new Date().toISOString() }, 200, origin);
