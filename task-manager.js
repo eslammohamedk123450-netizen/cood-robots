@@ -34,7 +34,8 @@ function parseSchedule(text, now = new Date()) {
   if (/بعد\s+ربع\s+(?:ساعه|ساعة)/.test(text)) return new Date(now.getTime() + 15 * 60 * 1000);
   if (/بعد\s+(?:دقيقتين|دقيقتان)/.test(text)) return new Date(now.getTime() + 2 * 60 * 1000);
   if (/بعد\s+(?:ثلاث\s+دقايق|ثلاث\s+دقائق)/.test(text)) return new Date(now.getTime() + 3 * 60 * 1000);
-  if (/بعد\s+(?:خمس|خمسة)(?:\s+(?:دقايق|دقائق|دقيقه|دقيقة))?/.test(text)) return new Date(now.getTime() + 5 * 60 * 1000);
+  const fiveRelative = text.match(/بعد\s+(?:خمس|خمسة)(?:\s+(دقايق|دقائق|دقيقه|دقيقة|ساعات|ساعة|ساعه))?/);
+  if (fiveRelative) return new Date(now.getTime() + 5 * (/ساع/.test(fiveRelative[1] || "") ? 60 * 60 * 1000 : 60 * 1000));
   if (/بعد\s+(?:عشر\s+دقايق|عشر\s+دقائق)/.test(text)) return new Date(now.getTime() + 10 * 60 * 1000);
   if (/بعد\s+(?:دقيقه|دقيقة)(?:\s+واحده|\s+واحدة)?/.test(text)) return new Date(now.getTime() + 60 * 1000);
   if (/بعد\s+ساعتين/.test(text)) return new Date(now.getTime() + 2 * 60 * 60 * 1000);
