@@ -448,7 +448,7 @@ assert.equal(normalizeTaskText("سِيْلينا"), "سولينا", "Common Soli
 assert.equal(parseTaskCommand("سيلينا افتحي فيسبوك لايت", fixedNow)?.appName, "فيسبوك لايت", "Lite app command with alternate wake name must preserve the exact app variant");
 assert.equal(parseTaskCommand("سلينا افتحيلي فيسبوك", fixedNow)?.appName, "فيسبوك", "Colloquial open-me command and shortened wake name must be recognized");
 assert.equal(parseTaskCommand("سولي نا شغلي واتساب", fixedNow)?.action, "open_app", "Split wake-name recognition must route app commands locally");
-assert.match(java, /facebooklite/, "Android app resolver must recognize Facebook Lite separately");
-assert.match(java, /Never mistake Facebook Lite for Facebook/, "Android app resolver must prevent Lite/standard cross-launch");
+assert.match(androidMain, /facebooklite/, "Android app resolver must recognize Facebook Lite separately");
+assert.match(androidMain, /Never mistake Facebook Lite for Facebook/, "Android app resolver must prevent Lite/standard cross-launch");
 assert.match(app, /فيسبوك العادي وفيسبوك لايت تطبيقان مختلفان/, "AI system prompt must understand distinct app variants");
 assert.match(app, /محرك أوامر الجهاز المحلي/, "AI system prompt must know app opening is a real local capability");
