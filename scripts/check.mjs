@@ -61,8 +61,12 @@ assert.match(app, /decodeAudioData/, "Android audio-context playback fallback mu
 assert.match(html, /id="speechApiKey"/, "The UI must provide a secure speech key entry");
 assert.match(html, /id="speechMaleVoice"/, "The UI must provide a male voice selector");
 assert.match(html, /id="speechFemaleVoice"/, "The UI must provide a female voice selector");
-assert.match(html, /Sonex Labs API/, "The UI must identify the Sonex API key field");
-assert.match(app, /invokeNova\(speechProvider/, "Client must dispatch TTS to the selected cloud provider");
+assert.match(html, /ElevenLabs/, "The UI must expose ElevenLabs as a speech provider");
+assert.match(html, /id="speechProvider"/, "The UI must allow selecting the speech provider");
+assert.match(edge, /api\.elevenlabs\.io\/v1\/text-to-speech/, "ElevenLabs TTS must be called server-side");
+assert.match(edge, /api\.elevenlabs\.io\/v1\/models/, "ElevenLabs API keys must be verified before saving");
+assert.match(edge, /xi-api-key/, "ElevenLabs credentials must only be sent from the server");
+assert.match(app, /invokeNova\(speechAction/, "Client must dispatch TTS to the selected cloud provider");
 assert.match(app, /engine === "gemini" \? "tts_gemini" : "tts"/, "Gemini TTS selection must route to its dedicated server action");
 assert.match(app, /SpeechSynthesisUtterance/, "The optional on-device speech engine must remain available");
 assert.match(app, /audio\/mpeg/, "The client must accept Sonex MP3 audio");
