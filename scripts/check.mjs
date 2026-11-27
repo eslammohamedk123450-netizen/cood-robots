@@ -101,6 +101,9 @@ assert.match(css, /body\[data-mood="listening"\].*nova-audio-orb/, "The orb must
 assert.match(app, /setSpeechSegmentTone\("neutral"\)/, "Speech segment tone must reset when playback ends");
 assert.match(app, /function isStopVoiceCommand\(/, "Stop phrases must be detected locally");
 assert.match(app, /history_append/, "Every user and assistant message must be persisted independently");
+assert.match(app, /historyQueues: \{ soly: Promise\.resolve\(\), soleen: Promise\.resolve\(\) \}/, "History writes must be serialized independently per persona");
+assert.match(app, /don't make the user\\s+wait for a database round trip/, "Chat processing must not wait for the user-history write");
+assert.match(app, /Start speech immediately\. History writes are serialized in the background\./, "Speech playback must begin without waiting for history persistence");
 assert.match(app, /history_search/, "Both personas must be able to search persistent conversation history");
 assert.match(app, /nova.stopAudio.cache.v1/, "Stop acknowledgement audio must be cached locally");
 assert.doesNotMatch(app, /بيتـ?حول لصوت الجهاز|بيتحول لصوت الجهاز/, "Cloud speech failures must not silently switch voice identity");
@@ -141,9 +144,9 @@ assert.doesNotMatch(app, /const memoryMatches = await searchConversationMemory\(
 assert.match(app, /exclude_conversation_id: state\.conversationIds\[state\.persona\]/, "Chat request must exclude the active conversation from older-memory retrieval");
 assert.match(edge, /سياق مسترجع من محادثات سابقة للشخصيتين/, "Chat endpoint must retrieve cross-persona history in the same request");
 assert.match(edge, /oldRowsError/, "Server-side history retrieval errors must be handled explicitly");
-assert.match(html, /nova-quick-conversation-v55/, "Client cache version must be refreshed after UX changes");
+assert.match(html, /nova-quick-conversation-v56/, "Client cache version must be refreshed after UX changes");
 assert.match(css, /NOVA responsive voice-first polish/, "Responsive voice-first visual polish must be present");
 
 assert.match(app, /Keep the dedicated interrupt listener alive during playback/, "Voice interruption listener must remain active while NOVA speaks");
 assert.doesNotMatch(app, /if \(state\.listening\) startInterruptRecognition\(\);\s*stopInterruptRecognition\(\)/, "Speech playback must not immediately disable the interrupt listener");
-assert.match(html, /nova-quick-conversation-v55/, "Client bundle cache must refresh after the interrupt fix");
+assert.match(html, /nova-quick-conversation-v56/, "Client bundle cache must refresh after the interrupt fix");
