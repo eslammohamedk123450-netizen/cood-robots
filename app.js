@@ -1158,10 +1158,11 @@ async function executeTaskIntent(intent) {
   if (intent.action === "complete_task") {
     if (!bridge || typeof bridge.completeTask !== "function") return "مش قادرة أوصل لإدارة التذكيرات على الهاتف دلوقتي.";
     try {
+      const completed = readNativeTasks().find(task => String(task.id) === intent.taskId);
       const result = JSON.parse(bridge.completeTask(intent.taskId));
       if (!result.ok) return "ماقدرتش أسجل إن الموعد خلص. جربي من إشعار سولينا.";
       renderScheduledTasks();
-      return "عاش! سجلت إنك خلصتي " + (readNativeTasks().find(task => String(task.id) === intent.taskId)?.title || "الموعد") + "، ووقفت المتابعة بتاعته.";
+      return "عاش! سجلت إنك خلصتي " + (completed?.title || "الموعد") + "، ووقفت المتابعة بتاعته.";
     } catch (_) { return "حصل خطأ وأنا بسجل إنك خلصتي الموعد."; }
   }
   if (intent.action === "snooze_task") {
