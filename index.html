@@ -86,16 +86,16 @@
       </section>
       <section class="settings-section">
         <h3>محرك إخراج الصوت</h3>
-        <p class="security-note">الوضع التلقائي يستخدم صوت Gemini السحابي النسائي (Kore)، ولا يحتاج إلى تثبيت صوت على الهاتف. يمكنك اختيار ElevenLabs أو Sonex يدويًا، أو اختيار صوت الجهاز إذا كان مثبتًا. لا يتم التحويل إلى صوت الهاتف تلقائيًا عند فشل السحابة.</p>
+        <p class="security-note">الوضع التلقائي يستخدم مزود الصوت الذي تختاره (ElevenLabs أو Sonex). وإذا فشل المزود لأي سبب، تحاول سولينا تلقائيًا استخدام صوت الهاتف أو Google TTS، دون إيقاف الرد. ويمكنك اختيار Gemini أو صوت الهاتف يدويًا.</p>
         <label class="field-label">مصدر الصوت
           <select id="speechEngine" dir="rtl">
-            <option value="auto">تلقائي — المحرك السحابي المحدد</option>
+            <option value="auto">تلقائي — المزود المحدد ثم صوت الهاتف احتياطيًا</option>
             <option value="gemini">Gemini AI Studio TTS</option>
             <option value="server">ElevenLabs / Sonex Cloud</option>
-            <option value="device">صوت الجهاز فقط</option>
+            <option value="device">صوت الهاتف / Google TTS</option>
           </select>
         </label>
-        <p class="settings-feedback" id="speechEngineFeedback" role="status">صوت الجهاز يعتمد على محرك TTS والأصوات المثبّتة في أندرويد.</p>
+        <p class="settings-feedback" id="speechEngineFeedback" role="status">سولينا تختار أفضل صوت متاح على الهاتف، وتقبل أي صوت متاح حتى لو لم تتوفر معلومات النوع.</p>
       </section>
       <section class="settings-section">
         <h3>محرك الصوت السحابي</h3>
