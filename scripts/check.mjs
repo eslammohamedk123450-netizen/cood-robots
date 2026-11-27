@@ -8,6 +8,11 @@ const pin = read("../pin.js");
 const edge = read("../supabase/functions/nova-ai/index.ts");
 const css = read("../style.css") + read("../solina-voice.css");
 const workflow = read("../.github/workflows/pages.yml");
+const scheduler = read("../android/app/src/main/java/com/solina/assistant/AlarmScheduler.java");
+const receiver = read("../android/app/src/main/java/com/solina/assistant/TaskReceiver.java");
+const activity = read("../android/app/src/main/java/com/solina/assistant/AlarmActivity.java");
+const service = read("../android/app/src/main/java/com/solina/assistant/AlarmPlaybackService.java");
+const androidMain = read("../android/app/src/main/java/com/solina/assistant/MainActivity.java");
 
 const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map((m) => m[1]);
 const duplicates = ids.filter((id, i) => ids.indexOf(id) !== i);
@@ -367,6 +372,14 @@ assert.match(taskReceiver, /ACTION_COMPLETE/, "Reminder notifications must offer
 assert.match(taskReceiver, /ACTION_SNOOZE/, "Reminder notifications must offer a snooze action");
 assert.match(taskReceiver, /بعد 10 دقايق/, "Reminder notifications must expose a ten-minute snooze");
 assert.match(taskStore, /setNextFollowUp/, "The next follow-up time must be persisted");
+assert.doesNotMatch(androidMain, /notification_permission_required/, "A disabled notification permission must not block native alarm scheduling");
+assert.match(scheduler, /manager\.setAlarmClock\(new AlarmManager\.AlarmClockInfo\(at, show\), pending\)/, "Reminder due times must be registered as Android alarm-clock alarms");
+assert.match(receiver, /startReminderAlarm\(context, task, id\)/, "Due reminders must start audible native alarm playback even without notification permission");
+assert.match(receiver, /setFullScreenIntent\(due \? openPending : null, due\)/, "Due reminders must request the full-screen alarm experience");
+assert.match(receiver, /context\.stopService\(new Intent\(context, AlarmPlaybackService\.class\)\)/, "Completing or snoozing a reminder must stop its ringing audio");
+assert.match(activity, /خلصت — إيقاف التذكير/, "Reminder alarm screen must provide a clear completion action");
+assert.match(activity, /clean\.contains\("خلصت"\)/, "Saying «خلصت» must stop an audible reminder");
+assert.match(service, /USAGE_ALARM/, "Reminder sound must use the device alarm audio stream");
 assert.match(androidMain, /completeTask\(String id\)/, "Solina must be able to complete reminders from voice chat");
 assert.match(androidMain, /snoozeTask\(String id, int minutes\)/, "Solina must be able to snooze reminders from voice chat");
 assert.match(app, /Do not let unrelated conversation be trapped in the confirmation flow|state\.pendingTaskDraft = null;/, "A new question must not be trapped behind an old confirmation");
