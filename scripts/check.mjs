@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
+import { parseTaskCommand } from "../task-manager.js";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const html = read("../index.html");
@@ -8,6 +9,14 @@ const pin = read("../pin.js");
 const edge = read("../supabase/functions/nova-ai/index.ts");
 const css = read("../style.css") + read("../solina-voice.css");
 const workflow = read("../.github/workflows/pages.yml");
+
+const reminderNow = new Date("2026-11-27T19:00:00");
+const fiveMinuteReminder = parseTaskCommand("فكريني بعد خمس ورايا حاجة مهمة", reminderNow);
+assert.equal(fiveMinuteReminder?.action, "create", "A colloquial five-minute reminder must be parsed");
+assert.equal(new Date(fiveMinuteReminder.scheduledAt).getTime() - reminderNow.getTime(), 5 * 60 * 1000,
+  "A five-minute reminder must be scheduled exactly five minutes from now");
+assert.match(fiveMinuteReminder.title, /حاجه مهمه/, "The reminder title must not contain the spoken duration");
+
 
 const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map((m) => m[1]);
 const duplicates = ids.filter((id, i) => ids.indexOf(id) !== i);
@@ -18,10 +27,8 @@ const missing = [...new Set(refs.filter((id) => !ids.includes(id)))];
 assert.deepEqual(missing, [], "app.js references missing HTML IDs");
 
 assert.match(html, /Content-Security-Policy/, "CSP meta policy must be present");
-assert.equal(html.includes("\
-"), false, "HTML must not contain literal escaped newline artifacts");
-assert.equal(app.includes("\
-"), false, "app.js must not contain literal escaped newline artifacts");
+assert.equal(html.includes("\\n"), false, "HTML must not contain literal escaped newline artifacts");
+assert.equal(app.includes("\\n"), false, "app.js must not contain literal escaped newline artifacts");
 assert.match(pin, /login_pin/, "Returning owner must authenticate through the server");
 assert.match(pin, /check_session/, "Saved owner sessions must be validated server-side on return");
 assert.doesNotMatch(pin, /setup_pin|pinSetupForm|check_setup/, "Owner PIN creation flow must not be exposed in the browser");
