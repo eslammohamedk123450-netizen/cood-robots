@@ -53,16 +53,19 @@ public final class TaskStore {
         save(context, next);
     }
 
-    public static synchronized void recordPendingSync(Context context, JSONObject event) {
-        JSONArray old = pendingSyncEvents(context);
-        JSONArray next = new JSONArray();
-        String id = event.optString("id");
-        for (int i = 0; i < old.length(); i++) {
-            JSONObject item = old.optJSONObject(i);
-            if (item != null && !item.optString("id").equals(id)) next.put(item);
-        }
-        next.put(event);
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("pending_sync", next.toString()).commit();
+    public static synchronized void recordPendingSync(Context context, String id, String status, long scheduledAt) {
+        try {
+            JSONObject event = new JSONObject().put("id", id).put("status", status);
+            if (scheduledAt > 0) event.put("scheduledAt", scheduledAt);
+            JSONArray old = pendingSyncEvents(context);
+            JSONArray next = new JSONArray();
+            for (int i = 0; i < old.length(); i++) {
+                JSONObject item = old.optJSONObject(i);
+                if (item != null && !item.optString("id").equals(id)) next.put(item);
+            }
+            next.put(event);
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("pending_sync", next.toString()).commit();
+        } catch (Exception ignored) { }
     }
 
     public static synchronized JSONArray pendingSyncEvents(Context context) {
