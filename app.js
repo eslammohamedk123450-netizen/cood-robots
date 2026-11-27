@@ -1262,12 +1262,55 @@ async function syncNativeTasks() {
       bridge.acknowledgeTaskSyncEvent?.(String(event.id));
     } catch (error) { console.warn("SOLINA native task cloud sync pending:", error); }
   }
+  const legacyLocal = readNativeTasks();
+  const preserveLocalIds = new Set();
+  const legacyMappings = [];
+  for (const saved of legacyLocal) {
+    if (!["alarm", "reminder"].includes(saved.type) || !saved.title) continue;
+    const mappedKey = "nova.legacyTaskMigration." + String(saved.id);
+    const mappedId = localStorage.getItem(mappedKey);
+    if (mappedId) {
+      const mappedItem = state.personalItems.find(item => String(item.id) === mappedId);
+      if (mappedItem?.status === "active") {
+        preserveLocalIds.add(String(saved.id));
+        legacyMappings.push({ oldId: String(saved.id), newId: mappedId, mappedKey });
+        continue;
+      }
+      if (mappedItem) {
+        try { bridge.cancelTask(String(saved.id)); } catch (_) {}
+        localStorage.removeItem(mappedKey);
+        continue;
+      }
+    }
+    if (state.personalItems.some(item => String(item.id) === String(saved.id))) continue;
+    const originalAt = Number(saved.at);
+    if (!Number.isFinite(originalAt) || originalAt <= 0) { preserveLocalIds.add(String(saved.id)); continue; }
+    const followUpAt = Number(saved.nextFollowUpAt);
+    const migratedAt = originalAt > Date.now() ? originalAt : followUpAt > Date.now() ? followUpAt : Date.now() + 2000;
+    try {
+      const item = await savePersonalItem({
+        ...( /^[0-9a-f-]{36}$/i.test(String(saved.id)) ? { id: String(saved.id) } : {}),
+        item_type: saved.type, title: String(saved.title).slice(0, 160), content: "",
+        scheduled_at: new Date(migratedAt).toISOString(),
+        metadata: { migrated_from_device: true, original_scheduled_at: new Date(originalAt).toISOString() }
+      });
+      if (String(item.id) !== String(saved.id)) {
+        const mappedKeyValue = "nova.legacyTaskMigration." + String(saved.id);
+        localStorage.setItem(mappedKeyValue, String(item.id));
+        preserveLocalIds.add(String(saved.id));
+        legacyMappings.push({ oldId: String(saved.id), newId: String(item.id), mappedKey: mappedKeyValue });
+      }
+    } catch (error) {
+      preserveLocalIds.add(String(saved.id));
+      console.warn("SOLINA legacy reminder migration pending:", error);
+    }
+  }
   const desired = state.personalItems.filter(item => item.status === "active" &&
     ["alarm", "reminder"].includes(item.item_type));
   const desiredIds = new Set(desired.map(item => String(item.id)));
   const local = readNativeTasks();
   for (const saved of local) {
-    if (!desiredIds.has(String(saved.id))) {
+    if (!desiredIds.has(String(saved.id)) && !preserveLocalIds.has(String(saved.id))) {
       try { bridge.cancelTask(String(saved.id)); } catch (_) {}
     }
   }
@@ -1288,6 +1331,13 @@ async function syncNativeTasks() {
       if (result.ok) scheduled++;
       else if (result.error === "exact_alarm_permission_required") permissionMissing = true;
     } catch (_) {}
+  }
+  const finalLocal = readNativeTasks();
+  for (const mapping of legacyMappings) {
+    if (finalLocal.some(saved => String(saved.id) === mapping.newId)) {
+      try { bridge.cancelTask(mapping.oldId); } catch (_) {}
+      localStorage.removeItem(mapping.mappedKey);
+    }
   }
   return { scheduled, permissionMissing, unavailable: false };
 }
