@@ -147,12 +147,12 @@
       </section>
       <section class="settings-section">
         <h3>محرك إخراج الصوت</h3>
-        <p class="security-note">اختار طريقة النطق. الوضع التلقائي يستخدم Sonex / Sandbox إن توفر، وإلا ينتقل لصوت الجهاز تلقائيًا. التحميل لا يوقف المحادثة.</p>
+        <p class="security-note">اختار طريقة النطق. الوضع التلقائي يستخدم محرك الصوت السحابي المحفوظ (ElevenLabs أو Sonex)، ويرجع لصوت الجهاز عند تعذر الاتصال.</p>
         <label class="field-label">مصدر الصوت
           <select id="speechEngine" dir="rtl">
             <option value="auto">تلقائي — Cloud ثم صوت الجهاز</option>
             <option value="gemini">Gemini AI Studio TTS</option>
-            <option value="server">Sonex / Sandbox Cloud — مع بديل الجهاز</option>
+            <option value="server">ElevenLabs / Sonex Cloud — مع بديل الجهاز</option>
             <option value="device">صوت الجهاز فقط</option>
           </select>
         </label>
