@@ -73,7 +73,11 @@ assert.match(app, /const speechAction = useGeminiTts \? "tts_gemini" : "tts"/, "
 assert.match(app, /await speakWithDevice\(spokenText, speechSegments\)/, "Cloud TTS failures must fall back to the phone voice");
 assert.match(app, /female\(egyptian\) \|\| egyptian\[0\] \|\| female\(arabic\) \|\| arabic\[0\] \|\| voices\[0\]/, "Device fallback must accept any available voice when female metadata is unavailable");
 assert.doesNotMatch(app, /showToast\("تعذر تشغيل صوت سولينا السحابي:/, "Speech provider failures must not interrupt the chat with an error toast");
-assert.match(html, /المزود الذي تختاره \(ElevenLabs أو Sonex\)/, "Automatic speech must follow the selected provider and describe device fallback");
+assert.match(html, /لن تنتقل سولينا إلى خدمة سحابية أخرى/, "Speech settings must promise no alternate cloud provider fallback");
+assert.match(html, /بدون صوت — رد مكتوب فقط/, "User must be able to disable speech output");
+assert.match(app, /engine === "mute"/, "Mute mode must return text-only replies without invoking TTS");
+assert.match(app, /allowedEngines = \["gemini", "server", "device", "mute"\]/, "Only explicitly selected speech engines may be restored");
+assert.match(app, /savedEngine = allowedEngines\.includes\(storedEngine\) \? storedEngine : "server"/, "Default speech engine must be explicit cloud selection, never auto");
 
 assert.match(app, /SpeechSynthesisUtterance/, "The optional on-device speech engine must remain available");
 assert.match(app, /لا تبدأ بسؤاله عن مشاريعه أو شغله/, "NOVA must not steer casual conversation toward projects");
