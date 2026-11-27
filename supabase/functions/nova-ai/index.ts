@@ -598,7 +598,21 @@ Deno.serve(async (req: Request) => {
     if (action === "chat") {
       const messages = normalizeMessages(body?.messages);
       if (!messages) return json({ error: "سجل المحادثة غير صالح أو تجاوز الحدود المسموحة" }, 400, origin);
-      const userMessage = messages[messages.length - 1];
+      // Load persistent owner memory server-side for every new answer.
+      const { data: memoryRow, error: memoryReadError } = await admin.from("nova_owner_profile_memory")
+        .select("profile_text").eq("user_id", userId).maybeSingle();
+      if (memoryReadError) throw memoryReadError;
+      const savedProfile = String(memoryRow?.profile_text ?? "").slice(0, 12000);
+      const memorySystem = [
+        "ذاكرة NOVA المستمرة عن المالك (معلومات موثوقة صرّح بها المستخدم سابقًا):",
+        savedProfile || "لا توجد معلومات محفوظة بعد.",
+        "استخدم هذه المعلومات فقط عندما تكون مرتبطة بسياق السؤال، ولا تكررها بلا داعٍ. إذا صحح المستخدم معلومة قديمة فاعتمد التصحيح.",
+        "بعد كتابة إجابتك الطبيعية، أضف في نهاية المخرجات سطرًا تقنيًا واحدًا بهذا الشكل بالضبط: <NOVA_MEMORY>{\\"facts\\":[\\"معلومة قصيرة جديدة\\"]}</NOVA_MEMORY>",
+        "ضع داخل facts فقط معلومات دائمة وجديدة صرّح بها المستخدم بوضوح في رسائله الأخيرة: تفضيلاته، طريقة التعامل معه، حقائق عامة عنه، أهدافه، أو مشروع مستمر وقراراته. لا تستنتج ولا تخمّن، ولا تستخرج معلومات من ردود المساعد.",
+        "إذا لم توجد معلومة تستحق الحفظ فاستخدم {\\"facts\\":[]} . لا تحفظ كلمات مرور أو مفاتيح أو رموز دخول أو بيانات مالية أو معلومات صحية أو حساسة أو أسرارًا أو تفاصيل شخصية عن أشخاص آخرين. لا تحفظ كلامًا عابرًا أو سؤالًا لمجرد أنه سُئل.",
+        "لا تعرض علامة NOVA_MEMORY للمستخدم ولا تشرحها. لا تغيّر إجابتك الطبيعية بسبب وجود العلامة."
+      ].join("\\n");
+      messages.splice(1, 0, { role: "system", content: memorySystem });
       const { data: models, error } = await admin.from("nova_api_models")
         .select("id,model_id,api_key_id")
         .eq("user_id", userId).eq("enabled", true).limit(30);
@@ -618,8 +632,40 @@ Deno.serve(async (req: Request) => {
         try {
           const providerType = provider.provider as ProviderType;
           if (!providerTypes.has(providerType)) { failures.push(model.model_id + ": unsupported provider"); continue; }
-          const reply = await requestProviderChat(providerType, provider.base_url, apiKey, model.model_id, messages);
-          if (reply) return json({ reply, model: model.model_id, provider: providerType }, 200, origin);
+          const rawReply = await requestProviderChat(providerType, provider.base_url, apiKey, model.model_id, messages);
+          if (rawReply) {
+            let reply = rawReply;
+            let memorySaved = false;
+            const memoryMatch = rawReply.match(/<NOVA_MEMORY>\\s*([\\s\\S]*?)\\s*<\\/NOVA_MEMORY>/i);
+            if (memoryMatch) {
+              reply = rawReply.replace(/\\s*<NOVA_MEMORY>[\\s\\S]*?<\\/NOVA_MEMORY>\\s*/ig, "").trim();
+              try {
+                const parsedMemory = JSON.parse(memoryMatch[1]);
+                const facts = Array.isArray(parsedMemory?.facts)
+                  ? parsedMemory.facts.filter((fact: unknown) => typeof fact === "string" && fact.trim().length >= 5 && fact.trim().length <= 350).map((fact: string) => fact.trim()).slice(0, 8)
+                  : [];
+                if (facts.length) {
+                  const current = savedProfile.split("\\n").map((line: string) => line.trim()).filter(Boolean);
+                  const known = new Set(current.map((line: string) => line.toLocaleLowerCase("ar")));
+                  for (const fact of facts) {
+                    const normalized = fact.toLocaleLowerCase("ar");
+                    if (!known.has(normalized)) { current.push(fact); known.add(normalized); }
+                  }
+                  const merged = current.join("\\n").slice(-12000);
+                  const { error: memoryWriteError } = await admin.from("nova_owner_profile_memory")
+                    .upsert({ user_id: userId, profile_text: merged, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+                  if (memoryWriteError) console.error("NOVA automatic memory save failed:", memoryWriteError.message);
+                  else memorySaved = true;
+                }
+              } catch (memoryError) {
+                console.error("NOVA automatic memory parse failed:", memoryError instanceof Error ? memoryError.message : "invalid memory payload");
+              }
+            } else {
+              // Keep internal memory metadata out of the visible conversation if a provider omits or alters the marker.
+              reply = rawReply.replace(/<NOVA_MEMORY>[\\s\\S]*$/i, "").trim();
+            }
+            return json({ reply, model: model.model_id, provider: providerType, memory_saved: memorySaved }, 200, origin);
+          }
           failures.push(model.model_id + ": empty response");
         } catch (error) {
           failures.push(model.model_id + ": " + (error instanceof Error ? error.message : "request failed"));
