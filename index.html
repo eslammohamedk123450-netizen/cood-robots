@@ -74,6 +74,7 @@
           <button class="mic-button" id="micButton" aria-label="ابدأ المحادثة الصوتية" aria-pressed="false">
             <span class="mic-halo"></span><span class="mic-symbol">🎙</span>
           </button>
+          <button class="subtle-button" id="cancelTurnButton" aria-label="إلغاء الرد أو إيقاف الكلام" title="إيقاف / إلغاء">■</button>
           <button class="subtle-button" id="textToggle" aria-label="اكتب رسالة بدل الكلام" title="الكتابة">⌨</button>
           <button class="subtle-button" id="transcriptToggle" aria-label="عرض المحادثة" title="المحادثة">☰</button>
         </div>
@@ -90,6 +91,8 @@
           <div><span class="eyebrow">OUR CONVERSATION</span><h2>كلامنا سوا</h2></div>
           <button class="text-button" id="clearConversation">مسح السجل</button>
         </div>
+        <label class="history-picker-label" for="conversationHistorySelect">افتح محادثة سابقة</label>
+        <select id="conversationHistorySelect" class="history-picker" aria-label="المحادثات السابقة"><option value="">المحادثات السابقة</option></select>
         <div class="conversation-log" id="conversationLog" aria-live="polite">
           <p class="empty-conversation">لسه مفيش كلام بينا. ابدأ أول محادثة ❤️</p>
         </div>
