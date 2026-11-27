@@ -1,14 +1,10 @@
-import { novaAvatar } from "./nova-avatar-controller.js";
 const $ = (id) => document.getElementById(id);
 const state = {
-  persona: (localStorage.getItem("nova.persona") === "soleen" ? "soleen" : "soly"), emotion: "idle", listening: false, speaking: false,
+  persona: "soleen", emotion: "idle", listening: false, speaking: false,
   recognition: null, restartRecognition: false, processing: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
   messages: [], messagesByPersona: { soly: [], soleen: [] }, conversationIds: { soly: null, soleen: null }, historyQueues: { soly: Promise.resolve(), soleen: Promise.resolve() }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: ""
 };
-const personas = {
-  soly: { name: "سولي", description: "صاحبك الأزرق 💙", color: "#69a0ff", accent: "#2760c7", intro: "سولي معاك" },
-  soleen: { name: "سولينا", description: "صاحبتك الوردية 💗", color: "#f58bc4", accent: "#b62aa5", intro: "سولينا معاك" }
-};
+const personas = { soleen: { name: "سولينا", description: "مساعدتك الصوتية 💗", color: "#b9a5ff", accent: "#7959d6", intro: "سولينا معاكي" } };
 let speechAudioContext = null;
 
 // Reuse identical Gemini TTS output during this page session. This cache is
@@ -41,14 +37,14 @@ function rememberSpeechAudio(key, result) {
 }
 
 function setStatus(label, mood = "idle") {
-  $("characterStatus").textContent = label;
+  const statusNode = $("characterStatus"); if (statusNode) statusNode.textContent = label;
   $("voiceState").textContent = label;
   document.body.dataset.mood = mood;
   const orb = $("novaAudioOrb"); if (orb) { orb.dataset.mood = mood; if (mood !== "speaking") orb.dataset.expression = mood === "thinking" ? "thinking" : "neutral"; }
-  novaAvatar?.setMood(mood);
+  window.solinaWave?.setMood(mood);
 }
 const NOVA_EMOTIONS = new Set(["neutral","happy","sad","surprised","curious","caring","playful","concerned","thinking"]);
-function setSpeechSegmentTone(emotion) { state.replyEmotion = NOVA_EMOTIONS.has(emotion) ? emotion : "neutral"; const orb = $("novaAudioOrb"); if (orb) orb.dataset.expression = state.replyEmotion; novaAvatar?.setExpression(state.replyEmotion); }
+function setSpeechSegmentTone(emotion) { state.replyEmotion = NOVA_EMOTIONS.has(emotion) ? emotion : "neutral"; const orb = $("novaAudioOrb"); if (orb) orb.dataset.expression = state.replyEmotion; window.solinaWave?.setMood(state.replyEmotion); }
 function inferReplyTone(reply) {
   const value = String(reply || "").toLowerCase();
   const patterns = [
@@ -122,12 +118,12 @@ function setSpeechMouthLevel(level, brightness = 0) {
   orb.style.setProperty("--audio-level", amount.toFixed(3));
   orb.style.setProperty("--mouth-scale", (0.48 + amount * 1.75).toFixed(3));
   orb.style.setProperty("--audio-brightness", energy.toFixed(3));
-  novaAvatar?.setSpeechLevel(amount, energy);
+  window.solinaWave?.setLevel(amount, energy);
 }
 function resetSpeechMouth() {
   const orb = $("novaAudioOrb");
   if (orb) { orb.style.setProperty("--audio-level", "0"); orb.style.setProperty("--mouth-scale", ".48"); orb.style.setProperty("--audio-brightness", ".12"); }
-  novaAvatar?.setSpeechLevel(0, .12);
+  window.solinaWave?.setLevel(0, .12);
 }
 function connectSpeechAnalyser(source) {
   try {
@@ -228,14 +224,9 @@ function setPersona(persona) {
   const current = personas[persona];
   document.documentElement.style.setProperty("--persona", current.color);
   document.documentElement.style.setProperty("--persona-deep", current.accent);
-  $("personaName").textContent = current.name;
-  $("personaDescription").textContent = current.description;
-  $("characterStatus").textContent = current.intro;
+  
 
-  document.querySelectorAll("[data-persona]").forEach((button) => {
-    button.classList.toggle("selected", button.dataset.persona === persona);
-    button.setAttribute("aria-pressed", String(button.dataset.persona === persona));
-  });
+  
   setStatus(current.intro, state.listening ? "listening" : "idle");
 }
 function animateCharacter(kind) {
@@ -920,7 +911,7 @@ function startInterruptRecognition() {
 }
 function handleLocalVoiceCommand(value) {
   const normalized = normalizeVoiceCommand(value);
-  const wakePattern = /(?:^|\s)(?:(?:يا|ي)\s*)?(?:نوفا|نوفة|nova|سولي|سولينا|سولين)(?=$|\s)/i;
+  const wakePattern = /(?:^|\s)(?:(?:يا|ي)\s*)?سولينا(?=$|\s)/i;
   const match = normalized.match(wakePattern);
   const addressed = !!match;
   const command = addressed ? normalized.slice(match.index + match[0].length).trim() : "";
@@ -1121,16 +1112,18 @@ function submitText(text) {
 
 $("micButton").addEventListener("click", () => { prepareSpeechPlayback(); state.listening ? stopListening() : startListening(); });
 $("cancelTurnButton")?.addEventListener("click", () => cancelCurrentTurn(true));
-$("textToggle").addEventListener("click", () => {
-  $("textForm").classList.toggle("hidden");
-  if (!$("textForm").classList.contains("hidden")) $("textInput").focus();
-});
-$("transcriptToggle").addEventListener("click", () => $("conversationPanel").classList.toggle("hidden"));
+
+const toggleDrawer = () => { $("conversationPanel").classList.toggle("hidden"); $("drawerBackdrop").classList.toggle("hidden"); };
+$("transcriptToggle").addEventListener("click", toggleDrawer);
+$("closeDrawer")?.addEventListener("click", toggleDrawer);
+$("drawerBackdrop")?.addEventListener("click", toggleDrawer);
+$("drawerTextButton")?.addEventListener("click", () => { $("textForm").classList.toggle("hidden"); $("textInput").focus(); });
+$("drawerHistoryButton")?.addEventListener("click", () => $("conversationLog").scrollIntoView({behavior:"smooth",block:"end"}));
 $("textForm").addEventListener("submit", (event) => { event.preventDefault(); submitText($("textInput").value); });
 $("clearConversation").addEventListener("click", () => { state.messages = []; state.messagesByPersona[state.persona] = []; state.conversationIds[state.persona] = null; localStorage.removeItem("nova.activeConversation." + state.persona); if ($("conversationHistorySelect")) $("conversationHistorySelect").value = ""; $("conversationLog").innerHTML = '<p class="empty-conversation">محادثة جديدة — ابدأ كلامنا ❤️</p>'; });
 $("conversationHistorySelect")?.addEventListener("change", event => { if (event.target.value) void openSavedConversation(event.target.value); });
 $("settingsButton").addEventListener("click", openSettings);
-document.querySelectorAll("[data-persona]").forEach((button) => button.addEventListener("click", () => setPersona(button.dataset.persona)));
+
 $("ownerName").addEventListener("change", (event) => {
   state.ownerName = event.target.value.trim() || "إسلام";
   $("greeting").textContent = "أهلاً يا " + state.ownerName + "، نورتني.";
@@ -1217,6 +1210,6 @@ window.addEventListener("nova:authenticated", (event) => {
 });
 applyProviderDefaults();
 // Legacy 3D mannequin renderer removed; only the OLED face remains.
-setPersona("soly");
+setPersona("soleen");
 setStatus("سولي معاك", "idle");
 
