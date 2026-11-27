@@ -126,7 +126,8 @@ function setSpeechMouthLevel(level, brightness = 0) {
 }
 function resetSpeechMouth() {
   const orb = $("novaAudioOrb");
-  if (orb) { orb.style.setProperty("--audio-level", "0"); orb.style.setProperty("--mouth-scale", ".48"); orb.style.setProperty("--audio-brightness", ".12"); }\n  novaAvatar?.setSpeechLevel(0, .12);
+  if (orb) { orb.style.setProperty("--audio-level", "0"); orb.style.setProperty("--mouth-scale", ".48"); orb.style.setProperty("--audio-brightness", ".12"); }
+  novaAvatar?.setSpeechLevel(0, .12);
 }
 function connectSpeechAnalyser(source) {
   try {
