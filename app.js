@@ -4,6 +4,7 @@ const state = {
   recognition: null, restartRecognition: false, processing: false, voiceSessionActive: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
   messages: [], voiceAlternatives: [], messagesByPersona: { soleen: [] }, conversationIds: { soleen: null }, historyQueues: { soleen: Promise.resolve() }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: ""
 };
+const VOICE_TURN_PAUSE_MS = 480;
 const personas = { soleen: { name: "سولينا", description: "مساعدتك الصوتية 💗", color: "#b9a5ff", accent: "#7959d6", intro: "سولينا معاكي" } };
 // Remove saved settings and audio generated for retired character/voice paths.
 for (const key of ["nova.persona", "nova.activeConversation.soly", "nova.elevenlabs.voice.male", "nova.sonex.voice.male"]) {
@@ -1009,7 +1010,7 @@ function queueVoiceFinal(text, alternatives = []) {
       $("liveTranscript").textContent = "أيوه، سامعاك. كمّل كلامك.";
       setStatus("سامعاك... كمّل براحتك", "listening");
     }
-  }, 600);
+  }, VOICE_TURN_PAUSE_MS);
 }
 async function handleRecognizedText(text, voiceTurn = false, voiceAlternatives = []) {
   const clean = text.trim();
