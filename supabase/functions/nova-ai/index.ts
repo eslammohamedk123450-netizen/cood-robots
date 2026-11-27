@@ -226,7 +226,7 @@ async function requestAzureSpeech(region: string, apiKey: string, text: string, 
   return { data: encodeBase64Audio(bytes), mimeType: "audio/wav", voice };
 }
 
-async function requestProviderChat(provider: ProviderType, baseUrl: string, apiKey: string, modelId: string, messages: any[]): Promise<string> {
+async function requestProviderChat(provider: ProviderType, baseUrl: string, apiKey: string, modelId: string, messages: any[], requestSignal?: AbortSignal): Promise<string> {
   const systemText = messages.filter((m) => m?.role === "system" && typeof m.content === "string").map((m) => m.content).join("\n");
   const dialogue = messages.filter((m) => (m?.role === "user" || m?.role === "assistant") && typeof m.content === "string");
   if (provider === "gemini") {
@@ -240,7 +240,7 @@ async function requestProviderChat(provider: ProviderType, baseUrl: string, apiK
       method: "POST",
       headers: { ...providerHeaders(provider, apiKey), "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(45000),
+      signal: requestSignal ? AbortSignal.any([requestSignal, AbortSignal.timeout(45000)]) : AbortSignal.timeout(45000),
       redirect: "error",
     });
     const result = await response.json().catch(() => ({}));
@@ -259,7 +259,7 @@ async function requestProviderChat(provider: ProviderType, baseUrl: string, apiK
         ...(systemText ? { system: systemText.slice(0, 8000) } : {}),
         messages: dialogue.map((m) => ({ role: m.role, content: m.content.slice(0, 12000) })),
       }),
-      signal: AbortSignal.timeout(45000),
+      signal: requestSignal ? AbortSignal.any([requestSignal, AbortSignal.timeout(45000)]) : AbortSignal.timeout(45000),
       redirect: "error",
     });
     const result = await response.json().catch(() => ({}));
@@ -272,7 +272,7 @@ async function requestProviderChat(provider: ProviderType, baseUrl: string, apiK
     method: "POST",
     headers: { ...providerHeaders(provider, apiKey), "Content-Type": "application/json" },
     body: JSON.stringify({ model: modelId, messages, stream: false }),
-    signal: AbortSignal.timeout(45000),
+    signal: requestSignal ? AbortSignal.any([requestSignal, AbortSignal.timeout(45000)]) : AbortSignal.timeout(45000),
     redirect: "error",
   });
   const result = await response.json().catch(() => ({}));
@@ -435,6 +435,9 @@ Deno.serve(async (req: Request) => {
       speech_get: 30,
       speech_save: 5,
       speech_voices: 10,
+      history_list: 60,
+      history_load: 60,
+      history_save: 60,
     };
     const requestLimit = actionLimits[action];
     if (!requestLimit) return json({ error: "Unknown action" }, 400, origin);
@@ -450,6 +453,30 @@ Deno.serve(async (req: Request) => {
         status: 429,
         headers: { ...cors(origin), "Content-Type": "application/json", "Cache-Control": "no-store", "Retry-After": "60" },
       });
+    }
+
+    if (action === "history_list") {
+      const persona = body?.persona === "soleen" ? "soleen" : "soly";
+      const { data, error } = await admin.from("nova_conversations").select("id,title,updated_at").eq("user_id", userId).eq("persona", persona).order("updated_at", { ascending: false }).limit(50);
+      if (error) throw error; return json({ conversations: data ?? [] }, 200, origin);
+    }
+    if (action === "history_load") {
+      const conversationId = typeof body?.conversation_id === "string" ? body.conversation_id : ""; const persona = body?.persona === "soleen" ? "soleen" : "soly";
+      if (!/^[0-9a-f-]{36}$/i.test(conversationId)) return json({ error: "معرّف المحادثة غير صالح." }, 400, origin);
+      const { data: conversation, error: conversationError } = await admin.from("nova_conversations").select("id").eq("id", conversationId).eq("user_id", userId).eq("persona", persona).maybeSingle();
+      if (conversationError) throw conversationError; if (!conversation) return json({ error: "المحادثة غير موجودة." }, 404, origin);
+      const { data, error } = await admin.from("nova_messages").select("role,content,created_at").eq("conversation_id", conversationId).eq("user_id", userId).order("created_at", { ascending: true }).limit(500);
+      if (error) throw error; return json({ messages: data ?? [] }, 200, origin);
+    }
+    if (action === "history_save") {
+      const persona = body?.persona === "soleen" ? "soleen" : body?.persona === "soly" ? "soly" : ""; const userText = typeof body?.user_text === "string" ? body.user_text.trim().slice(0,12000) : ""; const assistantText = typeof body?.assistant_text === "string" ? body.assistant_text.trim().slice(0,12000) : "";
+      if (!persona || !userText || !assistantText) return json({ error: "بيانات المحادثة غير مكتملة." }, 400, origin);
+      let conversationId = typeof body?.conversation_id === "string" && /^[0-9a-f-]{36}$/i.test(body.conversation_id) ? body.conversation_id : "";
+      if (conversationId) { const { data: existing, error: existingError } = await admin.from("nova_conversations").select("id").eq("id", conversationId).eq("user_id", userId).eq("persona", persona).maybeSingle(); if (existingError) throw existingError; if (!existing) conversationId = ""; }
+      if (!conversationId) { const title = userText.replace(/\s+/g," ").slice(0,72) || "محادثة جديدة"; const { data: created, error: createError } = await admin.from("nova_conversations").insert({ user_id: userId, persona, title }).select("id").single(); if (createError) throw createError; conversationId = created.id; }
+      const { error: messageError } = await admin.from("nova_messages").insert([{ conversation_id: conversationId, user_id: userId, role: "user", content: userText },{ conversation_id: conversationId, user_id: userId, role: "assistant", content: assistantText }]); if (messageError) throw messageError;
+      const { error: updateError } = await admin.from("nova_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId).eq("user_id", userId); if (updateError) throw updateError;
+      return json({ saved: true, conversation_id: conversationId }, 200, origin);
     }
 
     if (action === "profile_get") {
@@ -757,7 +784,7 @@ Deno.serve(async (req: Request) => {
         try {
           const providerType = provider.provider as ProviderType;
           if (!providerTypes.has(providerType)) { failures.push(model.model_id + ": unsupported provider"); continue; }
-          const rawReply = await requestProviderChat(providerType, provider.base_url, apiKey, model.model_id, messages);
+          const rawReply = await requestProviderChat(providerType, provider.base_url, apiKey, model.model_id, messages, req.signal);
           if (rawReply) {
             let reply = rawReply;
             let memorySaved = false;
@@ -794,6 +821,7 @@ Deno.serve(async (req: Request) => {
           }
           failures.push(model.model_id + ": empty response");
         } catch (error) {
+          if (req.signal.aborted || (error instanceof DOMException && error.name === "AbortError")) return json({ error: "تم إلغاء الطلب." }, 499, origin);
           failures.push(model.model_id + ": " + (error instanceof Error ? error.message : "request failed"));
         }
       }
