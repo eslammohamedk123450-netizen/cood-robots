@@ -848,7 +848,7 @@ function normalizeVoiceCommand(value) { return String(value || "").toLocaleLower
 function isStopVoiceCommand(value) {
   const normalized = normalizeVoiceCommand(value);
   // The owner may say the assistant name anywhere in the sentence.
-  const withoutWakeName = normalized.replace(/(?:^|\\s)(?:(?:يا|ي)\\s*)?سولينا(?=$|\\s)/gi, " ").replace(/\\s+/g, " ").trim();
+  const withoutWakeName = normalized.replace(/(?:^|\s)(?:(?:يا|ي)\s*)?سولينا(?=$|\s)/gi, " ").replace(/\s+/g, " ").trim();
   return /^(?:اسكتي|اسكت|اسكتوا|توقف|توقفي|وقف|وقفي|الغاء|الغي|خلاص|بس|stop|cancel|quiet)$/i.test(withoutWakeName);
 }
 async function getStopAudioCache() {
@@ -921,7 +921,7 @@ function handleLocalVoiceCommand(value) {
   const normalized = normalizeVoiceCommand(original);
   // Wake-word detection is position-independent. Do not discard any words
   // before or after the name: the complete utterance is the user's request.
-  const wakePattern = /(?:^|\\s)(?:(?:يا|ي)\\s*)?سولينا(?=$|\\s)/i;
+  const wakePattern = /(?:^|\s)(?:(?:يا|ي)\s*)?سولينا(?=$|\s)/i;
   const addressed = wakePattern.test(normalized);
   if (isStopVoiceCommand(original)) {
     cancelCurrentTurn(false);
