@@ -914,11 +914,23 @@ function startInterruptRecognition() {
   try { recognition.start(); } catch (_) { state.interruptRecognition = null; if (state.listening && (state.processing || state.speaking)) window.setTimeout(startInterruptRecognition, 350); }
 }
 function handleLocalVoiceCommand(value) {
-  const normalized = normalizeVoiceCommand(value); const wake = /^(?:(?:يا|ي)\s*)?(?:نوفا|نوفة|nova|سولي|سولينا|سولين)(?=$|\s)\s*/i;
-  const addressed = wake.test(normalized); const command = normalized.replace(wake, "").trim();
-  if (isStopVoiceCommand(value)) { cancelCurrentTurn(false); if (state.listening) setStatus("حاضر، سكت. سامعاك", "listening"); void playStopAcknowledgement(); return { handled: true }; }
-  if (addressed && !command) { setStatus("أيوه، معاك", "listening"); $("liveTranscript").textContent = "أيوه، سامعك. قولّي."; return { handled: true }; }
-  return { handled: false, text: addressed ? command : String(value || "").trim() };
+  const normalized = normalizeVoiceCommand(value);
+  const wakePattern = /(?:^|\s)(?:(?:يا|ي)\s*)?(?:نوفا|نوفة|nova|سولي|سولينا|سولين)(?=$|\s)/i;
+  const match = normalized.match(wakePattern);
+  const addressed = !!match;
+  const command = addressed ? normalized.slice(match.index + match[0].length).trim() : "";
+  if (isStopVoiceCommand(value)) {
+    cancelCurrentTurn(false);
+    if (state.listening) setStatus("حاضر، سكت. سامعاك", "listening");
+    void playStopAcknowledgement();
+    return { handled: true, addressed: true };
+  }
+  if (addressed && !command) {
+    setStatus("أيوه، معاك", "listening");
+    $("liveTranscript").textContent = "أيوه، سامعك. قولّي.";
+    return { handled: true, addressed: true };
+  }
+  return { handled: false, addressed, text: command };
 }
 function persistConversationMessage(role, content) {
   const persona = state.persona;
@@ -962,7 +974,16 @@ function queueVoiceFinal(text) {
     const complete = state.voiceDraft.trim();
     state.voiceDraft = "";
     state.voicePauseTimer = null;
-    if (complete && state.listening && !state.processing) { const local = handleLocalVoiceCommand(complete); if (!local.handled && local.text) void handleRecognizedText(local.text, true); }
+    if (!complete || !state.listening || state.processing) return;
+    // Wake-word gate: ambient speech is transcribed locally but never sent to AI.
+    // Only a phrase addressed to NOVA/Soly/Soleen may trigger a turn.
+    const local = handleLocalVoiceCommand(complete);
+    if (!local.addressed && !local.handled) {
+      $("liveTranscript").textContent = "سمعتك، مستني تناديني: نوفا.";
+      setStatus("مستني تناديني يا نوفا", "listening");
+      return;
+    }
+    if (!local.handled && local.text) void handleRecognizedText(local.text, true);
   }, 950);
 }
 async function handleRecognizedText(text, voiceTurn = false) {
