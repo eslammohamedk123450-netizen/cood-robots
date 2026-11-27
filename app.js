@@ -514,7 +514,9 @@ async function invokeNova(action, payload = {}, options = {}) {
     if (response.status === 401) {
       state.session = null;
       localStorage.removeItem("nova.owner.session.v2");
+      activatedOwnerSession = null;
       $("authGate").hidden = false;
+      if ($("pinLoginForm")) $("pinLoginForm").hidden = false;
     }
     const providerDetails = Array.isArray(data?.failures) ? data.failures.map((item) => String(item)).slice(0, 8).join(" | ") : "";
     const message = data?.error || "تعذر الاتصال بخادم NOVA (" + response.status + ")";
@@ -1237,9 +1239,15 @@ $("settingsDialog").addEventListener("click", (event) => { if (event.target === 
 
 let activatedOwnerSession = null;
 function activateOwnerSession(token) {
-  if (!token || activatedOwnerSession === token) return;
+  if (!token) return;
+  // A previous 401 can clear state.session while this token remains the
+  // already-activated token. Always restore the live session before deduping
+  // the one-time bootstrap work, otherwise every retry stays disconnected.
+  const alreadyBootstrapped = activatedOwnerSession === token;
   activatedOwnerSession = token;
   state.session = token;
+  $("authGate").hidden = true;
+  if (alreadyBootstrapped) return;
   state.messages = [];
   $("connectionLabel").textContent = "متصل بخادم سولينا";
   $("authGate").hidden = true;
