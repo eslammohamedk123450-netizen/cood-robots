@@ -1008,19 +1008,32 @@ async function requestAIReply(text, signal, voiceAlternatives = []) {
       content: "ملاحظة داخلية: آخر رسالة مفرغة آليًا من صوت باللهجة المصرية. قد يحتوي النص الأساسي على خطأ سمعي؛ قارن هذه البدائل واستنتج المقصود من سياق المحادثة. لا تكرر لفظًا غير منطقي حرفيًا، ولا تخمّن إذا لم يتضح المعنى. البدائل: " + candidates.join(" | ")
     });
   }
-  // Fetch live facts only when the user actually asks for current web data or prayer times.
+  // Answer clock questions from the device clock directly; never ask the AI model to guess the time.
   const liveQuery = String(text || "").trim();
-  const asksPrayer = /مواقيت\s+الصلاة|مواعيد\s+الصلاة|ميعاد\s+(?:الفجر|الظهر|العصر|المغرب|العشاء)|صلاة\s+(?:الفجر|الظهر|العصر|المغرب|العشاء)\s+(?:امتى|متى|الساعة)/i.test(liveQuery);
-  const asksWeb = /ابحث|دور\s+(?:لي\s+)?على|هات\s+لي\s+مصادر|مصادر\s+عن|آخر\s+الأخبار|اخر\s+الاخبار|سعر|أسعار|اسعار|بكام|قارن|مقارنة|أفضل\s+سعر|متاح\s+للشراء|شراء\s+اونلاين/i.test(liveQuery);
+  const asksClock = /(?:الساع(?:ة|ه)|الوقت|التوقيت)\s*(?:دلوقتي|حاليًا|الحالي|كام|إيه|ايه|كم)?|(?:كام|كم)\s+(?:الساعة|الساعه|الوقت)|الساعة\s+(?:دلوقتي|كام)|الوقت\s+(?:دلوقتي|الحالي)/i.test(liveQuery);
+  if (asksClock) {
+    const now = new Date();
+    const clock = new Intl.DateTimeFormat("ar-EG", { hour: "numeric", minute: "2-digit", hourCycle: "h12" }).format(now);
+    const date = new Intl.DateTimeFormat("ar-EG", { weekday: "long", day: "numeric", month: "long" }).format(now);
+    const reply = "الساعة دلوقتي " + clock + "، والنهارده " + date + ".";
+    state.messages.push({ role: "assistant", content: reply });
+    state.messagesByPersona[state.persona] = state.messages.slice();
+    state.replySegments = [{ text: reply, emotion: "neutral" }];
+    state.replyEmotion = "neutral";
+    return reply;
+  }
+  // Fetch live facts only when the user asks for prayer times or explicitly requests an internet search.
+  const asksPrayer = /(?:مواقيت|مواعيد|أوقات|وقت|ميعاد|موعد)\s*(?:الصلاة|الصلاه|صلاة|صلاه|الأذان|الاذان)|(?:صلاة|صلاه|أذان|اذان)\s*(?:الفجر|الظهر|العصر|المغرب|العشاء)|(?:الفجر|الظهر|العصر|المغرب|العشاء)\s*(?:امتى|متى|ميعاده|ميعادها|وقته|وقتها|الساعة|الساعه)|(?:امتى|متى)\s*(?:صلاة|صلاه|أذان|اذان)\s*(?:الفجر|الظهر|العصر|المغرب|العشاء)/i.test(liveQuery);
+  const asksWeb = /ابحث|ابحثي|دور\s+(?:لي\s+)?على|دوري\s+(?:لي\s+)?على|شوفي\s+(?:لي\s+)?على\s+(?:النت|الإنترنت|الانترنت)|على\s+(?:النت|الإنترنت|الانترنت)|من\s+(?:النت|الإنترنت|الانترنت)|جوجل|هات\s+لي\s+مصادر|مصادر\s+عن|آخر\s+الأخبار|اخر\s+الاخبار|سعر|أسعار|اسعار|بكام|قارن|مقارنة|أفضل\s+سعر|متاح\s+للشراء|شراء\s+اونلاين/i.test(liveQuery);
   if (asksPrayer || asksWeb) {
     try {
       let liveData;
       if (asksPrayer) {
-        const cityMatch = liveQuery.match(/(?:في|بمدينة|مدينة)\s+([^،,.؟]+?)(?:\s+(?:النهارده|اليوم|بكرة|غدًا))?$/i);
+        const cityMatch = liveQuery.match(/(?:في|بمدينة|مدينة)\s+([^،,.؟]+?)(?=\s+(?:النهارده|النهارده|اليوم|بكرة|غدًا|وغدا|مواقيت|مواعيد)|[،,.؟]|$)/i);
         const city = cityMatch?.[1]?.trim() || "المحلة الكبرى";
         liveData = await invokeNova("live_info", { kind: "prayer", city, country: "Egypt" }, { signal });
       } else {
-        const query = liveQuery.replace(/^(?:يا\s*)?سولينا[،,:\s]*/i, "").slice(0, 220);
+        const query = liveQuery.replace(/^(?:يا\s*)?سولينا[،,:\s]*/i, "").replace(/^(?:من فضلك\s*)?(?:ابحثي?|دوري?|شوفي)\s*(?:لي\s*)?(?:على\s*)?(?:النت|الإنترنت|الانترنت)?\s*/i, "").trim().slice(0, 220) || liveQuery.slice(0, 220);
         liveData = await invokeNova("live_info", { kind: "search", query }, { signal });
       }
       const toolContext = asksPrayer
