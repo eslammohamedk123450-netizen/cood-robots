@@ -19,7 +19,12 @@ function nextClockTime(hour, minute, dayPart, explicitDay) {
   target.setHours(hours, minute, 0, 0);
   if (explicitDay === "tomorrow") target.setDate(target.getDate() + 1);
   else if (explicitDay === "afterTomorrow") target.setDate(target.getDate() + 2);
-  else if (target.getTime() <= now.getTime()) target.setDate(target.getDate() + 1);
+  else if (target.getTime() <= now.getTime() && !dayPart && hours > 0 && hours < 12) {
+    const afternoon = new Date(target);
+    afternoon.setHours(hours + 12, minute, 0, 0);
+    if (afternoon.getTime() > now.getTime()) return afternoon;
+    target.setDate(target.getDate() + 1);
+  } else if (target.getTime() <= now.getTime()) target.setDate(target.getDate() + 1);
   return target;
 }
 function parseSchedule(text, now = new Date()) {
