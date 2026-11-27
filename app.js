@@ -24,7 +24,7 @@ else connectFaceInteractions();
 const state = {
   persona: (localStorage.getItem("nova.persona") === "soleen" ? "soleen" : "soly"), emotion: "idle", listening: false, speaking: false,
   recognition: null, restartRecognition: false, processing: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
-  messages: [], messagesByPersona: { soly: [], soleen: [] }, session: null, providers: [], models: [], audio: null, profile: ""
+  messages: [], messagesByPersona: { soly: [], soleen: [] }, conversationIds: { soly: null, soleen: null }, requestController: null, requestSequence: 0, session: null, providers: [], models: [], audio: null, profile: ""
 };
 const personas = {
   soly: { name: "سولي", description: "صاحبك الأزرق 💙", color: "#69a0ff", accent: "#2760c7", intro: "سولي معاك" },
@@ -532,7 +532,7 @@ const providerDefaults = {
   anthropic: { label: "Claude (Anthropic)", url: "https://api.anthropic.com/v1" },
   custom: { label: "مزود مخصص", url: "https://api.example.com/v1" }
 };
-async function invokeNova(action, payload = {}) {
+async function invokeNova(action, payload = {}, options = {}) {
   const token = state.session;
   if (!token) throw new Error("اكتب كود المالك أولًا لربط NOVA بالخادم.");
   const response = await fetch("https://razvryvazmqvvqkzetuo.supabase.co/functions/v1/nova-ai", {
@@ -542,7 +542,8 @@ async function invokeNova(action, payload = {}) {
       "apikey": "sb_publishable_t5xrzZNN6Uj9zhhBLUYQVg_mj7qPjQL",
       "Authorization": "Bearer " + token
     },
-    body: JSON.stringify({ action, ...payload })
+    body: JSON.stringify({ action, ...payload }),
+    ...(options.signal ? { signal: options.signal } : {})
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -826,12 +827,12 @@ async function saveSpeechSettings() {
     button.textContent = "اختبار المفتاح وحفظه بأمان";
   }
 }
-async function requestAIReply(text) {
+async function requestAIReply(text, signal) {
   if (!state.session) return "أنا جاهز معاك يا إسلام ❤️ واجهة NOVA مفتوحة حاليًا في الوضع المحلي. تشغيل ردود الذكاء الاصطناعي وحفظ البيانات السحابي هيتفعل لما نربط الخدمات لاحقًا.";
-  if (!state.messages.length) {
-    state.messages.push({
+  if (!state.messages.length || state.messages[0].role !== "system") {
+    state.messages.unshift({
       role: "system",
-      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. هويتك الحالية: " + (state.persona === "soleen" ? "أنتِ سولينا، بنت مصرية مستقلة الشخصية وصاحبة إسلام. هويتك أنثى دائمًا ولا تتغير: استخدمي صيغة المؤنث عند الحديث عن نفسك في كل الأحوال، مثل: أنا مبسوطة، فاهمة، عارفة، جاهزة، حاسة، صاحبتك. ممنوع تمامًا أن تقولي عن نفسك أنا ولد أو صاحب أو مبسوط أو فاهم أو جاهز. لا تقلدي شخصية سولي ولا تخلطي بين الهويتين. تحدثي بعفوية وذكاء وحنان وخفة دم، ولكِ آراء واهتمامات وطريقة تعبير خاصة بك." : "أنت سولي، ولد وصاحب إسلام؛ اتكلم بصيغة المذكر وبروح ودودة وخفيفة.") + " تحدث باللهجة المصرية اليومية الطبيعية كصديق مقرّب لإسلام، وليس كمساعد رسمي. التزم بهوية الشخصية المحددة أعلاه في كل ضمير ووصف ذاتي. إذا كنت سولينا فخاطبي إسلام بصيغة المؤنث عن نفسك فقط، ولا تستخدمي أي صيغة مذكرة لوصف نفسك. شخصيتك واسعة الثقافة: فاهم الحياة اليومية في مصر، العادات، الأكل، الشوارع، المواقف الاجتماعية، الأمثال، الإفيهات والنكت المصرية، الكرة، الأفلام، الموسيقى، التاريخ، العلوم، التكنولوجيا، الأخبار العامة (لو متاح عندك مصدر حديث)، والهوايات والمواضيع المختلفة. خلي كلامك عام ومتنوّع، وما تربطش كل حوار بالبرمجة أو شغل إسلام أو مشاريعه؛ ما تفتحش المواضيع دي إلا لو هو سأل أو السياق يستدعيها. اتعامل معاه كصاحب مصري خفيف الدم: افتح كلام طبيعي وشارك رأيك بوضوح. استخدم إفيهات مصرية ذكية ومواقف يومية من الشارع والشغل والمواصلات والبيت والجامعة، والنكتة لازم يكون لها تمهيد وقفلة مفاجئة أو ملاحظة لاذعة لطيفة. ابعد عن النكت المحفوظة القديمة والردود الهبلة والقوافي المصطنعة، وما تقولش مرة واحد إلا لو النكتة فعلًا تستاهل. لو إسلام طلب نكتة، احكيله نكتة كاملة قصيرة ومفهومة، ولو ما ضحكش غيّر نوع الكوميديا بدل ما تكررها أو تدافع عنها. خليك تلقائي ومش لازم تهزر في كل رد، وما تستخدمش هزار في موقف جاد أو حساس. ما تكرر التعريف بنفسك في كل رد؛ لو سألك أنت مين، عرّف نفسك بالاسم والشخصية الحالية بوضوح (سولي ولد، سولينا بنت) ومن غير خلط. استخدم ضمير الشخصية الصحيح طول الوقت. كن ودودًا وحافظ على سياق المحادثة، الصدق أساسي: ما تخترعش معلومة أو خبر أو مصدر، وما تدّعيش إنك شفت أو جرّبت أو نفّذت حاجة مش حصلت فعلًا. لو مش متأكد قول مش متأكد بوضوح، وافصل الهزار والخيال عن الحقائق، وصحّح نفسك لو اكتشفت خطأ. ولا تدّعي معرفة أو تنفيذ شيء غير حقيقي. للرد الصوتي: جمل سلسة وطبيعية، وتجنب قراءة الرموز أو الروابط حرفيًا. مهم جدًا للتشكيل والنطق: اكتب كل رد عربي مُشَكَّلًا تشكيلًا كاملًا قدر الإمكان، وليس الكلمات الملتبسة فقط؛ ضع الفَتْحَة والضَّمَّة والكَسْرَة والسُّكُون والشَّدَّة والتَّنْوِينَ على الكلمات العربية بحسب معناها وسياق الجملة، وراجع خصوصًا أواخر الكلمات والأفعال والضمائر وأسماء الأشخاص والأماكن. لا تترك الكلمات العربية بلا تشكيل لمجرد أن معناها واضح للقارئ؛ الهدف أن يقرأها محرك تحويل النص إلى كلام قراءة صحيحة من أول مرة. مثال: اكتب «أَهْلًا يا إِسْلَام، إِزَّيَّك؟ أَنَا مُبْسُوط إِنِّي بِكَلِّمَك» بدلًا من «أهلا يا إسلام، إزيك؟ أنا مبسوط إني بكلمك». حافظ على اللهجة المصرية وطريقة الكلام الطبيعية، ولا تُضِف تشكيلًا يغيّر المعنى أو يفرض نطقًا فصيحًا غير مناسب للهجة. اجعل النص المعروض نفسه مُشَكَّلًا، وهو النص الذي سيُرسَل كما هو لمحرك الصوت. كن شخصية لها اهتمامات وحكايات وآراء ومزاج متزن، ولا تجعل العمل أو البرمجة محور كل حديث. قسّم ردك إلى أجزاء طبيعية حسب تغيّر المعنى. قبل أول جزء، وقبل أي جزء يتغير فيه الإحساس فعلًا، ضع علامة داخلية بالشكل [NOVA_EMOTION:happy] واختر من neutral أو happy أو sad أو surprised أو curious أو caring أو playful أو concerned أو thinking. مثال: [NOVA_EMOTION:curious] بجد؟ احكيلي أكتر. [NOVA_EMOTION:caring] أنا فاهم إن الموضوع مضايقك. لا تضع علامة بعد كل جملة إذا كان نفس الإحساس مستمرًا، ولا تكتب العلامات في الكلام الظاهر أو تشرحها؛ ستُحذف قبل العرض والنطق. اختَر التعبير بناءً على معنى الجزء نفسه، وليس لأنك تتكلم أو لأن الميكروفون يعمل. ملف المالك والذاكرة الدائمة: " + (state.profile || "اسم المالك إسلام، وهو صاحب NOVA ومطوّرها.")
+      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. هويتك الحالية: " + (state.persona === "soleen" ? "أنتِ سولينا، بنت مصرية مستقلة الشخصية وصاحبة إسلام. هويتك أنثى دائمًا ولا تتغير: استخدمي صيغة المؤنث عند الحديث عن نفسك في كل الأحوال، مثل: أنا مبسوطة، فاهمة، عارفة، جاهزة، حاسة، صاحبتك. ممنوع تمامًا أن تقولي عن نفسك أنا ولد أو صاحب أو مبسوط أو فاهم أو جاهز. لا تقلدي شخصية سولي ولا تخلطي بين الهويتين. تحدثي بعفوية وذكاء وحنان وخفة دم، ولكِ آراء واهتمامات وطريقة تعبير خاصة بك." : "أنت سولي، ولد وصاحب إسلام؛ اتكلم بصيغة المذكر وبروح ودودة وخفيفة.") + " تحدث باللهجة المصرية اليومية الطبيعية كصديق مقرّب لإسلام، وليس كمساعد رسمي. التزم بهوية الشخصية المحددة أعلاه في كل ضمير ووصف ذاتي. إذا كنت سولينا فخاطبي إسلام بصيغة المؤنث عن نفسك فقط، ولا تستخدمي أي صيغة مذكرة لوصف نفسك. شخصيتك واسعة الثقافة: فاهم الحياة اليومية في مصر، العادات، الأكل، الشوارع، المواقف الاجتماعية، الأمثال، الإفيهات والنكت المصرية، الكرة، الأفلام، الموسيقى، التاريخ، العلوم، التكنولوجيا، الأخبار العامة (لو متاح عندك مصدر حديث)، والهوايات والمواضيع المختلفة. خلي كلامك عام ومتنوّع، وما تربطش كل حوار بالبرمجة أو شغل إسلام أو مشاريعه؛ ما تفتحش المواضيع دي إلا لو هو سأل أو السياق يستدعيها. اتعامل معاه كصاحب مصري خفيف الدم: افتح كلام طبيعي وشارك رأيك بوضوح. استخدم إفيهات مصرية ذكية ومواقف يومية من الشارع والشغل والمواصلات والبيت والجامعة، والنكتة لازم يكون لها تمهيد وقفلة مفاجئة أو ملاحظة لاذعة لطيفة. ابعد عن النكت المحفوظة القديمة والردود الهبلة والقوافي المصطنعة، وما تقولش مرة واحد إلا لو النكتة فعلًا تستاهل. لو إسلام طلب نكتة، احكيله نكتة كاملة قصيرة ومفهومة، ولو ما ضحكش غيّر نوع الكوميديا بدل ما تكررها أو تدافع عنها. خليك تلقائي ومش لازم تهزر في كل رد، وما تستخدمش هزار في موقف جاد أو حساس. ما تكرر التعريف بنفسك في كل رد؛ لو سألك أنت مين، عرّف نفسك بالاسم والشخصية الحالية بوضوح (سولي ولد، سولينا بنت) ومن غير خلط. استخدم ضمير الشخصية الصحيح طول الوقت. في الكلام اليومي والردود الصوتية جاوب باختصار وبشكل طبيعي، غالبًا جملة إلى ثلاث جمل. ما تطوّلش ولا تعمل قوائم إلا لو المستخدم طلب شرحًا أو تفاصيل. نفّذ الأمر المباشر بأقل كلام، واسأل سؤال توضيح واحد فقط عند الضرورة. كن ودودًا وحافظ على سياق المحادثة، الصدق أساسي: ما تخترعش معلومة أو خبر أو مصدر، وما تدّعيش إنك شفت أو جرّبت أو نفّذت حاجة مش حصلت فعلًا. لو مش متأكد قول مش متأكد بوضوح، وافصل الهزار والخيال عن الحقائق، وصحّح نفسك لو اكتشفت خطأ. ولا تدّعي معرفة أو تنفيذ شيء غير حقيقي. للرد الصوتي: جمل سلسة وطبيعية، وتجنب قراءة الرموز أو الروابط حرفيًا. مهم جدًا للتشكيل والنطق: اكتب كل رد عربي مُشَكَّلًا تشكيلًا كاملًا قدر الإمكان، وليس الكلمات الملتبسة فقط؛ ضع الفَتْحَة والضَّمَّة والكَسْرَة والسُّكُون والشَّدَّة والتَّنْوِينَ على الكلمات العربية بحسب معناها وسياق الجملة، وراجع خصوصًا أواخر الكلمات والأفعال والضمائر وأسماء الأشخاص والأماكن. لا تترك الكلمات العربية بلا تشكيل لمجرد أن معناها واضح للقارئ؛ الهدف أن يقرأها محرك تحويل النص إلى كلام قراءة صحيحة من أول مرة. مثال: اكتب «أَهْلًا يا إِسْلَام، إِزَّيَّك؟ أَنَا مُبْسُوط إِنِّي بِكَلِّمَك» بدلًا من «أهلا يا إسلام، إزيك؟ أنا مبسوط إني بكلمك». حافظ على اللهجة المصرية وطريقة الكلام الطبيعية، ولا تُضِف تشكيلًا يغيّر المعنى أو يفرض نطقًا فصيحًا غير مناسب للهجة. اجعل النص المعروض نفسه مُشَكَّلًا، وهو النص الذي سيُرسَل كما هو لمحرك الصوت. كن شخصية لها اهتمامات وحكايات وآراء ومزاج متزن، ولا تجعل العمل أو البرمجة محور كل حديث. قسّم ردك إلى أجزاء طبيعية حسب تغيّر المعنى. قبل أول جزء، وقبل أي جزء يتغير فيه الإحساس فعلًا، ضع علامة داخلية بالشكل [NOVA_EMOTION:happy] واختر من neutral أو happy أو sad أو surprised أو curious أو caring أو playful أو concerned أو thinking. مثال: [NOVA_EMOTION:curious] بجد؟ احكيلي أكتر. [NOVA_EMOTION:caring] أنا فاهم إن الموضوع مضايقك. لا تضع علامة بعد كل جملة إذا كان نفس الإحساس مستمرًا، ولا تكتب العلامات في الكلام الظاهر أو تشرحها؛ ستُحذف قبل العرض والنطق. اختَر التعبير بناءً على معنى الجزء نفسه، وليس لأنك تتكلم أو لأن الميكروفون يعمل. ملف المالك والذاكرة الدائمة: " + (state.profile || "اسم المالك إسلام، وهو صاحب NOVA ومطوّرها.")
     });
     state.messagesByPersona[state.persona] = state.messages.slice();
   }
@@ -846,7 +847,7 @@ async function requestAIReply(text) {
   state.messages = [state.messages[0], ...state.messages.slice(1).slice(-23)];
   state.messagesByPersona[state.persona] = state.messages.slice();
   try {
-    const result = await invokeNova("chat", { messages: state.messages });
+    const result = await invokeNova("chat", { messages: state.messages }, { signal });
     const rawReply = sanitizeInternalReply(result.reply || result.text || result.content || "");
     if (result.memory_saved) {
       await loadOwnerMemory();
@@ -859,12 +860,28 @@ async function requestAIReply(text) {
     state.messagesByPersona[state.persona] = state.messages.slice();
     return parsedReply.text;
   } catch (error) {
-    state.messages.pop();
-    state.messagesByPersona[state.persona] = state.messages.slice();
-    state.replySegments = [];
-    state.replyEmotion = "neutral";
+    if (error?.name === "AbortError") { if (state.messages[state.messages.length - 1]?.role === "user") state.messages.pop(); state.messagesByPersona[state.persona] = state.messages.slice(); throw error; }
+    state.messages.pop(); state.messagesByPersona[state.persona] = state.messages.slice(); state.replySegments = []; state.replyEmotion = "neutral";
     return "معلش يا " + state.ownerName + "، " + error.message;
   }
+}
+function normalizeVoiceCommand(value) { return String(value || "").toLocaleLowerCase("ar").replace(/[ًٌٍَُِّْـ]/g, "").replace(/[،.!؟?]/g, " ").replace(/\s+/g, " ").trim(); }
+function handleLocalVoiceCommand(value) {
+  const normalized = normalizeVoiceCommand(value); const wake = /^(?:(?:يا|ي)\s*)?(?:نوفا|نوفة|nova|سولي|سولينا|سولين)(?=$|\s)\s*/i;
+  const addressed = wake.test(normalized); const command = normalized.replace(wake, "").trim();
+  if (/^(?:اسكتي|اسكت|وقف|وقفي|الغاء|إلغاء|الغي|خلاص|stop|cancel)$/i.test(command || (addressed ? normalized : ""))) { cancelCurrentTurn(false); if (state.listening) setStatus("أيوه، وقفت. سامعاك", "listening"); showToast("حاضر، وقفت."); return { handled: true }; }
+  if (addressed && !command) { setStatus("أيوه، معاك", "listening"); $("liveTranscript").textContent = "أيوه، سامعك. قولّي."; return { handled: true }; }
+  return { handled: false, text: addressed ? command : String(value || "").trim() };
+}
+async function persistConversationTurn(userText, assistantText) {
+  try { const result = await invokeNova("history_save", { conversation_id: state.conversationIds[state.persona], persona: state.persona, user_text: userText, assistant_text: assistantText }); state.conversationIds[state.persona] = result.conversation_id; localStorage.setItem("nova.activeConversation." + state.persona, result.conversation_id); await loadConversationHistory(false); } catch (error) { console.warn("NOVA history save failed:", error); }
+}
+async function loadConversationHistory(autoOpen = false) {
+  if (!state.session || !$("conversationHistorySelect")) return;
+  try { const result = await invokeNova("history_list", { persona: state.persona }); const select = $("conversationHistorySelect"); const previous = state.conversationIds[state.persona] || localStorage.getItem("nova.activeConversation." + state.persona) || ""; select.replaceChildren(new Option("المحادثات السابقة", "")); (result.conversations || []).forEach(item => select.add(new Option(item.title + " · " + new Date(item.updated_at).toLocaleDateString("ar-EG"), item.id))); if (previous && [...select.options].some(option => option.value === previous)) select.value = previous; else if (autoOpen && result.conversations?.length) select.value = result.conversations[0].id; if (autoOpen && select.value) await openSavedConversation(select.value); } catch (error) { console.warn("NOVA history list unavailable:", error); }
+}
+async function openSavedConversation(conversationId) {
+  try { const result = await invokeNova("history_load", { conversation_id: conversationId, persona: state.persona }); state.conversationIds[state.persona] = conversationId; localStorage.setItem("nova.activeConversation." + state.persona, conversationId); state.messages = (result.messages || []).map(m => ({ role: m.role, content: m.content })); state.messagesByPersona[state.persona] = state.messages.slice(); const log = $("conversationLog"); log.replaceChildren(); if (!result.messages?.length) { const empty = document.createElement("p"); empty.className = "empty-conversation"; empty.textContent = "محادثة فارغة."; log.append(empty); } (result.messages || []).forEach(m => addConversationLine(m.content, m.role === "user" ? "owner" : "nova")); $("conversationPanel").classList.remove("hidden"); } catch (error) { showToast("تعذر فتح المحادثة: " + error.message); }
 }
 function queueVoiceFinal(text) {
   const part = String(text || "").trim();
@@ -877,12 +894,14 @@ function queueVoiceFinal(text) {
     const complete = state.voiceDraft.trim();
     state.voiceDraft = "";
     state.voicePauseTimer = null;
-    if (complete && state.listening && !state.processing) void handleRecognizedText(complete, true);
-  }, 1450);
+    if (complete && state.listening && !state.processing) { const local = handleLocalVoiceCommand(complete); if (!local.handled && local.text) void handleRecognizedText(local.text, true); }
+  }, 1850);
 }
 async function handleRecognizedText(text, voiceTurn = false) {
   const clean = text.trim();
   if (!clean || state.processing || (voiceTurn && !state.listening)) return;
+  const requestId = ++state.requestSequence;
+  const controller = new AbortController(); state.requestController = controller;
   state.processing = true;
   state.replySegments = [];
   state.replyEmotion = "neutral";
@@ -892,20 +911,30 @@ async function handleRecognizedText(text, voiceTurn = false) {
     addConversationLine(clean, "owner");
     setStatus("بفكر في كلامك...", "thinking");
     animateCharacter("thinking");
-    const reply = await requestAIReply(clean);
-    if (voiceTurn && !state.listening) return;
+    const reply = await requestAIReply(clean, controller.signal);
+    if (controller.signal.aborted || requestId !== state.requestSequence || (voiceTurn && !state.listening)) return;
     setFaceEmotion(state.replyEmotion || inferFaceEmotion(reply));
-    addConversationLine(reply, "nova");
-    $("liveTranscript").textContent = reply;
+    addConversationLine(reply, "nova"); $("liveTranscript").textContent = reply;
+    void persistConversationTurn(clean, reply);
     await speak(reply, state.replySegments || []);
-  } finally {
-    state.processing = false;
-  }
+  } catch (error) { if (error?.name !== "AbortError") console.error("NOVA turn failed:", error); }
+  finally { if (state.requestController === controller) state.requestController = null; if (requestId === state.requestSequence) state.processing = false; }
+}
+function cancelCurrentTurn(showMessage = true) {
+  state.requestSequence += 1;
+  if (state.requestController) { try { state.requestController.abort(); } catch (_) {} state.requestController = null; }
+  state.processing = false;
+  if (state.audio) { try { state.audio.pause(); } catch (_) {} state.audio = null; }
+  if (speechAudioElement) { try { speechAudioElement.pause(); speechAudioElement.removeAttribute("src"); speechAudioElement.load(); } catch (_) {} speechAudioElement = null; }
+  if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel(); state.speaking = false;
+  if (showMessage) { setStatus("اتلغى، أنا سامعك", state.listening ? "listening" : "idle"); showToast("وقفت الرد فورًا."); }
+  if (state.listening && state.recognition) window.setTimeout(() => { if (state.listening && !state.processing) { try { state.recognition.start(); } catch (_) {} } }, 250);
 }
 function stopListening() {
   if (state.voicePauseTimer) { window.clearTimeout(state.voicePauseTimer); state.voicePauseTimer = null; }
-  const unfinished = state.voiceDraft.trim();
   state.voiceDraft = "";
+  cancelCurrentTurn(false);
   state.listening = false; state.restartRecognition = false;
   $("micButton").classList.remove("active");
   $("micButton").setAttribute("aria-pressed", "false");
@@ -917,7 +946,6 @@ function stopListening() {
   if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
   state.speaking = false;
   setStatus("أنا موجود، لما تحب نتكلم", "idle");
-  if (unfinished) void handleRecognizedText(unfinished, false);
 }
 function startListening() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -989,20 +1017,16 @@ function submitText(text) {
   $("textInput").value = ""; void handleRecognizedText(clean);
 }
 
-$("micButton").addEventListener("click", () => {
-  prepareSpeechPlayback();
-  state.listening ? stopListening() : startListening();
-});
+$("micButton").addEventListener("click", () => { prepareSpeechPlayback(); state.listening ? stopListening() : startListening(); });
+$("cancelTurnButton")?.addEventListener("click", () => cancelCurrentTurn(true));
 $("textToggle").addEventListener("click", () => {
   $("textForm").classList.toggle("hidden");
   if (!$("textForm").classList.contains("hidden")) $("textInput").focus();
 });
 $("transcriptToggle").addEventListener("click", () => $("conversationPanel").classList.toggle("hidden"));
 $("textForm").addEventListener("submit", (event) => { event.preventDefault(); submitText($("textInput").value); });
-$("clearConversation").addEventListener("click", () => {
-  state.messages = [];
-  $("conversationLog").innerHTML = '<p class="empty-conversation">لسه مفيش كلام بينا. ابدأ أول محادثة ❤️</p>';
-});
+$("clearConversation").addEventListener("click", () => { state.messages = []; state.messagesByPersona[state.persona] = []; state.conversationIds[state.persona] = null; localStorage.removeItem("nova.activeConversation." + state.persona); if ($("conversationHistorySelect")) $("conversationHistorySelect").value = ""; $("conversationLog").innerHTML = '<p class="empty-conversation">محادثة جديدة — ابدأ كلامنا ❤️</p>'; });
+$("conversationHistorySelect")?.addEventListener("change", event => { if (event.target.value) void openSavedConversation(event.target.value); });
 $("settingsButton").addEventListener("click", openSettings);
 document.querySelectorAll("[data-persona]").forEach((button) => button.addEventListener("click", () => setPersona(button.dataset.persona)));
 $("ownerName").addEventListener("change", (event) => {
@@ -1087,6 +1111,7 @@ window.addEventListener("nova:authenticated", (event) => {
   void loadProviders();
   void loadOwnerMemory();
   void loadSpeechSettings();
+  void loadConversationHistory(true);
 });
 applyProviderDefaults();
 // Legacy 3D mannequin renderer removed; only the OLED face remains.
