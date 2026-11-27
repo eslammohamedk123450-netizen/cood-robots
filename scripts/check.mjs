@@ -290,6 +290,14 @@ assert.match(edge, /action === "personal_items_list"/, "The owner API must list 
 assert.match(edge, /action === "personal_item_save"/, "The owner API must save personal items");
 assert.match(edge, /action === "personal_item_update"/, "The owner API must update completion and snooze state");
 assert.match(edge, /action === "personal_item_delete"/, "The owner API must delete notes");
+assert.match(app, /const asksClock =/, "Clock questions must be answered from the device clock without depending on an AI provider");
+assert.match(app, /hourCycle: "h12"/, "The live clock response must format the device's local time");
+assert.match(app, /الساعة\s*\\\s*\(\?:دلوقتي\|كام\)/, "Common Egyptian Arabic clock phrases must be recognized");
+assert.match(app, /const asksPrayer = \/\(\?:مواقيت\|مواعيد\|أوقات\|وقت\|ميعاد\|موعد\)/, "Prayer intent must include colloquial single-prayer time questions");
+assert.match(app, /const asksWeb = \/ابحث\|ابحثي\|دور/, "Internet search intent must recognize feminine and colloquial requests");
+assert.match(edge, /html\.duckduckgo\.com\/html\//, "Live web search must use the server-side search integration");
+assert.match(edge, /api\.aladhan\.com\/v1\/timingsByCity/, "Prayer times must come from the live AlAdhan service");
+
 assert.match(edge, /\.eq\("user_id", userId\)/, "Personal item queries must always be scoped to the validated owner");
 assert.match(app, /invokeNova\("personal_items_list"\)/, "The app must load items from the account rather than device storage");
 assert.match(app, /async function syncNativeTasks\(\)/, "Android alarms must be restored from account data on login");
