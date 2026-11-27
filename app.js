@@ -846,9 +846,9 @@ async function requestAIReply(text, signal, voiceAlternatives = []) {
 function normalizeVoiceCommand(value) { return String(value || "").toLocaleLowerCase("ar").replace(/[ًٌٍَُِّْـ]/g, "").replace(/[،.!؟?]/g, " ").replace(/\s+/g, " ").trim(); }
 function isStopVoiceCommand(value) {
   const normalized = normalizeVoiceCommand(value);
-  const wake = /^(?:(?:يا|ي)\s*)?سولينا(?=$|\s)\s*/i;
-  const command = normalized.replace(wake, "").trim();
-  return /^(?:اسكتي|اسكت|اسكتوا|توقف|توقفي|وقف|وقفي|الغاء|الغي|خلاص|بس|stop|cancel|quiet)$/i.test(command);
+  // The owner may say the assistant name anywhere in the sentence.
+  const withoutWakeName = normalized.replace(/(?:^|\\s)(?:(?:يا|ي)\\s*)?سولينا(?=$|\\s)/gi, " ").replace(/\\s+/g, " ").trim();
+  return /^(?:اسكتي|اسكت|اسكتوا|توقف|توقفي|وقف|وقفي|الغاء|الغي|خلاص|بس|stop|cancel|quiet)$/i.test(withoutWakeName);
 }
 async function getStopAudioCache() {
   const engine = $("speechEngine")?.value || localStorage.getItem("nova.speech.engine") || "auto";
@@ -916,23 +916,26 @@ function startInterruptRecognition() {
   try { recognition.start(); } catch (_) { state.interruptRecognition = null; if (state.listening && (state.processing || state.speaking)) window.setTimeout(startInterruptRecognition, 350); }
 }
 function handleLocalVoiceCommand(value) {
-  const normalized = normalizeVoiceCommand(value);
-  const wakePattern = /(?:^|\s)(?:(?:يا|ي)\s*)?سولينا(?=$|\s)/i;
-  const match = normalized.match(wakePattern);
-  const addressed = !!match;
-  const command = addressed ? normalized.slice(match.index + match[0].length).trim() : "";
-  if (isStopVoiceCommand(value)) {
+  const original = String(value || "").trim();
+  const normalized = normalizeVoiceCommand(original);
+  // Wake-word detection is position-independent. Do not discard any words
+  // before or after the name: the complete utterance is the user's request.
+  const wakePattern = /(?:^|\\s)(?:(?:يا|ي)\\s*)?سولينا(?=$|\\s)/i;
+  const addressed = wakePattern.test(normalized);
+  if (isStopVoiceCommand(original)) {
     cancelCurrentTurn(false);
     if (state.listening) setStatus("حاضر، سكت. سامعاك", "listening");
     void playStopAcknowledgement();
     return { handled: true, addressed: true };
   }
-  if (addressed && !command) {
+  if (addressed && !normalized.replace(wakePattern, " ").replace(/\\s+/g, " ").trim()) {
     setStatus("أيوه، معاك", "listening");
     $("liveTranscript").textContent = "أيوه، سامعك. قولّي.";
     return { handled: true, addressed: true };
   }
-  return { handled: false, addressed, text: command };
+  // Preserve the exact full transcript, including a greeting or words spoken
+  // before "سولينا", so the AI can understand the sentence as a whole.
+  return { handled: false, addressed, text: original };
 }
 function persistConversationMessage(role, content) {
   const persona = state.persona;
