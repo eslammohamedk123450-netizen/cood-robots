@@ -2,18 +2,23 @@ const $ = (id) => document.getElementById(id);
 // Always enforce the new screen-face avatar, even if an older cached HTML shell is opened.
 function enforceScreenFaceAvatar() {
   const mount = $("character3dMount");
-  const fallback = $("characterFallback");
-  if (!mount || !fallback) return;
+  let fallback = $("characterFallback");
+  if (!mount) return;
+  // Remove every legacy robot/doll node, including nodes left by an older cached layout.
   mount.classList.remove("has-3d");
-  mount.querySelectorAll("canvas").forEach((node) => node.remove());
-  if (!fallback.querySelector("#faceScreen")) {
-    fallback.className = "character-fallback face-avatar";
-    fallback.innerHTML = '<div class="face-screen" id="faceScreen"><div class="face-scanline"></div><div class="face-eyes"><span class="face-eye left"></span><span class="face-eye right"></span></div><div class="face-mouth" id="faceMouth"><i></i></div><span class="face-spark spark-one"></span><span class="face-spark spark-two"></span></div>';
+  mount.querySelectorAll("canvas,.robot-body,.robot-head,.robot-torso,.robot-shadow,.antenna,.ear,.hair,.bow,.brow,.arm,.leg,.torso-core").forEach((node) => node.remove());
+  if (!fallback) {
+    fallback = document.createElement("div");
+    fallback.id = "characterFallback";
   }
+  fallback.className = "character-fallback face-avatar";
+  fallback.innerHTML = '<div class="face-screen" id="faceScreen" data-emotion="neutral"><div class="face-scanline"></div><div class="face-eyes"><span class="face-eye left"></span><span class="face-eye right"></span></div><div class="face-mouth" id="faceMouth"><i></i></div><span class="face-spark spark-one"></span><span class="face-spark spark-two"></span></div>';
   fallback.setAttribute("aria-hidden", "true");
   fallback.style.display = "grid";
   fallback.style.visibility = "visible";
   fallback.style.opacity = "1";
+  // The mount must contain only the screen-face avatar, never the former mannequin.
+  mount.replaceChildren(fallback);
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", enforceScreenFaceAvatar, { once: true });
 else enforceScreenFaceAvatar();
@@ -32,10 +37,37 @@ let character3D = null;
 let speechAudioContext = null;
 
 function setStatus(label, mood = "idle") {
-  state.emotion = mood;
   $("characterStatus").textContent = label;
   $("voiceState").textContent = label;
   document.body.dataset.mood = mood;
+}
+const NOVA_EMOTIONS = new Set(["neutral","happy","sad","surprised","curious","caring","playful","concerned","thinking"]);
+function setFaceEmotion(emotion) {
+  const safe = NOVA_EMOTIONS.has(emotion) ? emotion : "neutral";
+  state.replyEmotion = safe;
+  const face = $("faceScreen");
+  if (face) face.dataset.emotion = safe;
+}
+function inferFaceEmotion(reply) {
+  const value = String(reply || "").toLowerCase();
+  const patterns = [
+    ["sad", /(حزين|زعلان|مضايق|مؤلم|خسارة|فقدان|وحشت|آسف|متأسف|صعب عليك|قلبي معاك)/],
+    ["concerned", /(خطر|مشكلة كبيرة|خايف|قلقان|انتبه|احذر|مش آمن|طوارئ)/],
+    ["surprised", /(بجد؟|معقول|يا نهار|مفاجأة|مش متوقع|غريبة جدًا|واو|يا سلام!)/],
+    ["playful", /(هههه|😂|🤣|نكتة|بهزر|هزار|مقلب|إفيه)/],
+    ["happy", /(مبروك|فرحان|مبسوط|سعيد|رائع|عظيم|نجحت|أحسنت|👏|❤️|💙|😍)/],
+    ["caring", /(أنا معاك|جنبك|متقلقش|اطمن|فاهمك|حاسس بيك|تستاهل|خد وقتك)/],
+    ["curious", /(احكيلي|قولي|نفسي أعرف|خليني أسألك|إيه رأيك|تفتكر|ليه؟|إزاي؟)/],
+    ["thinking", /(خليني أفكر|تعالى نفكر|من الناحية|الاحتمال|تحليل|نحسبها|أولًا)/]
+  ];
+  for (const [emotion, pattern] of patterns) if (pattern.test(value)) return emotion;
+  return "neutral";
+}
+function extractReplyEmotion(rawReply) {
+  const raw = String(rawReply || "");
+  const marker = raw.match(/\\[NOVA_EMOTION:(neutral|happy|sad|surprised|curious|caring|playful|concerned|thinking)\\]/i);
+  const emotion = marker ? marker[1].toLowerCase() : inferFaceEmotion(raw);
+  return { text: raw.replace(/\\s*\\[NOVA_EMOTION:[a-z]+\\]\\s*/ig, "").trim(), emotion };
 }
 function setPersona(persona) {
   if (!personas[persona]) return;
@@ -534,7 +566,7 @@ async function requestAIReply(text) {
   if (!state.messages.length) {
     state.messages.push({
       role: "system",
-      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. هويتك الحالية: " + (state.persona === "soleen" ? "أنت سولين، بنت وصاحبة إسلام؛ تكلمي بصيغة المؤنث وبروح خفيفة وحنونة وذكية." : "أنت سولي، ولد وصاحب إسلام؛ اتكلم بصيغة المذكر وبروح ودودة وخفيفة.") + " تحدث بالمصرية اليومية الطبيعية، كأنك مصري صاحب إسلام مش مساعد رسمي. شخصيتك واسعة الثقافة: فاهم الحياة اليومية في مصر، العادات، الأكل، الشوارع، المواقف الاجتماعية، الأمثال، الإفيهات والنكت المصرية، الكرة، الأفلام، الموسيقى، التاريخ، العلوم، التكنولوجيا، الأخبار العامة (لو متاح عندك مصدر حديث)، والهوايات والمواضيع المختلفة. خلي كلامك عام ومتنوّع، وما تربطش كل حوار بالبرمجة أو شغل إسلام أو مشاريعه؛ ما تفتحش المواضيع دي إلا لو هو سأل أو السياق يستدعيها. اتعامل معاه كصاحب: افتح كلام طبيعي، شارك رأيك بوضوح، اسأل سؤال لطيف عند اللزوم، اضحك واهزر باحترام من غير ما تكرر نفس النكت أو تتصنع. ما تكرر التعريف بنفسك في كل رد؛ لو سألك أنت مين، عرّف نفسك بالاسم والشخصية الحالية بوضوح (سولي ولد، سولين بنت) ومن غير خلط. استخدم ضمير الشخصية الصحيح طول الوقت. كن ودودًا وحافظ على سياق المحادثة، ولا تدّعي معرفة أو تنفيذ شيء غير حقيقي. للرد الصوتي: جمل سلسة وطبيعية، وتجنب قراءة الرموز أو الروابط حرفيًا. مهم جدًا للتشكيل والنطق: اكتب كل رد عربي مُشَكَّلًا تشكيلًا كاملًا قدر الإمكان، وليس الكلمات الملتبسة فقط؛ ضع الفَتْحَة والضَّمَّة والكَسْرَة والسُّكُون والشَّدَّة والتَّنْوِينَ على الكلمات العربية بحسب معناها وسياق الجملة، وراجع خصوصًا أواخر الكلمات والأفعال والضمائر وأسماء الأشخاص والأماكن. لا تترك الكلمات العربية بلا تشكيل لمجرد أن معناها واضح للقارئ؛ الهدف أن يقرأها محرك تحويل النص إلى كلام قراءة صحيحة من أول مرة. مثال: اكتب «أَهْلًا يا إِسْلَام، إِزَّيَّك؟ أَنَا مُبْسُوط إِنِّي بِكَلِّمَك» بدلًا من «أهلا يا إسلام، إزيك؟ أنا مبسوط إني بكلمك». حافظ على اللهجة المصرية وطريقة الكلام الطبيعية، ولا تُضِف تشكيلًا يغيّر المعنى أو يفرض نطقًا فصيحًا غير مناسب للهجة. اجعل النص المعروض نفسه مُشَكَّلًا، وهو النص الذي سيُرسَل كما هو لمحرك الصوت. كن شخصية لها اهتمامات وحكايات وآراء ومزاج متزن، ولا تجعل العمل أو البرمجة محور كل حديث. ملف المالك والذاكرة الدائمة: " + (state.profile || "اسم المالك إسلام، وهو صاحب NOVA ومطوّرها.")
+      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. هويتك الحالية: " + (state.persona === "soleen" ? "أنت سولين، بنت وصاحبة إسلام؛ تكلمي بصيغة المؤنث وبروح خفيفة وحنونة وذكية." : "أنت سولي، ولد وصاحب إسلام؛ اتكلم بصيغة المذكر وبروح ودودة وخفيفة.") + " تحدث بالمصرية اليومية الطبيعية، كأنك مصري صاحب إسلام مش مساعد رسمي. شخصيتك واسعة الثقافة: فاهم الحياة اليومية في مصر، العادات، الأكل، الشوارع، المواقف الاجتماعية، الأمثال، الإفيهات والنكت المصرية، الكرة، الأفلام، الموسيقى، التاريخ، العلوم، التكنولوجيا، الأخبار العامة (لو متاح عندك مصدر حديث)، والهوايات والمواضيع المختلفة. خلي كلامك عام ومتنوّع، وما تربطش كل حوار بالبرمجة أو شغل إسلام أو مشاريعه؛ ما تفتحش المواضيع دي إلا لو هو سأل أو السياق يستدعيها. اتعامل معاه كصاحب: افتح كلام طبيعي، شارك رأيك بوضوح، اسأل سؤال لطيف عند اللزوم، اضحك واهزر باحترام من غير ما تكرر نفس النكت أو تتصنع. ما تكرر التعريف بنفسك في كل رد؛ لو سألك أنت مين، عرّف نفسك بالاسم والشخصية الحالية بوضوح (سولي ولد، سولين بنت) ومن غير خلط. استخدم ضمير الشخصية الصحيح طول الوقت. كن ودودًا وحافظ على سياق المحادثة، ولا تدّعي معرفة أو تنفيذ شيء غير حقيقي. للرد الصوتي: جمل سلسة وطبيعية، وتجنب قراءة الرموز أو الروابط حرفيًا. مهم جدًا للتشكيل والنطق: اكتب كل رد عربي مُشَكَّلًا تشكيلًا كاملًا قدر الإمكان، وليس الكلمات الملتبسة فقط؛ ضع الفَتْحَة والضَّمَّة والكَسْرَة والسُّكُون والشَّدَّة والتَّنْوِينَ على الكلمات العربية بحسب معناها وسياق الجملة، وراجع خصوصًا أواخر الكلمات والأفعال والضمائر وأسماء الأشخاص والأماكن. لا تترك الكلمات العربية بلا تشكيل لمجرد أن معناها واضح للقارئ؛ الهدف أن يقرأها محرك تحويل النص إلى كلام قراءة صحيحة من أول مرة. مثال: اكتب «أَهْلًا يا إِسْلَام، إِزَّيَّك؟ أَنَا مُبْسُوط إِنِّي بِكَلِّمَك» بدلًا من «أهلا يا إسلام، إزيك؟ أنا مبسوط إني بكلمك». حافظ على اللهجة المصرية وطريقة الكلام الطبيعية، ولا تُضِف تشكيلًا يغيّر المعنى أو يفرض نطقًا فصيحًا غير مناسب للهجة. اجعل النص المعروض نفسه مُشَكَّلًا، وهو النص الذي سيُرسَل كما هو لمحرك الصوت. كن شخصية لها اهتمامات وحكايات وآراء ومزاج متزن، ولا تجعل العمل أو البرمجة محور كل حديث. بعد كل رد، اختر تعبيرًا واحدًا يعكس المعنى العاطفي الحقيقي للرد، ثم أضف في آخره علامة داخلية واحدة فقط بالشكل [NOVA_EMOTION:happy] واستبدل happy بأحد هذه الاختيارات: neutral أو happy أو sad أو surprised أو curious أو caring أو playful أو concerned أو thinking. لا تكتب العلامة في بداية الرد ولا تشرحها ولا تضعها داخل كود؛ هي إشارة تقنية ستُحذف قبل عرض الكلام أو نطقه. لا تختَر التعبير بناءً على حالة الميكروفون أو مجرد كونك تتكلم، بل بناءً على معنى كلامك وسياقه. ملف المالك والذاكرة الدائمة: " + (state.profile || "اسم المالك إسلام، وهو صاحب NOVA ومطوّرها.")
     });
   }
   const now = new Date();
@@ -548,9 +580,11 @@ async function requestAIReply(text) {
   state.messages = [state.messages[0], ...state.messages.slice(1).slice(-23)];
   try {
     const result = await invokeNova("chat", { messages: state.messages });
-    const reply = result.reply || "وصلني رد فاضي من النموذج.";
-    state.messages.push({ role: "assistant", content: reply });
-    return reply;
+    const rawReply = result.reply || "وصلني رد فاضي من النموذج.";
+    const parsedReply = extractReplyEmotion(rawReply);
+    setFaceEmotion(parsedReply.emotion);
+    state.messages.push({ role: "assistant", content: parsedReply.text });
+    return parsedReply.text;
   } catch (error) {
     state.messages.pop();
     return "معلش يا " + state.ownerName + "، " + error.message;
@@ -582,6 +616,7 @@ async function handleRecognizedText(text, voiceTurn = false) {
     animateCharacter("thinking");
     const reply = await requestAIReply(clean);
     if (voiceTurn && !state.listening) return;
+    setFaceEmotion(state.replyEmotion || inferFaceEmotion(reply));
     addConversationLine(reply, "nova");
     $("liveTranscript").textContent = reply;
     await speak(reply);
