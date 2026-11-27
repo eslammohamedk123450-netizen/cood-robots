@@ -509,3 +509,16 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opac
 @keyframes robot-surprise{0%{translate:0 8px;scale:.96}60%{translate:0 -8px;scale:1.04}100%{translate:0 0;scale:1}}
 @media(max-width:700px){.character-stage{height:320px!important}.nova-robot{transform:translateX(-50%) scale(.84)!important}.character-caption{bottom:4px}}
 @media(max-width:390px){.character-stage{height:300px!important}.nova-robot{transform:translateX(-50%) scale(.78)!important}}
+
+
+/* Emotion-driven upper-body acting follows the same segment timeline as the voice. */
+.nova-robot[data-emotion="happy"] .robot-head-group{animation:robot-happy-bounce .7s ease-in-out 2}
+.nova-robot[data-emotion="playful"] .robot-head-group{animation:robot-head-talk .7s ease-in-out 2}
+.nova-robot[data-emotion="playful"] .robot-arm-right{animation:robot-wave .5s ease-in-out 3}
+.nova-robot[data-emotion="sad"] .robot-head-group{animation:robot-sad-lower 1.6s ease-in-out 1 alternate}
+.nova-robot[data-emotion="sad"] .robot-arm-left,.nova-robot[data-emotion="sad"] .robot-arm-right{animation:robot-sad-arms 1.5s ease-in-out 1 alternate}
+.nova-robot[data-emotion="surprised"] .robot-head-group{animation:robot-surprise .55s ease-out 1}
+.nova-robot[data-emotion="curious"] .robot-head-group{animation:robot-listen-tilt .9s ease-in-out 2 alternate}
+.nova-robot[data-emotion="thinking"] .robot-arm-right{animation:robot-think-hand .8s ease-in-out 2 alternate}
+.nova-robot[data-emotion="caring"] .robot-head-group{animation:robot-listen-tilt 1.5s ease-in-out 1 alternate}
+.nova-robot[data-emotion="concerned"] .robot-head-group{animation:robot-sad-lower 1.4s ease-in-out 1 alternate}
