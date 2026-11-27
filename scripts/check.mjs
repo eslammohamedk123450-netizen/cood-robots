@@ -189,9 +189,9 @@ assert.match(app, /wakePattern = .*سولينا/, "Only the Solina wake word sho
 assert.doesNotMatch(app, /نوفا\|نوفة\|nova\|سولي\|سولين/, "Old wake-word aliases must not activate the assistant");
 
 assert.doesNotMatch(app, /واجهة NOVA مفتوحة حاليًا في الوضع المحلي/, "Cloud AI must never silently fall back to a fake local reply");
-assert.match(app, /async function restoreOwnerSession\(/, "App startup must independently restore the saved owner session");
-assert.match(app, /action: "check_session", token: saved/, "Saved session must be validated against the live Edge Function");
-assert.match(app, /activateOwnerSession\(saved\)/, "Validated saved sessions must activate cloud services");
+assert.doesNotMatch(app, /async function restoreOwnerSession\(/, "Only pin.js may restore the owner session to prevent competing startup checks");
+assert.match(pin, /check_session/, "The single owner-session bootstrap must validate saved sessions server-side");
+assert.match(pin, /openApp\(saved\)/, "A valid saved owner session must open the app without another PIN prompt");
 assert.match(app, /جلسة سولينا غير متصلة/, "Missing authentication must be surfaced instead of returning a fake assistant reply");
 
 assert.match(app, /voiceSessionActive: false/, "Voice session must begin disarmed");
