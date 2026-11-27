@@ -62,15 +62,26 @@
   </div>
   <dialog class="settings-dialog" id="settingsDialog">
     <form method="dialog" class="dialog-top">
-      <div><span class="eyebrow">MAKE SOLINA YOURS</span><h2>إعدادات SOLINA</h2></div>
-      <button class="icon-button close-button" aria-label="إغلاق">×</button>
+      <div class="settings-heading"><span class="eyebrow">MAKE SOLINA YOURS</span><h2 id="settingsDialogTitle">إعدادات SOLINA</h2></div>
+      <div class="settings-header-actions"><button type="button" class="settings-back-button" id="settingsBackButton" hidden>رجوع</button><button class="icon-button close-button" aria-label="إغلاق">×</button></div>
     </form>
     <div class="settings-content">
-      <section class="settings-section">
+<section class="settings-home" data-settings-home><div class="settings-welcome"><div><span class="settings-page-kicker">PERSONAL CONTROL CENTER</span><h3>كل حاجة في مكانها.</h3><p>إعدادات سولينا، مرتبة على طريقتك.</p></div><span class="settings-welcome-mark">S</span></div><div class="settings-home-label"><strong>الأقسام</strong><span>اختار القسم اللي عايز تديره</span></div><div class="settings-nav-grid"><button type="button" class="settings-nav-card violet" data-open-settings-page="profile"><span class="settings-card-icon">◈</span><span class="settings-card-copy"><strong>الملف الشخصي</strong><small>الاسم وبيانات المالك</small></span><span class="settings-card-arrow">‹</span></button>
+<button type="button" class="settings-nav-card paper" data-open-settings-page="memory"><span class="settings-card-icon">▤</span><span class="settings-card-copy"><strong>دفتر سولينا</strong><small>الذاكرة والملاحظات المحفوظة</small></span><span class="settings-card-arrow">‹</span></button>
+<button type="button" class="settings-nav-card amber" data-open-settings-page="reminders"><span class="settings-card-icon">◷</span><span class="settings-card-copy"><strong>التذكيرات والمنبهات</strong><small>المواعيد والتنبيهات وإدارتها</small></span><span class="settings-card-arrow">‹</span></button>
+<button type="button" class="settings-nav-card rose" data-open-settings-page="voice"><span class="settings-card-icon">♫</span><span class="settings-card-copy"><strong>الصوت والتفاعل</strong><small>الصوت وطريقة الاستجابة</small></span><span class="settings-card-arrow">‹</span></button>
+<button type="button" class="settings-nav-card blue" data-open-settings-page="ai"><span class="settings-card-icon">✳</span><span class="settings-card-copy"><strong>مركز الذكاء الاصطناعي</strong><small>المزودون والنماذج والاتصال</small></span><span class="settings-card-arrow">‹</span></button></div><p class="settings-home-foot">SOLINA · PERSONAL ASSISTANT</p></section>
+<section class="settings-page" data-settings-page="profile" hidden><div class="settings-page-intro"><span class="settings-page-kicker">SOLINA CONTROL CENTER</span><h3>الملف الشخصي</h3><p>بياناتك الأساسية وحساب المالك.</p></div><section class="settings-section">
         <h3>بيانات المالك</h3>
-        <label class="field-label">الاسم اللي أناديك بيه<input id="ownerName" value="إسلام" maxlength="40"></label>
+        <label class="field-label">الاسم اللي أناديك بيه<input id="ownerName" class="owner-code-input" value="إسلام" maxlength="40" autocomplete="nickname" spellcheck="false"></label>
       </section>
-            <section class="settings-section">
+<section class="settings-section">
+        <h3>حساب المالك</h3>
+        <p class="security-note">بيانات SOLINA ومفاتيح API والذاكرة مرتبطة بحساب المالك فقط.</p>
+        <p class="settings-feedback" id="authFeedback">بياناتك ومفاتيحك محفوظة على خادم SOLINA الآمن.</p>
+        
+      </section></section>
+<section class="settings-page" data-settings-page="memory" hidden><div class="settings-page-intro"><span class="settings-page-kicker">SOLINA CONTROL CENTER</span><h3>دفتر سولينا</h3><p>مساحة منظمة لملاحظات سولينا وذاكرتها عنك.</p></div><section class="settings-section">
         <h3>ذاكرة SOLINA عن المالك</h3>
         <p class="security-note">SOLINA بيستخدم الذاكرة دي في الردود، وبيتعلم تلقائيًا من المعلومات الدائمة اللي بتقولها بوضوح في المحادثة. تقدر تراجعها وتعدلها من هنا. مش بيحفظ الأسرار أو البيانات الحساسة.</p>
         <label class="field-label">ملف المالك والذاكرة التلقائية<textarea id="ownerMemory" rows="9" maxlength="12000">الاسم: إسلام محمد البدوي.
@@ -87,14 +98,14 @@
         </div>
         <p class="settings-feedback" id="memoryFeedback" role="status">جاري تحميل الذاكرة المحفوظة...</p>
         <p class="settings-feedback memory-meta" id="memoryUpdated" role="status">لم يتم تحميل بيانات الذاكرة بعد.</p>
-      </section>
-      <section class="settings-section">
+      </section></section>
+<section class="settings-page" data-settings-page="reminders" hidden><div class="settings-page-intro"><span class="settings-page-kicker">SOLINA CONTROL CENTER</span><h3>كتالوج التذكيرات</h3><p>إدارة المواعيد والمنبهات المحفوظة على جهازك.</p></div><section class="settings-section">
         <h3>التذكيرات والمنبهات</h3>
         <p class="security-note">قولي لسولينا: «فكريني أراجع المحاضرة الساعة 5» أو «صحيني الساعة 9». المواعيد بتتحفظ على الهاتف وتشتغل من تطبيق APK حتى بعد قفل سولينا. منبه الفجر يحتاج تحديد المدينة أو وقت الصلاة.</p>
         <button type="button" class="secondary-button" id="refreshScheduledTasks">تحديث قائمة المواعيد</button>
         <div id="scheduledTasksList" class="scheduled-tasks-list">جاري تحميل المواعيد...</div>
-      </section>
-      <section class="settings-section">
+      </section></section>
+<section class="settings-page" data-settings-page="voice" hidden><div class="settings-page-intro"><span class="settings-page-kicker">SOLINA CONTROL CENTER</span><h3>الصوت والتفاعل</h3><p>اختيار طريقة كلام سولينا ومصدر صوتها.</p></div><section class="settings-section">
         <h3>محرك إخراج الصوت</h3>
         <p class="security-note">اختَر خدمة واحدة فقط: Gemini، أو مزود السحابة الذي تحدده (ElevenLabs / Sonex)، أو صوت الهاتف. لن تنتقل سولينا إلى خدمة سحابية أخرى. إذا فشلت الخدمة المختارة فقط، تستخدم صوت الهاتف المجاني كحل احتياطي. ويمكنك إيقاف الصوت تمامًا واستخدام الردود المكتوبة فقط.</p>
         <label class="field-label">مصدر الصوت
@@ -107,7 +118,7 @@
         </label>
         <p class="settings-feedback" id="speechEngineFeedback" role="status">الصوت الاحتياطي الوحيد للخدمات السحابية هو صوت الهاتف المجاني.</p>
       </section>
-      <section class="settings-section">
+<section class="settings-section">
         <h3>محرك الصوت السحابي</h3>
         <p class="security-note">هذه الإعدادات خاصة بمزودي ElevenLabs وSonex Labs. لا تظهر هنا إلا الأصوات النسائية التي يؤكد المزود نوعها.</p>
         <label class="field-label">مزود تحويل النص إلى صوت
@@ -126,14 +137,8 @@
         <button type="button" class="save-button" id="reloadSpeechVoices">تحديث قائمة الأصوات</button>
         <p class="settings-feedback" id="speechFeedback" role="status">لم يتم إعداد مفتاح Sonex Labs بعد.</p>
                 <p class="security-note">اختيار الصوت يُحفظ على الجهاز. في ElevenLabs اختار صوتًا يدعم العربية أو متعدد اللغات، وجرّب الصوت قبل الاعتماد عليه.</p>
-      </section>
-      <section class="settings-section">
-        <h3>حساب المالك</h3>
-        <p class="security-note">بيانات SOLINA ومفاتيح API والذاكرة مرتبطة بحساب المالك فقط.</p>
-        <p class="settings-feedback" id="authFeedback">بياناتك ومفاتيحك محفوظة على خادم SOLINA الآمن.</p>
-        
-      </section>
-      <section class="settings-section">
+      </section></section>
+<section class="settings-page" data-settings-page="ai" hidden><div class="settings-page-intro"><span class="settings-page-kicker">SOLINA CONTROL CENTER</span><h3>مركز الذكاء الاصطناعي</h3><p>إدارة مزودي الذكاء الاصطناعي ومفاتيحهم ونماذجهم.</p></div><section class="settings-section">
         <h3>مفاتيح مزودي الذكاء الاصطناعي</h3>
         <p class="security-note">أضف أكتر من مزود. المفاتيح بتتحفظ في Supabase Vault ومش بتتخزن في المتصفح.</p>
         <label class="field-label">اختر مزود الخدمة
@@ -153,10 +158,8 @@
         <p class="settings-feedback" id="settingsFeedback">اختار المزود وأدخل المفتاح، والرابط الافتراضي هيتحط تلقائيًا.</p>
         <button type="button" class="secondary-button" id="reloadProvidersButton">تحديث قائمة المفاتيح</button>
         <div id="providerList" class="provider-list"><p class="empty-provider-list">لسه مفيش مفاتيح مضافة.</p></div>
-      </section>
-      <p class="settings-footnote">لا كاميرا ولا تعرّف على الوجه. الميكروفون يعمل فقط بعد ضغطك على زر المحادثة.</p>
-    </div>
-  </dialog>
+      </section></section>
+    </div>  </dialog>
 
   <div class="toast" id="toast" role="status"></div>
   <script src="pin.js?v=persistent-owner-session-v25"></script>
