@@ -69,13 +69,15 @@ function inferFaceEmotion(reply) {
 }
 function sanitizeInternalReply(rawReply) {
   let text = String(rawReply || "");
-  const entities = { "&lt;":"<", "&gt;":">", "&quot;":"\\\"", "&#91;":"[", "&#93;":"]", "&amp;":"&", "&#60;":"<", "&#62;":">" };
+  const entities = { "&lt;":"<", "&gt;":">", "&quot;":"\"", "&#91;":"[", "&#93;":"]", "&amp;":"&", "&#60;":"<", "&#62;":">" };
   for (let pass = 0; pass < 3; pass++) text = text.replace(/&lt;|&gt;|&quot;|&#91;|&#93;|&amp;|&#60;|&#62;/gi, (entity) => entities[entity.toLowerCase()] || entity);
-  text = text.replace(/<\\s*\\/?\\s*(?:NOVA|NOA)[_-]?MEMORY\\b[^>]*>/gi, "");
-  text = text.replace(/<\\s*\\/?\\s*(?:OWNER|NOVA)[_-]?(?:MEMORY|MEMORY_DATA)\\b[^>]*>/gi, "");
-  text = text.replace(/\\b(?:NOVA|NOA)[_-]?MEMORY\\b\\s*[:=]?\\s*\\{\\s*["']facts["']\\s*:\\s*\\[[\\s\\S]*?\\]\\s*\\}/gi, "");
-  return text.replace(/\\s{2,}/g, " ").trim();
+  text = text.replace(/<\s*(?:NOVA|NOA)[_-]?MEMORY\b[^>]*>[\s\S]*?<\s*\/\s*(?:NOVA|NOA)[_-]?MEMORY\s*>/gi, "");
+  text = text.replace(/<\s*\/?\s*(?:NOVA|NOA)[_-]?MEMORY\b[^>]*>/gi, "");
+  text = text.replace(/<\s*\/?\s*(?:OWNER|NOVA)[_-]?(?:MEMORY|MEMORY_DATA)\b[^>]*>/gi, "");
+  text = text.replace(/\b(?:NOVA|NOA)[_-]?MEMORY\b\s*[:=]?\s*\{\s*["']facts["']\s*:\s*\[[\s\S]*?\]\s*\}/gi, "");
+  return text.replace(/\s{2,}/g, " ").trim();
 }
+
 function extractReplyEmotion(rawReply) {
   const raw = sanitizeInternalReply(rawReply);
   const markerPattern = /\[NOVA_EMOTION:(neutral|happy|sad|surprised|curious|caring|playful|concerned|thinking)\]/ig;
