@@ -304,8 +304,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void requestExactAlarmPermission() {
-            activity.taskPermissionFlowPending = true;
-            activity.runOnUiThread(() -> {
+activity.runOnUiThread(() -> {
                 if (Build.VERSION.SDK_INT >= 31) {
                     AlarmManager manager = (AlarmManager) activity.getSystemService(Context.ALARM_SERVICE);
                     if (!manager.canScheduleExactAlarms()) {
@@ -318,8 +317,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void requestFullScreenIntentPermission() {
-            activity.taskPermissionFlowPending = true;
-            activity.runOnUiThread(() -> {
+activity.runOnUiThread(() -> {
                 if (Build.VERSION.SDK_INT >= 34) {
                     NotificationManager manager = (NotificationManager) activity.getSystemService(Context.NOTIFICATION_SERVICE);
                     if (!manager.canUseFullScreenIntent()) {
