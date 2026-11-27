@@ -356,7 +356,7 @@ async function speak(text, segments = [], signal) {
   if (state.audio) { try { state.audio.pause(); } catch (_) {} state.audio = null; }
   if (speechAudioElement) { try { speechAudioElement.pause(); } catch (_) {} speechAudioElement = null; }
   if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
-  const engine = $("speechEngine")?.value || localStorage.getItem("nova.speech.engine") || "auto";
+  const engine = $("speechEngine")?.value || localStorage.getItem("nova.speech.engine") || "server";
   let finished = false;
   const finish = () => {
     if (finished) return;
@@ -372,13 +372,13 @@ async function speak(text, segments = [], signal) {
   setSpeechSegmentTone(speechSegments[0]?.emotion || state.replyEmotion || "neutral");
   setStatus(personas[persona].name + " بيتكلم...", "speaking");
   try {
+    if (engine === "mute") { finish(); return; }
     if (engine === "device") {
       state.audio = { pause: () => { window.speechSynthesis.cancel(); finish(); } };
       await speakWithDevice(spokenText, speechSegments);
       finish();
       return;
     }
-    if (engine === "auto" && !localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
     const speechVendor = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
     const voicePrefix = speechVendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
     const voiceId = localStorage.getItem(voicePrefix + "female") || "";
@@ -757,12 +757,12 @@ async function loadSpeechSettings() {
     if (result.configured) {
       if ($("speechProvider")) $("speechProvider").value = result.provider || localStorage.getItem("nova.speech.provider") || "elevenlabs";
       const storedEngine = localStorage.getItem("nova.speech.engine");
-      const allowedEngines = ["auto", "gemini", "server", "device"];
-      const savedEngine = allowedEngines.includes(storedEngine) ? storedEngine : "auto";
+      const allowedEngines = ["gemini", "server", "device", "mute"];
+      const savedEngine = allowedEngines.includes(storedEngine) ? storedEngine : "server";
       if (storedEngine !== savedEngine) localStorage.setItem("nova.speech.engine", savedEngine);
       if ($("speechEngine")) $("speechEngine").value = savedEngine;
-      if (!localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
-      setFeedback("speechEngineFeedback", savedEngine === "device" ? "صوت الجهاز محدد يدويًا." : savedEngine === "server" ? "مزود الصوت السحابي المحدد يدويًا." : "الوضع التلقائي: صوت Gemini النسائي السحابي (Kore)، دون الاعتماد على أصوات الهاتف.");
+      if (!localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "server");
+      setFeedback("speechEngineFeedback", speechEngineDescription(savedEngine));
       setFeedback("speechFeedback", "مفتاح " + result.provider + " محفوظ في Vault. جاري تحميل الأصوات.");
       try { await loadSpeechVoices(); }
       catch (voiceError) { setFeedback("speechFeedback", "المفتاح محفوظ، لكن تعذر تحميل الأصوات: " + voiceError.message, true); }
@@ -1199,13 +1199,13 @@ $("speechFemaleVoice")?.addEventListener("change", (event) => {
   localStorage.setItem(prefix + "female", event.target.value);
 });
 function speechEngineDescription(engine) {
-  return engine === "device" ? "صوت الجهاز فقط."
-    : engine === "gemini" ? "Gemini AI Studio TTS: طلب واحد للرد الكامل، مع إعادة استخدام الصوت المطابق داخل الجلسة الحالية."
-    : engine === "server" ? "المزود السحابي المحدد (ElevenLabs أو Sonex) مع الرجوع لصوت الجهاز عند تعذر الاتصال."
-    : "تلقائي: يستخدم المزود السحابي المحفوظ، ثم صوت الجهاز عند تعذر الاتصال.";
+  return engine === "mute" ? "إخراج صوتي مغلق؛ ستظهر الردود مكتوبة فقط."
+    : engine === "device" ? "صوت الهاتف / Google TTS فقط، دون استدعاء أي خدمة سحابية."
+    : engine === "gemini" ? "Gemini AI Studio TTS فقط. عند فشله يُستخدم صوت الهاتف المجاني، ولا يتم تجربة أي خدمة سحابية أخرى."
+    : "مزود السحابة المحدد في القائمة (ElevenLabs أو Sonex) فقط. عند فشله يُستخدم صوت الهاتف المجاني، ولا يتم تجربة Gemini أو أي مزود آخر.";
 }
 function applySpeechEngineVisibility() {
-  const engine = $("speechEngine")?.value || "auto";
+  const engine = $("speechEngine")?.value || localStorage.getItem("nova.speech.engine") || "server";
   $("speechProvider").closest(".field-label").hidden = false;
   $("speechApiKey").closest(".field-label").hidden = false;
   $("saveSpeechSettings").hidden = false;
@@ -1226,7 +1226,7 @@ const restoredSpeechProvider = localStorage.getItem("nova.speech.provider") || "
 if ($("speechProvider")) $("speechProvider").value = restoredSpeechProvider;
 const speechEngineSelect = $("speechEngine");
 if (speechEngineSelect) {
-  speechEngineSelect.value = localStorage.getItem("nova.speech.engine") || "auto";
+  speechEngineSelect.value = localStorage.getItem("nova.speech.engine") || "server";
   applySpeechEngineVisibility();
   speechEngineSelect.addEventListener("change", () => {
     localStorage.setItem("nova.speech.engine", speechEngineSelect.value);
