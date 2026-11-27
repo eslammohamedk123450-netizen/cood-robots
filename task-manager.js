@@ -66,7 +66,7 @@ function parseSchedule(text, now = new Date()) {
 function stripCommandWords(text) {
   return text.replace(/(?:يا\s*)?سولينا/g, " ").replace(/ورايا/g, " ")
     .replace(/(?:من فضلك|لو سمحتي|لو سمحت|ممكن|عايزك|عاوزك|اعملي|اعمل|سجلي|سجل|ضيفي|ضيف|فكريني|فكرني|ذكريني|ذكرني|صحيني|صحييني|اصحيني|اصحى|صحينيلي|صحينى|منبه|المنبه|تذكير|تذكيرني|معاد|موعد|عندي|بكره|بكرة|غدا|بعد بكره|بعد بكرة|بعد غد|بعد|نص|نصف|ربع|ساعه|ساعة|ساعتين|دقيقه|دقيقة|دقائق|النهارده|اليوم|الساعه|الساعة|صباحا|صباح|الصبح|مساء|بالليل|ليل)/g, " ")
-    .replace(/(^|\s)(واحده|واحد|واحدة|اتنين|اثنين|تلاته|تلاتة|ثلاثه|ثلاثة|اربعه|اربعة|أربعة|خمسه|خمسة|سته|ستة|سبعه|سبعة|تمانيه|تمانية|تمنية|ثمانية|تسعه|تسعة|عشره|عشرة|حداشر|احداشر|اتناشر|اثناشر)(?=$|\s)/g, " ")
+    .replace(/(^|\s)(واحده|واحد|واحدة|اتنين|اثنين|تلاته|تلاتة|ثلاثه|ثلاثة|اربعه|اربعة|أربعة|خمسه|خمسة|خمس|سته|ستة|سبعه|سبعة|تمانيه|تمانية|تمنية|ثمانية|تسعه|تسعة|عشره|عشرة|حداشر|احداشر|اتناشر|اثناشر)(?=$|\s)/g, " ")
     .replace(/\d{1,2}(?::\d{2})?/g, " ").replace(/\s+/g, " ").trim();
 }
 export function parseTaskCommand(value, now = new Date()) {
@@ -91,7 +91,7 @@ export function parseTaskCommand(value, now = new Date()) {
   if (isFajr && isAlarm) return { action: "needs_fajr_time" };
   const scheduledAt = parseSchedule(text, now);
   if (!scheduledAt) return { action: "needs_time", type: isAlarm ? "alarm" : "reminder" };
-  const timeMatch = text.match(/(?:الساعه|الساعة)\s*(\d{1,2}|واحده|واحد|واحدة|اتنين|اثنين|تلاته|تلاتة|ثلاثه|ثلاثة|اربعه|اربعة|أربعة|خمسه|خمسة|سته|ستة|سبعه|سبعة|تمانيه|تمانية|تمنية|ثمانية|تسعه|تسعة|عشره|عشرة|حداشر|احداشر|اتناشر|اثناشر)/);
+  const timeMatch = text.match(/(?:الساعه|الساعة)\s*(\d{1,2}|واحده|واحد|واحدة|اتنين|اثنين|تلاته|تلاتة|ثلاثه|ثلاثة|اربعه|اربعة|أربعة|خمسه|خمسة|خمس|سته|ستة|سبعه|سبعة|تمانيه|تمانية|تمنية|ثمانية|تسعه|تسعة|عشره|عشرة|حداشر|احداشر|اتناشر|اثناشر)/);
   const hasDayPart = /صباحا|صباح|الصبح|مساء|بالليل|ليل/.test(text);
   if (timeMatch && Number(SPOKEN_NUMBERS[timeMatch[1]] || timeMatch[1]) >= 1 && Number(SPOKEN_NUMBERS[timeMatch[1]] || timeMatch[1]) <= 12 && !hasDayPart) return { action: "needs_period", type: isAlarm ? "alarm" : "reminder" };
   const title = isAlarm ? "منبه سولينا" : stripCommandWords(text).replace(/(?:شويه|شوية|قليل|كمان)/g, " ").replace(/\s+/g, " ").trim();
