@@ -1,9 +1,0 @@
-/* Scoped visual layer adapted from the supplied nova.css; existing NOVA app layout remains authoritative. */
-.nova-avatar-canvas{position:absolute!important;inset:0!important;z-index:2!important;display:block!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;filter:drop-shadow(0 0 22px #168cffaa) drop-shadow(0 0 48px #168cff55)!important;animation:none!important;transform:none!important;pointer-events:auto}
-.nova-hologram .holo-aura{opacity:.3;filter:blur(60px)}
-.nova-hologram .holo-scan{position:absolute;z-index:3;inset:8% 12% 14%;pointer-events:none;background:repeating-linear-gradient(180deg,transparent 0 8px,rgba(151,235,255,.09) 9px,transparent 10px);mask-image:linear-gradient(transparent,black 20%,black 80%,transparent);animation:nova-scanline 5s linear infinite}
-@keyframes nova-scanline{from{transform:translateY(-15%)}to{transform:translateY(15%)}}
-.nova-hologram[data-mood="listening"] .holo-aura{opacity:.48;transform:scale(1.12)}
-.nova-hologram[data-mood="speaking"] .holo-aura{opacity:.58;transform:scale(1.16)}
-.nova-hologram[data-expression="happy"] .holo-aura{opacity:.5}
-@media(prefers-reduced-motion:reduce){.nova-hologram .holo-scan{animation:none!important}}
