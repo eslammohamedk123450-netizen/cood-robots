@@ -102,7 +102,7 @@ assert.match(app, /setSpeechSegmentTone\("neutral"\)/, "Speech segment tone must
 assert.match(app, /function isStopVoiceCommand\(/, "Stop phrases must be detected locally");
 assert.match(app, /history_append/, "Every user and assistant message must be persisted independently");
 assert.match(app, /historyQueues: \{ soly: Promise\.resolve\(\), soleen: Promise\.resolve\(\) \}/, "History writes must be serialized independently per persona");
-assert.match(app, /don't make the user\\s+wait for a database round trip/, "Chat processing must not wait for the user-history write");
+assert.match(app, /database round trip before NOVA starts thinking/, "Chat processing must not wait for the user-history write");
 assert.match(app, /Start speech immediately\. History writes are serialized in the background\./, "Speech playback must begin without waiting for history persistence");
 assert.match(app, /history_search/, "Both personas must be able to search persistent conversation history");
 assert.match(app, /nova.stopAudio.cache.v1/, "Stop acknowledgement audio must be cached locally");
