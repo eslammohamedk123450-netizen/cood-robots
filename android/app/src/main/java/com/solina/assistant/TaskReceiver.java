@@ -29,6 +29,7 @@ public class TaskReceiver extends BroadcastReceiver {
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
         if (ACTION_COMPLETE.equals(intent.getAction()) || ACTION_STOP.equals(intent.getAction())) {
+            context.stopService(new Intent(context, AlarmPlaybackService.class));
             AlarmScheduler.cancel(context, id);
             manager.cancel(id.hashCode());
             TaskStore.remove(context, id);
@@ -37,6 +38,7 @@ public class TaskReceiver extends BroadcastReceiver {
         if (ACTION_SNOOZE.equals(intent.getAction())) {
             JSONObject task = TaskStore.find(context, id);
             if (task == null || !"reminder".equals(task.optString("type"))) return;
+            context.stopService(new Intent(context, AlarmPlaybackService.class));
             long next = System.currentTimeMillis() + SNOOZE_INTERVAL;
             TaskStore.setNextFollowUp(context, id, next);
             AlarmScheduler.scheduleFollowUp(context, id, next);
@@ -59,6 +61,7 @@ public class TaskReceiver extends BroadcastReceiver {
             long next = System.currentTimeMillis() + FOLLOW_UP_INTERVAL;
             TaskStore.setNextFollowUp(context, id, next);
             AlarmScheduler.scheduleFollowUp(context, id, next);
+            startReminderAlarm(context, task, id);
         }
         showReminder(context, manager, task, id, stage, due);
     }
@@ -89,6 +92,17 @@ public class TaskReceiver extends BroadcastReceiver {
         manager.notify(id.hashCode(), builder.build());
     }
 
+    private void startReminderAlarm(Context context, JSONObject task, String id) {
+        Intent audio = new Intent(context, AlarmPlaybackService.class).setAction(AlarmPlaybackService.ACTION_START);
+        try {
+            if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(audio);
+            else context.startService(audio);
+        } catch (Exception ignored) { }
+        Intent alarmScreen = new Intent(context, AlarmActivity.class).putExtra("task_id", id)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        try { context.startActivity(alarmScreen); } catch (Exception ignored) { }
+    }
+
     private void showReminder(Context context, NotificationManager manager, JSONObject task, String id, String stage, boolean due) {
         String title = task.optString("title", "موعدك");
         String body;
@@ -107,8 +121,9 @@ public class TaskReceiver extends BroadcastReceiver {
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle(due ? "سولينا — متابعة الموعد" : "سولينا — تذكير مسبق")
                 .setContentText(body).setStyle(new Notification.BigTextStyle().bigText(body))
-                .setContentIntent(openPending).setCategory(Notification.CATEGORY_REMINDER)
-                .setPriority(Notification.PRIORITY_HIGH).setAutoCancel(!due)
+                .setContentIntent(openPending).setCategory(due ? Notification.CATEGORY_ALARM : Notification.CATEGORY_REMINDER)
+                .setPriority(due ? Notification.PRIORITY_MAX : Notification.PRIORITY_HIGH).setAutoCancel(!due)
+                .setFullScreenIntent(due ? openPending : null, due)
                 .addAction(android.R.drawable.checkbox_on_background, "خلصت", complete)
                 .addAction(android.R.drawable.ic_lock_idle_alarm, "بعد 10 دقايق", snooze);
         if (due) builder.setOngoing(true);
