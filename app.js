@@ -1528,6 +1528,12 @@ async function executeTaskIntent(intent) {
   }
   if (intent.action === "needs_fajr_time") return "أقدر أصحيك للفجر، بس محتاجة أعرف المدينة أو ميعاد الفجر اللي تحب أعتمده. مش هخمن وقت الصلاة.";
   if (intent.action === "needs_time" || intent.action === "needs_period" || intent.action === "needs_title") return taskPromptFor(intent);
+  if (intent.action === "list_notes") {
+    const notes = state.personalItems.filter(item => item.item_type === "note" && item.status === "active");
+    if (!notes.length) return "راجعت دفتر حسابك، ومفيش ملاحظات محفوظة حاليًا.";
+    return "دي ملاحظاتك المحفوظة في الحساب:" + String.fromCharCode(10) +
+      notes.slice(0, 30).map((note, index) => (index + 1) + ". " + note.title).join(String.fromCharCode(10));
+  }
   if (intent.action === "list") {
     const tasks = state.personalItems.filter(task => task.item_type !== "note" && task.status === "active")
       .sort((a, b) => (personalItemDate(a) || Number.MAX_SAFE_INTEGER) - (personalItemDate(b) || Number.MAX_SAFE_INTEGER));
