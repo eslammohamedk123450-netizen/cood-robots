@@ -68,7 +68,11 @@ assert.match(edge, /api\.elevenlabs\.io\/v1\/text-to-speech/, "ElevenLabs TTS mu
 assert.match(edge, /api\.elevenlabs\.io\/v1\/models/, "ElevenLabs API keys must be verified before saving");
 assert.match(edge, /xi-api-key/, "ElevenLabs credentials must only be sent from the server");
 assert.match(app, /invokeNova\(speechAction/, "Client must dispatch TTS to the selected cloud provider");
-assert.match(app, /engine === "gemini" \? "tts_gemini" : "tts"/, "Gemini TTS selection must route to its dedicated server action");
+assert.match(app, /const useGeminiTts = engine === "auto" \|\| engine === "gemini"/, "Automatic speech must use female Gemini cloud TTS by default");
+assert.match(app, /const speechAction = useGeminiTts \? "tts_gemini" : "tts"/, "Automatic and explicit Gemini modes must route to Gemini TTS");
+assert.doesNotMatch(app, /Automatic local fallback|await speakWithDevice\(spokenText, speechSegments\);\s*finish\(\);\s*showToast\("الصوت الخارجي/, "Cloud TTS failures must not fall back to missing Android voices");
+assert.match(html, /الوضع التلقائي يستخدم صوت Gemini السحابي النسائي/, "Settings must explain that automatic speech does not require a phone voice");
+
 assert.match(app, /SpeechSynthesisUtterance/, "The optional on-device speech engine must remain available");
 assert.match(app, /لا تبدأ بسؤاله عن مشاريعه أو شغله/, "NOVA must not steer casual conversation toward projects");
 assert.match(app, /الملف الشخصي وسجل المشاريع معلومات خلفية فقط/, "Profile memories must not dominate unrelated conversations");
