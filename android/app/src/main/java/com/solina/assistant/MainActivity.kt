@@ -75,8 +75,8 @@ class MainActivity : Activity() {
                 JSONObject().put("ok", false).put("error", "notification_permission_required").toString()
             } else {
                 val saved = JSONObject().put("id", id).put("type", type).put("title", title).put("at", at)
-                TaskStore.upsert(activity, saved)
                 AlarmScheduler.schedule(activity, saved)
+                TaskStore.upsert(activity, saved)
                 JSONObject().put("ok", true).put("task", saved).toString()
             }
         } catch (error: Exception) {
