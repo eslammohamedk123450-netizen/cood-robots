@@ -29,7 +29,7 @@ import java.util.UUID;
 public class MainActivity extends Activity {
     private WebView webView;
     private SpeechRecognizer speechRecognizer;
-    private final String appUrl = "https://eslammohamedk123450-netizen.github.io/cood-robots/";
+    private final String appUrl = "https://eslammohamedk123450-netizen.github.io/cood-robots/?solina=command-router-v2";
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -217,8 +217,21 @@ public class MainActivity extends Activity {
         }
 
         private String normalizeAppLabel(String value) {
-            return String.valueOf(value == null ? "" : value).toLowerCase(java.util.Locale.ROOT)
-                    .replaceAll("[\\\\s\\\\p{Punct}]", "").replace("ال", "");
+            String normalized = String.valueOf(value == null ? "" : value).toLowerCase(java.util.Locale.ROOT)
+                    .replaceAll("[\\s\\p{Punct}]", "").replace("ال", "");
+            switch (normalized) {
+                case "واتساب": return "whatsapp";
+                case "يوتيوب": return "youtube";
+                case "فيسبوك": return "facebook";
+                case "انستجرام":
+                case "انستغرام": return "instagram";
+                case "تيليجرام": return "telegram";
+                case "كروم": return "chrome";
+                case "كاميرا": return "camera";
+                case "ساعة": return "clock";
+                case "صور": return "photos";
+                default: return normalized;
+            }
         }
 
         @JavascriptInterface public String listTasks() { return TaskStore.all(activity).toString(); }
