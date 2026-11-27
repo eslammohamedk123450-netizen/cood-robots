@@ -16,9 +16,9 @@
 <body>
   <div class="auth-gate" id="authGate">
     <section class="auth-card" aria-labelledby="pinGateTitle">
-      <span class="eyebrow">NOVA · PRIVATE OWNER ACCESS</span>
+      <span class="eyebrow">SOLINA · PRIVATE OWNER ACCESS</span>
       <h1 id="pinGateTitle">دخول المالك</h1>
-      <p id="pinGateDescription">مساحة خاصة بمالك NOVA ومطوّرها.</p>
+      <p id="pinGateDescription">مساحة خاصة بمالك SOLINA ومطوّرها.</p>
       <form id="pinLoginForm" class="owner-login-form" hidden>
         <label class="field-label">كود الدخول
           <input id="ownerPin" type="password" inputmode="numeric" pattern="[0-9]{6,12}" minlength="6" maxlength="12" autocomplete="current-password" placeholder="اكتب كود الدخول" required dir="ltr">
@@ -62,7 +62,7 @@
   </div>
   <dialog class="settings-dialog" id="settingsDialog">
     <form method="dialog" class="dialog-top">
-      <div><span class="eyebrow">MAKE NOVA YOURS</span><h2>إعدادات NOVA</h2></div>
+      <div><span class="eyebrow">MAKE SOLINA YOURS</span><h2>إعدادات SOLINA</h2></div>
       <button class="icon-button close-button" aria-label="إغلاق">×</button>
     </form>
     <div class="settings-content">
@@ -71,15 +71,15 @@
         <label class="field-label">الاسم اللي أناديك بيه<input id="ownerName" value="إسلام" maxlength="40"></label>
       </section>
             <section class="settings-section">
-        <h3>ذاكرة NOVA عن المالك</h3>
-        <p class="security-note">NOVA بيستخدم الذاكرة دي في الردود، وبيتعلم تلقائيًا من المعلومات الدائمة اللي بتقولها بوضوح في المحادثة. تقدر تراجعها وتعدلها من هنا. مش بيحفظ الأسرار أو البيانات الحساسة.</p>
+        <h3>ذاكرة SOLINA عن المالك</h3>
+        <p class="security-note">SOLINA بيستخدم الذاكرة دي في الردود، وبيتعلم تلقائيًا من المعلومات الدائمة اللي بتقولها بوضوح في المحادثة. تقدر تراجعها وتعدلها من هنا. مش بيحفظ الأسرار أو البيانات الحساسة.</p>
         <label class="field-label">ملف المالك والذاكرة التلقائية<textarea id="ownerMemory" rows="9" maxlength="12000">الاسم: إسلام محمد البدوي.
-الصفة: أنت مالك NOVA ومديرها ومطوّرها وصاحب القرار النهائي فيها.
+الصفة: أنت مالك SOLINA ومديرها ومطوّرها وصاحب القرار النهائي فيها.
 الشركة: مؤسس وصاحب Suly-Technologies.
-المشاريع والعلامات: SULY / Suly AI، وNOVA Desk Robot، ومشاريع تعليمية وتقنية وألعاب وبرمجيات.
+المشاريع والعلامات: SULY / Suly AI، وSOLINA Desk Robot، ومشاريع تعليمية وتقنية وألعاب وبرمجيات.
 الاهتمامات: تعلم البرمجة وبناء التطبيقات والمواقع والأنظمة والألعاب والاستفادة من أدوات الذكاء الاصطناعي.
 طريقة التواصل المفضلة: العربية المصرية، شرح عملي مباشر خطوة بخطوة، إجابات واضحة، وعدم الادعاء بتنفيذ أي شيء لم يتم التحقق منه.
-تعامل مع إسلام باعتباره صاحب NOVA ومديرها ومطوّرها، ونفّذ توجيهاته التقنية ضمن حدود الأمان والصلاحيات. كود المالك موجود بالفعل.
+تعامل مع إسلام باعتباره صاحب SOLINA ومديرها ومطوّرها، ونفّذ توجيهاته التقنية ضمن حدود الأمان والصلاحيات. كود المالك موجود بالفعل.
 ملاحظة خصوصية: لا تخزن كلمات المرور أو مفاتيح API أو رموز الجلسات أو أي أسرار داخل الذاكرة.</textarea></label>
         <button type="button" class="save-button enabled-button" id="saveOwnerMemory">حفظ الذاكرة يدويًا</button>
         <p class="settings-feedback" id="memoryFeedback" role="status">جاري تحميل الذاكرة المحفوظة...</p>
@@ -121,8 +121,8 @@
       </section>
       <section class="settings-section">
         <h3>حساب المالك</h3>
-        <p class="security-note">بيانات NOVA ومفاتيح API والذاكرة مرتبطة بحساب المالك فقط.</p>
-        <p class="settings-feedback" id="authFeedback">بياناتك ومفاتيحك محفوظة على خادم NOVA الآمن.</p>
+        <p class="security-note">بيانات SOLINA ومفاتيح API والذاكرة مرتبطة بحساب المالك فقط.</p>
+        <p class="settings-feedback" id="authFeedback">بياناتك ومفاتيحك محفوظة على خادم SOLINA الآمن.</p>
         
       </section>
       <section class="settings-section">
@@ -151,7 +151,7 @@
 
   <div class="toast" id="toast" role="status"></div>
   <script src="pin.js?v=persistent-owner-session-v23"></script>
-  <script src="solina-wave.js?v=1"></script>
-  <script type="module" src="app.js?v=solina-voice-orb-v2"></script>
+  <script src="solina-wave.js?v=2"></script>
+  <script type="module" src="app.js?v=solina-voice-orb-v3"></script>
 </body>
 </html>
