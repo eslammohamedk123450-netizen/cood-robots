@@ -185,4 +185,5 @@ assert.match(css, /solina-orb-stage/, "Large central audio visualizer must be pr
 assert.match(css, /solina-breathe/, "Solina audio orb must pulse");
 assert.match(app, /window\.solinaWave\?\.setLevel\(amount, energy\)/, "Audio orb must follow real playback amplitude");
 
-assert.match(app, /سولينا\(\?=\$\|\\s\)/, "Only the Solina wake word should activate voice turns");
+assert.match(app, /wakePattern = .*سولينا/, "Only the Solina wake word should activate voice turns");
+assert.doesNotMatch(app, /نوفا\|نوفة\|nova\|سولي\|سولين/, "Old wake-word aliases must not activate the assistant");
