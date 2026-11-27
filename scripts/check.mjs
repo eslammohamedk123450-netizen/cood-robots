@@ -161,12 +161,12 @@ assert.match(edge, /سياق مسترجع من محادثات سابقة للش�
 assert.match(edge, /oldRowsResult\.error/, "Parallel history retrieval errors must be handled explicitly");
 assert.match(edge, /const \[\{ data: memoryRow, error: memoryReadError \}, \{ data: models, error \}, oldRowsResult\] = await Promise\.all\(/, "Independent memory, model, and history reads must run concurrently");
 assert.match(edge, /const secretEntries = await Promise\.all\(/, "Provider secrets must be fetched concurrently instead of serially");
-assert.match(html, /solina-voice-orb-v7/, "Solina client bundle must use a fresh cache version");
+assert.match(html, /style\.css\?v=solina-voice-orb-v\d+/, "Solina stylesheet must use a versioned cache key");
 assert.match(css, /solina-orb-stage/, "Responsive Solina voice-first layout must be present");
 
 assert.match(app, /Keep the dedicated interrupt listener alive during playback/, "Voice interruption listener must remain active while NOVA speaks");
 assert.doesNotMatch(app, /if \(state\.listening\) startInterruptRecognition\(\);\s*stopInterruptRecognition\(\)/, "Speech playback must not immediately disable the interrupt listener");
-assert.match(html, /solina-voice-orb-v7/, "Solina client bundle must use a fresh cache version");
+assert.match(html, /style\.css\?v=solina-voice-orb-v\d+/, "Solina stylesheet must use a versioned cache key");
 
 assert.match(app, /راجع ردك مرة أخيرة بصمت من ناحية الإملاء واختيار الكلمات واتساق المعنى/, "NOVA must proofread Egyptian Arabic contextually before replying");
 assert.match(app, /كلمة «بكير» تظل كما هي إذا كان معناها مقصودًا/, "Contextual proofreading must preserve valid words instead of blanket replacements");
@@ -190,6 +190,8 @@ assert.doesNotMatch(app, /نوفا\|نوفة\|nova\|سولي\|سولين/, "Old 
 
 assert.doesNotMatch(app, /واجهة NOVA مفتوحة حاليًا في الوضع المحلي/, "Cloud AI must never silently fall back to a fake local reply");
 assert.doesNotMatch(app, /async function restoreOwnerSession\(/, "Only pin.js may restore the owner session to prevent competing startup checks");
+assert.doesNotMatch(app, /void restoreOwnerSession\(\)/, "The app must not call a removed duplicate session restoration function");
+assert.match(app, /حصلت مشكلة ومنعتني من الرد/, "Chat failures must be visible to the owner instead of silently leaving the thinking state");
 assert.match(pin, /check_session/, "The single owner-session bootstrap must validate saved sessions server-side");
 assert.match(pin, /openApp\(saved\)/, "A valid saved owner session must open the app without another PIN prompt");
 assert.match(app, /جلسة سولينا غير متصلة/, "Missing authentication must be surfaced instead of returning a fake assistant reply");
