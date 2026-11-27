@@ -141,7 +141,7 @@ assert.doesNotMatch(app, /const memoryMatches = await searchConversationMemory\(
 assert.match(app, /exclude_conversation_id: state\.conversationIds\[state\.persona\]/, "Chat request must exclude the active conversation from older-memory retrieval");
 assert.match(edge, /سياق مسترجع من محادثات سابقة للشخصيتين/, "Chat endpoint must retrieve cross-persona history in the same request");
 assert.match(edge, /oldRowsError/, "Server-side history retrieval errors must be handled explicitly");
-assert.match(html, /nova-quick-conversation-v54/, "Client cache version must be refreshed after UX changes");
+assert.match(html, /nova-quick-conversation-v55/, "Client cache version must be refreshed after UX changes");
 assert.match(css, /NOVA responsive voice-first polish/, "Responsive voice-first visual polish must be present");
 
 assert.match(app, /Keep the dedicated interrupt listener alive during playback/, "Voice interruption listener must remain active while NOVA speaks");
