@@ -26,7 +26,10 @@
     $("authGate").hidden = true;
     if ($("connectionLabel")) $("connectionLabel").textContent = "متصل بخادم NOVA";
     if ($("greeting")) $("greeting").textContent = "أهلاً يا إسلام، نورتني.";
+    // Persist a replayable handoff in case the app module has not registered yet.
+    window.__solinaPendingOwnerToken = token;
     window.dispatchEvent(new CustomEvent("nova:authenticated", { detail: { token } }));
+    window.solinaActivateOwnerSession?.(token);
   }
   async function unlockPin(event) {
     event.preventDefault();
@@ -41,21 +44,39 @@
       $("ownerPin").value = ""; message(error.message || "الكود غير صحيح.", true);
     } finally { button.disabled = false; button.textContent = "دخول"; }
   }
+  let restoreInFlight = null;
+  async function ensureOwnerSession() {
+    const saved = localStorage.getItem(SESSION_KEY);
+    if (!saved) return false;
+    if (restoreInFlight) return restoreInFlight;
+    restoreInFlight = (async () => {
+      try {
+        const result = await callServer("check_session", { token: saved });
+        if (result.valid) { openApp(saved); return true; }
+        localStorage.removeItem(SESSION_KEY);
+        return false;
+      } catch (error) {
+        // A temporary network failure must never erase a still-valid owner token.
+        message("تعذر التحقق من جلسة المالك بسبب الاتصال بالخادم. احتفظنا بالجلسة؛ حاول تحديث الصفحة.", true);
+        return false;
+      } finally {
+        restoreInFlight = null;
+      }
+    })();
+    return restoreInFlight;
+  }
+  window.novaEnsureOwnerSession = ensureOwnerSession;
+
   async function start() {
     if (!$("pinLoginForm") || !$("authGate")) return;
     $("pinLoginForm").addEventListener("submit", unlockPin);
-    const saved = localStorage.getItem(SESSION_KEY);
-    if (saved) {
-      try {
-        const result = await callServer("check_session", { token: saved });
-        if (result.valid) { openApp(saved); return; }
-      } catch (_) {}
-      localStorage.removeItem(SESSION_KEY);
-    }
+    if (await ensureOwnerSession()) return;
     $("authGate").hidden = false;
     $("pinLoginForm").hidden = false;
-    message("اكتب كود المالك للدخول. بعد تسجيل الدخول على هذا المتصفح، لن نطلبه منك في كل زيارة.");
-    $("ownerPin").focus();
+    if (!localStorage.getItem(SESSION_KEY)) {
+      message("اكتب كود المالك للدخول. بعد تسجيل الدخول على هذا المتصفح، لن نطلبه منك في كل زيارة.");
+      $("ownerPin").focus();
+    }
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => void start(), { once: true });
   else void start();
