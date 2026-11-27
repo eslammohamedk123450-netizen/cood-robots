@@ -29,7 +29,7 @@ import java.util.UUID;
 // Device task commands and alarm dismissal are handled natively by the Android app. 
 public class MainActivity extends Activity {
     private WebView webView;
-    private SpeechRecognizer speechRecognizer;
+    private SpeechRecognizer speechRecognizer;\n    private volatile boolean taskPermissionFlowPending = false;
     private final String appUrl = "https://eslammohamedk123450-netizen.github.io/cood-robots/?solina=command-router-v2";
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -126,6 +126,28 @@ public class MainActivity extends Activity {
             try { speechRecognizer.destroy(); } catch (Exception ignored) { }
             speechRecognizer = null;
         }
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (taskPermissionFlowPending) {
+            taskPermissionFlowPending = false;
+            dispatchTaskPermissionUpdate();
+        }
+    }
+
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 2102) {
+            taskPermissionFlowPending = false;
+            dispatchTaskPermissionUpdate();
+        }
+    }
+
+    private void dispatchTaskPermissionUpdate() {
+        if (webView == null) return;
+        runOnUiThread(() -> webView.evaluateJavascript(
+                "window.dispatchEvent(new Event('solina-task-permissions-updated'));", null));
     }
 
     @Override public void onBackPressed() {
@@ -281,6 +303,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void requestNotificationPermission() {
+            activity.taskPermissionFlowPending = true;
             activity.runOnUiThread(() -> {
                 if (Build.VERSION.SDK_INT >= 33 && activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                     activity.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 2102);
@@ -289,6 +312,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void requestExactAlarmPermission() {
+            activity.taskPermissionFlowPending = true;
             activity.runOnUiThread(() -> {
                 if (Build.VERSION.SDK_INT >= 31) {
                     AlarmManager manager = (AlarmManager) activity.getSystemService(Context.ALARM_SERVICE);
@@ -302,6 +326,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void requestFullScreenIntentPermission() {
+            activity.taskPermissionFlowPending = true;
             activity.runOnUiThread(() -> {
                 if (Build.VERSION.SDK_INT >= 34) {
                     NotificationManager manager = (NotificationManager) activity.getSystemService(Context.NOTIFICATION_SERVICE);
