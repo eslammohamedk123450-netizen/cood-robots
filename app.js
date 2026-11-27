@@ -495,7 +495,8 @@ const settingsPageTitles = {
   memory: "دفتر سولينا",
   reminders: "كتالوج التذكيرات",
   voice: "الصوت والتفاعل",
-  ai: "مركز الذكاء الاصطناعي"
+  ai: "مركز الذكاء الاصطناعي",
+  permissions: "صلاحيات الجهاز"
 };
 function showSettingsHome() {
   document.querySelectorAll("[data-settings-page]").forEach(page => { page.hidden = true; });
@@ -525,11 +526,57 @@ function openSettingsPage(pageId) {
   if (pageId === "ai") void loadProviders();
   if (pageId === "memory") void loadOwnerMemory();
   if (pageId === "voice") void Promise.allSettled([loadSpeechSettings()]);
+  if (pageId === "permissions") void refreshPermissionCards();
 }
 function openSettings() {
   showSettingsHome();
   $("settingsDialog").showModal();
-  void Promise.allSettled([loadProviders(), loadOwnerMemory(), loadSpeechSettings()]);
+  void Promise.allSettled([loadProviders(), loadOwnerMemory(), loadSpeechSettings(), refreshPermissionCards()]);
+}
+async function refreshPermissionCards() {
+  const bridge = window.SolinaNative;
+  const list = $("permissionList");
+  if (!list) return;
+  if (!bridge || typeof bridge.permissionInfo !== "function") {
+    list.querySelectorAll("[data-permission-status]").forEach(node => { node.textContent = "متاحة في نسخة APK فقط"; });
+    list.querySelectorAll("[data-permission-action]").forEach(button => { button.disabled = true; });
+    const note = $("permissionDeviceNote");
+    if (note) note.textContent = "افتح تطبيق سولينا المثبّت على أندرويد لإدارة صلاحيات الجهاز.";
+    return;
+  }
+  let info = {};
+  try { info = JSON.parse(bridge.permissionInfo()); } catch (_) {}
+  const rows = [
+    ["microphone", "الميكروفون", info.microphone],
+    ["notifications", "الإشعارات", info.notifications],
+    ["exactAlarms", "التنبيهات الدقيقة والمنبه", info.exactAlarms],
+    ["fullScreenIntent", "عرض المنبه على كامل الشاشة", info.fullScreenIntent]
+  ];
+  for (const [key, label, granted] of rows) {
+    const status = list.querySelector('[data-permission-status="' + key + '"]');
+    const action = list.querySelector('[data-permission-action="' + key + '"]');
+    if (status) {
+      status.textContent = granted ? "مفعّلة" : "مطلوبة";
+      status.dataset.granted = String(Boolean(granted));
+    }
+    if (action) {
+      action.disabled = Boolean(granted);
+      action.textContent = granted ? "مفعّلة" : (key === "microphone" || key === "notifications" ? "تفعيل" : "فتح الإعداد");
+    }
+  }
+  const note = $("permissionDeviceNote");
+  if (note) note.textContent = info.platform === "android"
+    ? "حالة الصلاحيات الفعلية من أندرويد. بعد التفعيل ارجع للتطبيق؛ الحالة هتتحدث تلقائيًا."
+    : "إدارة الصلاحيات متاحة من تطبيق APK على أندرويد.";
+}
+function requestDevicePermission(name) {
+  const bridge = window.SolinaNative;
+  if (!bridge || typeof bridge.requestPermission !== "function") {
+    showToast("إدارة صلاحيات الجهاز متاحة من نسخة APK فقط.");
+    return;
+  }
+  try { bridge.requestPermission(name); }
+  catch (_) { showToast("ماقدرتش أفتح إعداد الصلاحية دي."); }
 }
 function closeSettings() { $("settingsDialog").close(); }
 
@@ -1314,6 +1361,7 @@ async function executeTaskIntent(intent) {
       return "تمام، فهمت الموعد. طلبت إذن الإشعارات من أندرويد، وأول ما تسمح هسجل نفس التذكير تلقائيًا من غير ما تعيد الطلب.";
     }
     if (intent.type === "alarm" && !info.fullScreenIntent) {
+      state.pendingTaskPermissionIntent = intent;
       bridge.requestFullScreenIntentPermission();
       return "فعّل صلاحية عرض المنبه على كامل الشاشة لسولينا، وبعدها كرر الأمر عشان أسجل المنبه."; 
     }
@@ -1365,6 +1413,7 @@ function stopSpeechPlaybackOnly() {
 }
 
 window.addEventListener("solina-task-permissions-updated", async () => {
+  void refreshPermissionCards();
   const intent = state.pendingTaskPermissionIntent;
   if (!intent) return;
   const bridge = nativeTaskBridge();
@@ -1646,6 +1695,10 @@ document.querySelectorAll("[data-open-settings-page]").forEach(button => {
   button.addEventListener("click", () => openSettingsPage(button.dataset.openSettingsPage));
 });
 $("refreshScheduledTasks")?.addEventListener("click", renderScheduledTasks);
+$("permissionList")?.addEventListener("click", event => {
+  const button = event.target.closest("[data-permission-action]");
+  if (button && !button.disabled) requestDevicePermission(button.dataset.permissionAction);
+});
 renderScheduledTasks();
 
 const savedOwnerName = localStorage.getItem("solina.owner.name");
