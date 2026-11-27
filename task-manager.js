@@ -1,4 +1,15 @@
 const ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
+const SPOKEN_NUMBERS = {
+  "واحد":"1", "واحدة":"1", "اتنين":"2", "اثنين":"2",
+  "تلاتة":"3", "ثلاثة":"3", "اربعة":"4", "أربعة":"4",
+  "خمسة":"5", "ستة":"6", "سبعة":"7", "تمانية":"8",
+  "تمنية":"8", "ثمانية":"8", "تسعة":"9", "عشرة":"10",
+  "حداشر":"11", "احداشر":"11", "اتناشر":"12", "اثناشر":"12"
+};
+function replaceSpokenNumbers(text) {
+  const words = Object.keys(SPOKEN_NUMBERS).join("|");
+  return text.replace(new RegExp("(^|\\\\s)(" + words + ")(?=$|\\\\s)", "g"), (all, prefix, word) => prefix + SPOKEN_NUMBERS[word]);
+}
 export function normalizeTaskText(value) {
   return String(value || "")
     .replace(/[٠-٩]/g, digit => String(ARABIC_DIGITS.indexOf(digit)))
@@ -8,8 +19,7 @@ export function normalizeTaskText(value) {
     .trim()
     .toLocaleLowerCase("ar");
 }
-function nextClockTime(hour, minute, dayPart, explicitDay) {
-  const now = new Date();
+function nextClockTime(hour, minute, dayPart, explicitDay, now) {
   let hours = hour;
   if (dayPart && /مساء|بالليل|ليل/.test(dayPart) && hours < 12) hours += 12;
   if (dayPart && /صباح|الصبح/.test(dayPart) && hours === 12) hours = 0;
@@ -28,26 +38,36 @@ function nextClockTime(hour, minute, dayPart, explicitDay) {
   return target;
 }
 function parseSchedule(text, now = new Date()) {
-  const relative = text.match(/بعد\s+(\d+)\s*(دقيقه|دقائق|دقيقه|ساعه|ساعات)/);
+  const durationPatterns = [
+    [/بعد\s+نص\s+ساعه|بعد\s+نصف\s+ساعه/, 30 * 60 * 1000],
+    [/بعد\s+ربع\s+ساعه/, 15 * 60 * 1000],
+    [/بعد\s+ساعتين/, 2 * 60 * 60 * 1000],
+    [/بعد\s+ساعه/, 60 * 60 * 1000]
+  ];
+  for (const [pattern, duration] of durationPatterns) if (pattern.test(text)) return new Date(now.getTime() + duration);
+  const relative = text.match(/بعد\s+(\d+)\s*(دقيقه|دقيقة|دقائق|ساعه|ساعة|ساعات)/);
   if (relative) {
     const amount = Number(relative[1]);
     const ms = /ساع/.test(relative[2]) ? amount * 60 * 60 * 1000 : amount * 60 * 1000;
     if (amount > 0 && amount <= 10000) return new Date(now.getTime() + ms);
   }
-  const match = text.match(/(?:الساعه\s*)?(\d{1,2})(?::(\d{2}))?\s*(صباحا|صباح|الصبح|مساء|مساء|بالليل|ليل)?/);
+  const clockText = replaceSpokenNumbers(text);
+  const match = clockText.match(/(?:الساعه\s*|الساعة\s*)?(\d{1,2})(?::(\d{2}))?\s*(صباحا|صباح|الصبح|مساء|بالليل|ليل)?/);
   if (!match) return null;
   const hour = Number(match[1]);
   const minute = Number(match[2] || 0);
   const dayPart = match[3] || "";
   if (hour < 0 || hour > 23 || minute > 59) return null;
   const day = /بعد بكره|بعد بكرة|بعد غد/.test(text) ? "afterTomorrow" : /بكره|بكرة|غدا/.test(text) ? "tomorrow" : null;
-  const date = nextClockTime(hour, minute, dayPart, day);
+  const date = nextClockTime(hour, minute, dayPart, day, now);
   return date && date > now ? date : null;
 }
 function stripCommandWords(text) {
+  const numberWords = Object.keys(SPOKEN_NUMBERS).join("|");
   return text
     .replace(/(?:يا\s*)?سولينا/g, " ")
-    .replace(/(?:من فضلك|لو سمحتي|لو سمحت|ممكن|عايزك|عاوزك|اعملي|اعمل|سجلي|سجل|ضيفي|ضيف|فكريني|فكرني|ذكريني|ذكرني|صحيني|اصحيني|اصحى|صحيني|منبه|تذكير|تذكيرني|بكره|بكرة|غدا|بعد بكره|بعد بكرة|بعد غد|النهارده|اليوم|الساعه|الساعة|صباحا|صباح|الصبح|مساء|بالليل|ليل)/g, " ")
+    .replace(/(?:من فضلك|لو سمحتي|لو سمحت|ممكن|عايزك|عاوزك|اعملي|اعمل|سجلي|سجل|ضيفي|ضيف|فكريني|فكرني|ذكريني|ذكرني|صحيني|اصحيني|اصحى|منبه|تذكير|تذكيرني|بكره|بكرة|غدا|بعد بكره|بعد بكرة|بعد غد|النهارده|اليوم|الساعه|الساعة|صباحا|صباح|الصبح|مساء|بالليل|ليل)/g, " ")
+    .replace(new RegExp("(^|\\\\s)(?:" + numberWords + ")(?=$|\\\\s)", "g"), " ")
     .replace(/\d{1,2}(?::\d{2})?/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -56,7 +76,7 @@ export function parseTaskCommand(value, now = new Date()) {
   const text = normalizeTaskText(value);
   if (!text) return null;
   const isFajr = /الفجر|صلاه الفجر|صلاة الفجر/.test(text);
-  const isAlarm = /صحيني|اصحيني|اصحى|(?:اعملي|اعمل|سجلي|سجل|اضبطي|اضبط)\s+منبه|منبه\s+(?:الساعه|الساعة|\\d)/.test(text);
+  const isAlarm = /صحيني|اصحيني|اصحى|(?:اعملي|اعمل|سجلي|سجل|اضبطي|اضبط)\s+منبه|منبه\s+(?:الساعه|الساعة|\d)/.test(text);
   const isReminder = /فكريني|فكرني|ذكريني|ذكرني|تذكير|تذكيرني|سجل.*مهمه|سجلي.*مهمه/.test(text);
   const isList = /(?:وريني|اعرضي|اعرض|قوليلي|شوفي).*(?:التذكيرات|التذكير|المنبهات|المنبه|المهام)|(?:التذكيرات|التذكير|المنبهات|المنبه|المهام).*(?:عندي|المحفوظ|الموجود)/.test(text);
   const isCancel = /(?:الغي|الغى|احذفي|امسحي|الغاء).*(?:تذكير|منبه|مهمه)|(?:الغى|الغي).*(?:كل|اخر|آخر).*(?:التذكيرات|المنبهات)/.test(text);
