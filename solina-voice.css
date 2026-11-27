@@ -1,0 +1,27 @@
+:root{--persona:#b9a5ff;--persona-deep:#7959d6}
+body{overflow:hidden;background:#070812}
+.app-shell.solina-shell{min-height:100svh;height:100svh;max-width:none;padding:0 clamp(16px,4vw,54px);display:flex;flex-direction:column;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 48%,rgba(100,76,190,.15),transparent 40%),radial-gradient(ellipse at 50% 100%,rgba(31,39,90,.28),transparent 60%),#070812}
+.solina-topbar{height:72px;min-height:72px;display:grid;grid-template-columns:52px 1fr 52px;align-items:center;border:0;background:transparent;box-shadow:none;z-index:15}
+.solina-topbar .icon-button{width:44px;height:44px;border-radius:15px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);color:#f4f0ff}
+.menu-button{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px}.menu-button span{display:block;width:19px;height:2px;border-radius:4px;background:#e7e0ff}
+.solina-brand{justify-self:center;text-decoration:none}.solina-wordmark{font:700 17px 'Space Grotesk',sans-serif;letter-spacing:5px;color:#e9e1ff;text-shadow:0 0 24px #9c82ff77}.settings-top-button{justify-self:end}
+.solina-main{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(12px,3vh,28px);padding:0 0 max(18px,env(safe-area-inset-bottom));}
+.solina-orb-stage{position:relative;width:min(100%,850px);height:min(65svh,650px);min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;isolation:isolate}
+.orb-halo{position:absolute;width:min(72vw,560px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(142,111,255,.18),rgba(75,112,255,.08) 38%,transparent 70%);filter:blur(32px);animation:solina-breathe 4s ease-in-out infinite;z-index:-1}
+.solina-wave-canvas{width:100%;height:100%;max-width:760px;max-height:650px;display:block;overflow:visible}
+.solina-status{position:absolute;bottom:9%;font-size:clamp(15px,2vw,19px);font-weight:600;color:#eee9ff;text-align:center;text-shadow:0 0 22px #a58aff66}
+.solina-transcript{position:absolute;bottom:2%;width:min(88%,620px);font-size:clamp(12px,1.5vw,14px);color:#9f9ab6;text-align:center;line-height:1.7}
+.solina-controls{display:flex;align-items:center;justify-content:center;gap:20px;position:relative;width:min(100%,420px)}
+.solina-mic{width:76px;height:76px;border-radius:50%;border:1px solid #b7a2ff55;background:linear-gradient(145deg,#a58bff,#7057cf);box-shadow:0 0 35px #9677ff55,0 12px 36px #0008}.solina-mic .mic-symbol{font-size:26px}
+.solina-mic.active{background:linear-gradient(145deg,#d2bfff,#8767f2);box-shadow:0 0 0 10px #a58bff19,0 0 65px #a58bff99}
+.solina-cancel{position:absolute;right:calc(50% - 122px);width:48px;height:48px;border-radius:50%;font-size:28px;background:#ffffff0c;border:1px solid #ffffff20;color:#e8e1ff}
+.solina-hint{font-size:12px;color:#85809d;text-align:center;margin:0 0 12px}
+.solina-text-entry{width:min(92%,650px);margin:0 auto 12px;z-index:8}.solina-text-entry input{min-width:0;flex:1}
+.solina-drawer{position:fixed;z-index:30;top:0;bottom:0;right:0;width:min(390px,88vw);max-height:none;height:100svh;border-radius:26px 0 0 26px;padding:24px 18px calc(22px + env(safe-area-inset-bottom));overflow:auto;background:rgba(14,13,28,.97);border:1px solid #ffffff18;box-shadow:-24px 0 80px #0008;display:flex;flex-direction:column;gap:14px;animation:solina-drawer-in .24s ease-out}
+.solina-drawer.hidden{display:none!important}.solina-drawer-backdrop{position:fixed;inset:0;z-index:25;background:#02020a99;backdrop-filter:blur(5px)}.solina-drawer-backdrop.hidden{display:none}
+.solina-drawer .conversation-head{display:flex;align-items:center;justify-content:space-between}.drawer-action{display:flex;align-items:center;gap:12px;text-align:right;padding:15px 16px;border-radius:15px;border:1px solid #ffffff14;background:#ffffff08;color:#f0ebff;font:600 14px 'Cairo',sans-serif}
+.solina-drawer .conversation-log{flex:1;min-height:180px;max-height:none;overflow:auto}.solina-drawer .conversation-head h2{color:#f0ebff}.solina-drawer .history-picker-label,.solina-drawer .text-button{color:#b9afd5}
+@keyframes solina-breathe{0%,100%{transform:scale(.92);opacity:.7}50%{transform:scale(1.08);opacity:1}}@keyframes solina-drawer-in{from{transform:translateX(25px);opacity:.5}to{transform:translateX(0);opacity:1}}
+@media(max-width:700px){.app-shell.solina-shell{padding-inline:13px}.solina-topbar{height:62px;min-height:62px}.solina-orb-stage{height:min(62svh,560px);min-height:280px;width:100%}.solina-status{bottom:8%}.solina-transcript{bottom:1%;width:94%}.solina-mic{width:72px;height:72px}.solina-cancel{right:calc(50% - 112px)}.solina-hint{font-size:11px;margin-bottom:8px}.solina-drawer{width:min(360px,90vw)}}
+@media(max-height:650px){.solina-orb-stage{height:54svh;min-height:240px}.solina-main{gap:8px}.solina-mic{width:62px;height:62px}.solina-hint{margin-bottom:4px}}
+@media(prefers-reduced-motion:reduce){.orb-halo{animation:none}}
