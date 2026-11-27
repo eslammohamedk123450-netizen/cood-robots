@@ -1027,7 +1027,16 @@ async function handleRecognizedText(text, voiceTurn = false) {
     await speak(reply, state.replySegments || [], controller.signal);
     await assistantHistorySave;
     void loadConversationHistory(false);
-  } catch (error) { if (error?.name !== "AbortError") console.error("NOVA turn failed:", error); }
+  } catch (error) {
+    if (error?.name !== "AbortError") {
+      console.error("NOVA turn failed:", error);
+      const message = "معلش يا " + state.ownerName + "، حصلت مشكلة ومنعتني من الرد: " + (error?.message || "تعذر الاتصال بالخادم.");
+      $("liveTranscript").textContent = message;
+      setStatus("في مشكلة في الاتصال", "error");
+      addConversationLine(message, "nova");
+      showToast(message);
+    }
+  }
   finally { if (state.requestController === controller) state.requestController = null; if (requestId === state.requestSequence) state.processing = false; }
 }
 function cancelCurrentTurn(showMessage = true) {
@@ -1240,5 +1249,5 @@ applyProviderDefaults();
 // Solina is the only assistant persona.
 setPersona("soleen");
 setStatus("جاري الاتصال بخدمات سولينا...", "thinking");
-void restoreOwnerSession();
+// pin.js owns the only session restoration flow and emits nova:authenticated.
 
