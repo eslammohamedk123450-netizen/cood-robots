@@ -118,25 +118,21 @@ function updateFaceSpeechProgress(segments, progress) {
   setFaceEmotion(segments[segments.length - 1].emotion);
 }
 function setSpeechMouthLevel(level, brightness = 0) {
-  const mouth = $("faceMouth");
-  const face = $("faceScreen");
+  const mouth = $("faceMouth"), face = $("faceScreen");
   if (!mouth || !face) return;
-  const amount = Math.max(0, Math.min(1, level));
-  const energy = Math.max(0, Math.min(1, brightness));
-  mouth.style.height = (4 + amount * 34).toFixed(1) + "px";
-  mouth.style.width = (54 + amount * 25).toFixed(1) + "px";
-  mouth.style.opacity = String(0.72 + amount * 0.28);
-  mouth.style.borderRadius = amount > 0.62 ? "45%" : "0 0 50px 50px";
+  const amount = Math.max(0, Math.min(1, level)), energy = Math.max(0, Math.min(1, brightness));
+  const opening = 2 + amount * 31, width = 13 + amount * 18;
+  mouth.setAttribute("d", "M " + (160-width) + " 145 Q 160 " + (145+opening*1.18) + " " + (160+width) + " 145 Q 160 " + (145+opening*.48) + " " + (160-width) + " 145 Z");
+  mouth.style.opacity = String(.78 + amount*.22);
   face.style.setProperty("--voice-energy", energy.toFixed(3));
-  face.style.setProperty("--voice-glow", (0.25 + energy * 0.75).toFixed(3));
+  face.style.setProperty("--voice-glow", (.25 + energy*.75).toFixed(3));
   face.style.setProperty("--face-talk-energy", amount.toFixed(3));
-  face.classList.toggle("audio-laugh", state.replyEmotion === "playful" && energy > 0.22);
-  face.classList.toggle("face-speaking-emphasis", amount > 0.48);
+  face.classList.toggle("audio-laugh", state.replyEmotion === "playful" && energy > .22);
+  face.classList.toggle("face-speaking-emphasis", amount > .48);
 }
 function resetSpeechMouth() {
-  const mouth = $("faceMouth");
-  const face = $("faceScreen");
-  if (mouth) { mouth.style.height = ""; mouth.style.width = ""; mouth.style.opacity = ""; mouth.style.borderRadius = ""; }
+  const mouth = $("faceMouth"), face = $("faceScreen");
+  if (mouth) { mouth.setAttribute("d", "M 126 145 Q 160 159 194 145"); mouth.style.opacity = ""; }
   if (face) { face.style.removeProperty("--voice-energy"); face.style.removeProperty("--voice-glow"); face.style.removeProperty("--face-talk-energy"); face.classList.remove("audio-laugh","face-speaking-emphasis"); }
 }
 function connectSpeechAnalyser(source) {
