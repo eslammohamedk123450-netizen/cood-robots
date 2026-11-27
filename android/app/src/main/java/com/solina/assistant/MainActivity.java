@@ -201,7 +201,7 @@ public class MainActivity extends Activity {
                 return new JSONObject().put("ok", true).put("app", best.loadLabel(activity.getPackageManager()).toString()).toString();
             } catch (Exception error) {
                 try { return new JSONObject().put("ok", false).put("error", "open_app_failed").toString(); }
-                catch (Exception ignored) { return "{\\"ok\\":false}"; }
+                catch (Exception ignored) { return "{\"ok\":false}"; }
             }
         }
 
@@ -212,7 +212,7 @@ public class MainActivity extends Activity {
                 activity.runOnUiThread(() -> activity.startActivity(intent));
                 return new JSONObject().put("ok", true).toString();
             } catch (Exception error) {
-                return "{\\"ok\\":false,\\"error\\":\\"settings_unavailable\\"}";
+                return "{\"ok\":false,\"error\":\"settings_unavailable\"}";
             }
         }
 
