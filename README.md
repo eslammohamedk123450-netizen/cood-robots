@@ -1,6 +1,6 @@
 # NOVA — Your Personal Companion
 
-NOVA is a private, voice-first digital companion. The first release focuses on a warm character-led meeting experience with Soly (blue) and Soleen (pink), not a command dashboard.
+NOVA is a private, voice-first digital companion centered on Solina, its only supported character: a friendly Egyptian female assistant with one consistent identity and voice.
 
 ## Current experience
 - Character-first meeting screen with optional text entry and voice controls.
