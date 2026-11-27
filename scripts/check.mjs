@@ -257,3 +257,23 @@ assert.match(app, /function updateMemoryMeta\(updatedAt = null\)/, "Memory setti
 assert.match(app, /result.updated_at/, "Memory timestamps returned by the server must be displayed");
 assert.match(html, /id="reloadOwnerMemory"/, "Owner must be able to refresh saved memory manually");
 assert.match(html, /id="memoryUpdated"/, "Memory panel must display its saved status and timestamp");
+
+
+import { parseTaskCommand, normalizeTaskText } from "../task-manager.js";
+const fixedNow = new Date("2026-11-27T08:00:00+02:00");
+const reminderIntent = parseTaskCommand("فكريني أراجع المحاضرة الساعة 5", fixedNow);
+assert.equal(reminderIntent?.action, "create", "Arabic reminder command should be recognized");
+assert.equal(reminderIntent?.type, "reminder", "Reminder command should create a reminder");
+assert.match(reminderIntent?.title || "", /أراجع المحاضرة/, "Reminder title should retain the task description");
+assert.equal(new Date(reminderIntent.scheduledAt).getHours(), 17, "An upcoming clock time should use the next occurrence");
+const alarmIntent = parseTaskCommand("صحيني الساعة 9", fixedNow);
+assert.equal(alarmIntent?.type, "alarm", "Wake-up phrase should create an alarm");
+assert.equal(new Date(alarmIntent.scheduledAt).getHours(), 9, "Morning alarm should preserve the requested hour");
+assert.equal(parseTaskCommand("صحيني الفجر", fixedNow)?.action, "needs_fajr_time", "Fajr alarm must request a real prayer time");
+assert.equal(parseTaskCommand("وريني المنبهات", fixedNow)?.action, "list", "Task list command should be recognized");
+assert.equal(parseTaskCommand("الغى كل التذكيرات", fixedNow)?.all, true, "Bulk task cancellation should be recognized");
+assert.equal(normalizeTaskText("الساعة ٩:٣٠"), "الساعه 9:30", "Arabic numerals and clock separators should normalize safely");
+assert.match(app, /parseTaskCommand\(clean\)/, "Voice and text turns should route task commands locally");
+assert.match(app, /window\.SolinaNative/, "Task actions must use the native Android bridge");
+assert.match(html, /id="scheduledTasksList"/, "Settings should expose saved reminders and alarms");
+console.log("Arabic task parser checks passed.");
