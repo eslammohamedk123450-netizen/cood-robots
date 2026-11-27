@@ -482,7 +482,7 @@ function setFeedback(id, message, isError = false) {
   node.textContent = message;
   node.style.color = isError ? "#ff9d91" : "";
 }
-function openSettings() { $("settingsDialog").showModal(); }
+function openSettings() { $("settingsDialog").showModal(); void loadProviders(); }
 function closeSettings() { $("settingsDialog").close(); }
 
 const providerDefaults = {
@@ -531,12 +531,25 @@ async function loadProviders() {
     $("providerList").textContent = "اكتب كود المالك لعرض مفاتيح API والنماذج.";
     return;
   }
+  const container = $("providerList");
+  container.textContent = "جاري تحميل مفاتيح API المحفوظة...";
   try {
     const data = await invokeNova("list");
-    state.providers = data.providers || [];
-    state.models = data.models || [];
+    if (!Array.isArray(data.providers) || !Array.isArray(data.models)) {
+      throw new Error("استجابة قائمة المفاتيح من الخادم غير مكتملة.");
+    }
+    state.providers = data.providers;
+    state.models = data.models;
     renderProviders();
+    setFeedback("settingsFeedback", state.providers.length
+      ? "تم تحميل " + state.providers.length + " مفتاح محفوظ من الخادم."
+      : "اتصلنا بالخادم، ولم يتم العثور على مفاتيح لهذا الحساب.");
   } catch (error) {
+    container.replaceChildren();
+    const message = document.createElement("p");
+    message.className = "empty-provider-list";
+    message.textContent = "تعذر تحميل المفاتيح من الخادم: " + error.message + " — اضغط تحديث القائمة للمحاولة مرة أخرى.";
+    container.append(message);
     setFeedback("settingsFeedback", error.message, true);
   }
 }
@@ -1135,6 +1148,7 @@ $("ownerName").addEventListener("change", (event) => {
   if ($("greeting")) $("greeting").textContent = "أهلاً يا " + state.ownerName + "، نورتني.";
 });
 $("addProviderButton").addEventListener("click", () => void addProvider());
+$("reloadProvidersButton")?.addEventListener("click", () => void loadProviders());
 $("saveOwnerMemory")?.addEventListener("click", () => void saveOwnerMemory());
 $("saveSpeechSettings")?.addEventListener("click", () => void saveSpeechSettings());
 $("reloadSpeechVoices")?.addEventListener("click", async () => {
