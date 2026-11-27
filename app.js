@@ -33,7 +33,6 @@ const personas = {
   soly: { name: "سولي", description: "صاحبك الأزرق 💙", color: "#69a0ff", accent: "#2760c7", intro: "سولي معاك" },
   soleen: { name: "سولين", description: "صاحبتك الوردية 💗", color: "#f58bc4", accent: "#b62aa5", intro: "سولين معاكي" }
 };
-let character3D = null;
 let speechAudioContext = null;
 
 function setStatus(label, mood = "idle") {
@@ -83,7 +82,6 @@ function setPersona(persona) {
     button.classList.toggle("selected", button.dataset.persona === persona);
     button.setAttribute("aria-pressed", String(button.dataset.persona === persona));
   });
-  character3D?.setPersona(persona);
   setStatus(current.intro, state.listening ? "listening" : "idle");
 }
 function animateCharacter(kind) {
@@ -776,12 +774,7 @@ window.addEventListener("nova:authenticated", (event) => {
   void loadSpeechSettings();
 });
 applyProviderDefaults();
-import("./nova-3d.js").then(({ initNOVACharacter3D }) => {
-  character3D = initNOVACharacter3D();
-  character3D?.setPersona(state.persona);
-}).catch((error) => {
-  console.warn("3D module unavailable; using the CSS fallback.", error);
-});
+// Legacy 3D mannequin renderer removed; only the OLED face remains.
 setPersona("soly");
 setStatus("سولي معاك", "idle");
 
