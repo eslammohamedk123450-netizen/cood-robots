@@ -138,3 +138,8 @@ assert.match(css, /data-emotion="happy".*face-mouth/, "Happy and playful express
 assert.match(app, /إفيهات مصرية ذكية ومواقف يومية/, "The AI persona must use natural Egyptian humor");
 assert.match(app, /الصدق أساسي/, "The AI persona must explicitly prioritize honesty and uncertainty");
 assert.match(app, /--face-talk-energy/, "Speech energy must animate facial details beyond the mouth");
+
+assert.match(app, /function sanitizeInternalReply\(/, "Client must sanitize internal memory tags before display and TTS");
+assert.match(app, /NOVA\|NOA/, "Client reply sanitizer must handle NOA and NOVA memory tags");
+assert.match(edge, /function sanitizeInternalReplyText\(/, "Server must sanitize internal memory metadata");
+assert.match(edge, /NOVA\|NOA/, "Server sanitizer must handle NOA and NOVA variants");
