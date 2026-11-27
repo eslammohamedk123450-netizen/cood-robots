@@ -143,3 +143,7 @@ assert.match(edge, /سياق مسترجع من محادثات سابقة للش�
 assert.match(edge, /oldRowsError/, "Server-side history retrieval errors must be handled explicitly");
 assert.match(html, /nova-quick-conversation-v54/, "Client cache version must be refreshed after UX changes");
 assert.match(css, /NOVA responsive voice-first polish/, "Responsive voice-first visual polish must be present");
+
+assert.match(app, /Keep the dedicated interrupt listener alive during playback/, "Voice interruption listener must remain active while NOVA speaks");
+assert.doesNotMatch(app, /if \(state\.listening\) startInterruptRecognition\(\);\s*stopInterruptRecognition\(\)/, "Speech playback must not immediately disable the interrupt listener");
+assert.match(html, /nova-quick-conversation-v55/, "Client bundle cache must refresh after the interrupt fix");
