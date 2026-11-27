@@ -1002,7 +1002,7 @@ function handleLocalVoiceCommand(value) {
     void playStopAcknowledgement();
     return { handled: true, addressed: true };
   }
-  if (addressed && !normalized.replace(wakePattern, " ").replace(/\\s+/g, " ").trim()) {
+  if (addressed && !normalized.replace(wakePattern, " ").replace(/\s+/g, " ").trim()) {
     setStatus("أيوه، معاك", "listening");
     $("liveTranscript").textContent = "أيوه، سامعك. قولّي.";
     return { handled: true, addressed: true };
@@ -1156,9 +1156,9 @@ function handleTaskDialogue(clean) {
     return { handled: true, intent: { action: "snooze_task", taskId: String(dueReminders[0].id), minutes: 10 } };
   }
   const pending = state.pendingTaskDraft;
-  const confirmationText = normalizeTaskText(clean).replace(/^(?:يا\\s*)?سولينا\\s*/,"").replace(/^(?:طيب|تمام|خلاص|ماشي)\\s*/,"").trim();
-  const yes = /^(?:أيوه|ايوه|اه|أه|تمام|موافق|موافقة|احفظيه|احفظي|احفظ|سجليه|سجل|أكد|اكدي|نعم|yes)(?:\\s+(?:الموعد|التذكير|ده|دي|ه|ها))?$/.i.test(confirmationText);
-  const no = /^(?:لا|لأ|مش دلوقتي|الغيه|الغي|إلغاء|cancel)(?:\\s+(?:الموعد|التذكير|ده|دي))?$/.i.test(confirmationText);
+  const confirmationText = normalizeTaskText(clean).replace(/^(?:يا\s*)?سولينا\s*/,"").replace(/^(?:طيب|تمام|خلاص|ماشي)\s*/,"").trim();
+  const yes = /^(?:أيوه|ايوه|اه|أه|تمام|موافق|موافقة|احفظيه|احفظي|احفظ|سجليه|سجل|أكد|اكدي|نعم|yes)(?:\s+(?:الموعد|التذكير|ده|دي|ه|ها))?$/.i.test(confirmationText);
+  const no = /^(?:لا|لأ|مش دلوقتي|الغيه|الغي|إلغاء|cancel)(?:\s+(?:الموعد|التذكير|ده|دي))?$/.i.test(confirmationText);
   if (pending && pending.stage === "confirm") {
     if (yes) {
       state.pendingTaskDraft = null;
