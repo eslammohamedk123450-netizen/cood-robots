@@ -1,5 +1,5 @@
 // Android APK build refresh: settings pages + staged native reminder bridge.
-import { parseTaskCommand, formatTaskDate, normalizeTaskText } from "./task-manager.js?v=solina-task-normalize-v8";
+import { parseTaskCommand, formatTaskDate, normalizeTaskText } from "./task-manager.js?v=solina-permission-intents-v1";
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soleen", emotion: "idle", listening: false, speaking: false,
@@ -1317,6 +1317,11 @@ async function executeTaskIntent(intent) {
     } catch (_) { return "حصل خطأ وأنا بأجل التذكير."; }
   }
   if (intent.action === "unsupported_device") return "فهمت إنك عايزني أنفّذ أمر على الهاتف، لكن التحكم ده لسه مش مفعّل عندي. مش هحوّل الأمر لرد من الذكاء الاصطناعي أو أدّعي إني نفّذته.";
+  if (intent.action === "open_permissions") {
+    openSettings();
+    openSettingsPage("permissions");
+    return "أكيد. فتحتلك قسم صلاحيات الجهاز؛ اختار الصلاحية اللي عايز تفعّلها، وهوجّهك لمكانها في إعدادات أندرويد.";
+  }
   if (intent.action === "open_settings") {
     if (!bridge || typeof bridge.openSettings !== "function") return "فتح إعدادات الهاتف متاح من تطبيق سولينا APK فقط.";
     try {
@@ -1695,6 +1700,7 @@ document.querySelectorAll("[data-open-settings-page]").forEach(button => {
   button.addEventListener("click", () => openSettingsPage(button.dataset.openSettingsPage));
 });
 $("refreshScheduledTasks")?.addEventListener("click", renderScheduledTasks);
+$("refreshPermissionsButton")?.addEventListener("click", () => void refreshPermissionCards());
 $("permissionList")?.addEventListener("click", event => {
   const button = event.target.closest("[data-permission-action]");
   if (button && !button.disabled) requestDevicePermission(button.dataset.permissionAction);
