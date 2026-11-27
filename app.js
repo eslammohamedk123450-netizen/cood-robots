@@ -1631,6 +1631,7 @@ async function executeTaskIntent(intent) {
     try {
       saved = await savePersonalItem({ id, item_type: intent.type, title: intent.title, content: "", scheduled_at: new Date(at).toISOString() });
     } catch (error) { return "ماقدرتش أحفظ الموعد في حسابك: " + error.message; }
+    if (personalItemDate(saved) !== at) return "الحساب رجّع وقتًا مختلفًا عن الموعد المطلوب، فمش هفعّل منبه بوقت غير مؤكد.";
     let deviceReady = false;
     if (bridge) {
       try {
