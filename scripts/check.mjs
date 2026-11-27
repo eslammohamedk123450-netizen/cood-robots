@@ -218,3 +218,7 @@ assert.match(pin, /window\.solinaActivateOwnerSession\?\.\(token\)/, "PIN bootst
 assert.match(pin, /window\.novaEnsureOwnerSession = ensureOwnerSession/, "Protected app actions must be able to restore the owner session on demand");
 assert.match(pin, /temporary network failure must never erase a still-valid owner token/, "Transient network failures must not destroy the saved owner session");
 assert.match(app, /await window\.novaEnsureOwnerSession\(\)/, "Protected API calls must recover a missing owner session before failing");
+
+assert.match(pin, /if \(result\.valid\) \{ openApp\(saved\); return saved; \}/, "Validated owner session restoration must return the token to callers");
+assert.doesNotMatch(pin, /payload\.token \? \{ "Authorization": "Bearer "/, "Session validation must send the custom owner token in its JSON body, not as a Supabase JWT");
+assert.match(app, /const restoredToken = await window\.novaEnsureOwnerSession\(\);\s*if \(typeof restoredToken === "string" && restoredToken\) state\.session = restoredToken/, "Protected calls must receive the validated owner token directly");
