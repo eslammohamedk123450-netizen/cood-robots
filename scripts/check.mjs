@@ -88,7 +88,16 @@ assert.match(edge, /actionLimits/, "Each API action must have an explicit reques
 assert.doesNotMatch(edge, /SUPABASE_SERVICE_ROLE_KEY\s*=\s*["'][^"']+["']/, "Service-role secrets must not be hard-coded");
 assert.match(workflow, /needs: check/, "Pages deployment must depend on the quality check job");
 assert.match(workflow, /npm test/, "CI must run repository tests");
-assert.doesNotMatch(html + app + css + workflow, /nova-3d\.js|initNOVACharacter3D|character3D|robot-body|robot-head|robot-torso|robot-shadow|antenna|has-3d/, "Legacy mannequin renderer and styles must stay removed");
+assert.doesNotMatch(html + app + css + workflow, /nova-3d\\.js|initNOVACharacter3D|character3D|legacy-mannequin|old-robot-renderer|has-3d/, "Legacy mannequin renderer must stay removed");
+assert.match(html, /id="novaRobot"/, "The articulated NOVA robot body must exist");
+for (const part of ["robot-head-group","robot-neck","robot-torso","robot-arm-left","robot-arm-right","robot-hand","robot-leg-left","robot-leg-right"]) {
+  assert.match(html, new RegExp('class="[^"]*' + part + '[^"]*"'), "Robot must include " + part);
+}
+assert.match(css, /robot-explain-left/, "Robot arms must gesture while speaking");
+assert.match(css, /robot-listen-tilt/, "Robot must react physically while listening");
+assert.match(css, /robot-wave/, "Robot must have a waving gesture");
+assert.match(app, /robot\.dataset\.mood = mood/, "Robot body motion must follow live conversation mood");
+assert.match(app, /robot\?\.classList\.add\(className\)/, "Body gestures must be triggered with character actions");
 assert.match(html, /id="faceScreen"/, "OLED face must remain the only avatar");
 assert.match(html, /id="novaFaceMount"/, "Dedicated OLED face mount must exist");
 
