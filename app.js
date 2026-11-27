@@ -323,8 +323,9 @@ async function speak(text, segments = [], signal) {
   const persona = state.persona;
   const speechSegments = segments.length ? segments : [{ text: spokenText, emotion: state.replyEmotion || "neutral" }];
   state.speaking = true;
+  // Keep the dedicated interrupt listener alive during playback so "اسكت"
+  // can cancel speech immediately instead of being ignored.
   if (state.listening) startInterruptRecognition();
-  stopInterruptRecognition();
   if (state.audio) { try { state.audio.pause(); } catch (_) {} state.audio = null; }
   if (speechAudioElement) { try { speechAudioElement.pause(); } catch (_) {} speechAudioElement = null; }
   if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
