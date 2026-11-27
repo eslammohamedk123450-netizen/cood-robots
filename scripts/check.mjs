@@ -405,3 +405,12 @@ assert.match(androidMain, /speakText\(String text\)/, "Web app must be able to r
 assert.match(androidMain, /solina-native-tts/, "Native TTS playback status must be returned to the web app");
 assert.match(app, /speakWithNativeDevice\(text, segments\)/, "Android app must use native TTS before browser speech synthesis");
 assert.match(app, /تعذر تشغيل صوت سولينا:/, "Speech failure must be visible instead of silently dropping audio");
+
+assert.equal(normalizeTaskText("سِيْلينا"), "سولينا", "Common Solina name pronunciations must normalize consistently");
+assert.equal(parseTaskCommand("سيلينا افتحي فيسبوك لايت", fixedNow)?.appName, "فيسبوك لايت", "Lite app command with alternate wake name must preserve the exact app variant");
+assert.equal(parseTaskCommand("سلينا افتحيلي فيسبوك", fixedNow)?.appName, "فيسبوك", "Colloquial open-me command and shortened wake name must be recognized");
+assert.equal(parseTaskCommand("سولي نا شغلي واتساب", fixedNow)?.action, "open_app", "Split wake-name recognition must route app commands locally");
+assert.match(java, /facebooklite/, "Android app resolver must recognize Facebook Lite separately");
+assert.match(java, /Never mistake Facebook Lite for Facebook/, "Android app resolver must prevent Lite/standard cross-launch");
+assert.match(app, /فيسبوك العادي وفيسبوك لايت تطبيقان مختلفان/, "AI system prompt must understand distinct app variants");
+assert.match(app, /محرك أوامر الجهاز المحلي/, "AI system prompt must know app opening is a real local capability");
