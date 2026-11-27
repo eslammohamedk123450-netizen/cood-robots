@@ -397,7 +397,7 @@ public class MainActivity extends Activity {
                 return new JSONObject().put("platform", "android").put("microphone", microphone)
                         .put("notifications", notifications).put("exactAlarms", exact)
                         .put("fullScreenIntent", fullScreen).toString();
-            } catch (Exception ignored) { return "{\\"platform\\":\\"android\\"}"; }
+            } catch (Exception ignored) { return "{}"; }
         }
 
         @JavascriptInterface public String platformInfo() {
