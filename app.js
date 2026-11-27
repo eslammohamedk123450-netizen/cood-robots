@@ -493,8 +493,12 @@ const providerDefaults = {
   custom: { label: "مزود مخصص", url: "https://api.example.com/v1" }
 };
 async function invokeNova(action, payload = {}, options = {}) {
+  // Recover a validated owner session on demand before any protected API call.
+  if (!state.session && typeof window.novaEnsureOwnerSession === "function") {
+    await window.novaEnsureOwnerSession();
+  }
   const token = state.session;
-  if (!token) throw new Error("اكتب كود المالك أولًا لربط NOVA بالخادم.");
+  if (!token) throw new Error("جلسة المالك غير متصلة. تعذر استعادتها تلقائيًا؛ افتح شاشة الدخول وحاول مرة أخرى.");
   const response = await fetch("https://razvryvazmqvvqkzetuo.supabase.co/functions/v1/nova-ai", {
     method: "POST",
     headers: {
@@ -527,8 +531,12 @@ function applyProviderDefaults() {
   $("customProviderWarning").hidden = $("providerType").value !== "custom";
 }
 async function loadProviders() {
+  if (!state.session && typeof window.novaEnsureOwnerSession === "function") {
+    $("providerList").textContent = "جاري استعادة جلسة المالك والتحقق منها...";
+    await window.novaEnsureOwnerSession();
+  }
   if (!state.session) {
-    $("providerList").textContent = "اكتب كود المالك لعرض مفاتيح API والنماذج.";
+    $("providerList").textContent = "جلسة المالك غير متصلة. افتح شاشة الدخول لاستعادتها.";
     return;
   }
   const container = $("providerList");
@@ -1242,10 +1250,14 @@ function activateOwnerSession(token) {
   void loadConversationHistory(true);
 }
 window.addEventListener("nova:authenticated", (event) => activateOwnerSession(event.detail?.token || null));
-// pin.js may finish its async session check before this module has executed.
-// The token is written only after a successful server validation, so adopt it here too.
-const savedOwnerSession = localStorage.getItem("nova.owner.session.v2");
-if (savedOwnerSession) activateOwnerSession(savedOwnerSession);
+// Direct callback plus a pending-token handoff makes session restoration independent
+// of script/event timing. Only pin.js may publish a token after server validation.
+window.solinaActivateOwnerSession = (token) => activateOwnerSession(token);
+const pendingOwnerSession = window.__solinaPendingOwnerToken || null;
+if (pendingOwnerSession) {
+  activateOwnerSession(pendingOwnerSession);
+  delete window.__solinaPendingOwnerToken;
+}
 
 // Owner session restoration is handled only by pin.js to avoid two
 // competing startup checks clearing a freshly authenticated session.
