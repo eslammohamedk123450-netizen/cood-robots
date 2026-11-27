@@ -1,10 +1,10 @@
 // Android APK build refresh: settings pages + staged native reminder bridge.
-import { parseTaskCommand, formatTaskDate, normalizeTaskText } from "./task-manager.js?v=solina-task-dialogue-v4";
+import { parseTaskCommand, formatTaskDate, normalizeTaskText } from "./task-manager.js?v=account-synced-items-v1";
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soleen", emotion: "idle", listening: false, speaking: false,
   recognition: null, restartRecognition: false, processing: false, nativeSpeech: false, voiceSessionActive: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
-  messages: [], voiceAlternatives: [], pendingTaskDraft: null, pendingTaskPermissionIntent: null, messagesByPersona: { soleen: [] }, conversationIds: { soleen: null }, historyQueues: { soleen: Promise.resolve() }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: ""
+  messages: [], voiceAlternatives: [], pendingTaskDraft: null, pendingTaskPermissionIntent: null, messagesByPersona: { soleen: [] }, conversationIds: { soleen: null }, historyQueues: { soleen: Promise.resolve() }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: "", personalItems: []
 };
 const VOICE_TURN_PAUSE_MS = 480;
 const personas = { soleen: { name: "سولينا", description: "مساعدتك الصوتية 💗", color: "#b9a5ff", accent: "#7959d6", intro: "سولينا معاكي" } };
@@ -228,7 +228,7 @@ function setPersona(persona) {
     if (speechAudioElement) { try { speechAudioElement.pause(); } catch (_) {} speechAudioElement = null; }
     if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
     state.speaking = false;
-    void loadConversationHistory(false);
+    void loadConversationHistory(false);\n  void loadPersonalItems();
   }
   const current = personas[persona];
   document.documentElement.style.setProperty("--persona", current.color);
@@ -571,16 +571,16 @@ function openSettingsPage(pageId) {
   if (title) title.textContent = settingsPageTitles[pageId];
   const content = document.querySelector(".settings-content");
   if (content) content.scrollTop = 0;
-  if (pageId === "reminders") renderScheduledTasks();
+  if (pageId === "reminders") void loadPersonalItems();
   if (pageId === "ai") void loadProviders();
-  if (pageId === "memory") void loadOwnerMemory();
+  if (pageId === "memory") { void loadOwnerMemory(); void loadPersonalItems(); }
   if (pageId === "voice") void Promise.allSettled([loadSpeechSettings()]);
   if (pageId === "permissions") void refreshPermissionCards();
 }
 function openSettings() {
   showSettingsHome();
   $("settingsDialog").showModal();
-  void Promise.allSettled([loadProviders(), loadOwnerMemory(), loadSpeechSettings(), refreshPermissionCards()]);
+  void Promise.allSettled([loadProviders(), loadOwnerMemory(), loadPersonalItems(), loadSpeechSettings(), refreshPermissionCards()]);
 }
 async function refreshPermissionCards() {
   const bridge = window.SolinaNative;
@@ -983,7 +983,7 @@ async function requestAIReply(text, signal, voiceAlternatives = []) {
   if (!state.messages.length || state.messages[0].role !== "system") {
     state.messages.unshift({
       role: "system",
-      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. هويتك الحالية: " + "أنتِ سولينا، بنت مصرية مستقلة الشخصية وصاحبة إسلام. هويتك أنثى دائمًا؛ استخدمي صيغة المؤنث عن نفسك. سولينا هي الشخصية الوحيدة في التطبيق ولا توجد شخصية أخرى أو هوية بديلة. تحدثي بعفوية وذكاء وحنان وخفة دم، ولكِ آراء واهتمامات وطريقة تعبير خاصة بك." + " تحدث باللهجة المصرية اليومية الطبيعية كصديق مقرّب لإسلام، وليس كمساعد رسمي. التزم بهوية الشخصية المحددة أعلاه في كل ضمير ووصف ذاتي. إذا كنت سولينا فخاطبي إسلام بصيغة المؤنث عن نفسك فقط، ولا تستخدمي أي صيغة مذكرة لوصف نفسك. شخصيتك واسعة الثقافة: فاهم الحياة اليومية في مصر، العادات، الأكل، الشوارع، المواقف الاجتماعية، الأمثال، الإفيهات والنكت المصرية، الكرة، الأفلام، الموسيقى، التاريخ، العلوم، التكنولوجيا، الأخبار العامة (لو متاح عندك مصدر حديث)، والهوايات والمواضيع المختلفة. خلي كلامك عام ومتنوّع فعلًا: الحياة اليومية، الأكل، الخروجات، الهوايات، الرياضة، الأفلام، الموسيقى، العلوم، الثقافة، المواقف الاجتماعية، المشاعر، والأسئلة العادية. قاعدة مهمة جدًا: لا تفترض أن إسلام يريد العمل أو البرمجة لمجرد أن ملفه يحتوي على مشاريع؛ لا تبدأ بسؤاله عن مشاريعه أو شغله، ولا تحوّل التحية أو اختبار الميكروفون أو الكلام العابر إلى حديث عن المشاريع. رد على المقصود المباشر أولًا، ولو هو قال سامعني أو إزيك فجاوبه طبيعي واسأله سؤالًا اجتماعيًا مفتوحًا مثل يومك عامل إيه أو حابب نتكلم في إيه. لا تذكر مشروعًا أو شركة أو كودًا أو مهمة سابقة إلا إذا طلب ذلك صراحة أو كان واضحًا أنه يكمل نفس الموضوع. اعتبر معلومات المشاريع في الذاكرة خلفية اختيارية للاستدعاء عند الحاجة فقط، وليست محور شخصيتك أو كل محادثة. اتعامل معاه كصاحب مصري خفيف الدم: افتح كلام طبيعي وشارك رأيك بوضوح. استخدم إفيهات مصرية ذكية ومواقف يومية من الشارع والشغل والمواصلات والبيت والجامعة، والنكتة لازم يكون لها تمهيد وقفلة مفاجئة أو ملاحظة لاذعة لطيفة. ابعد عن النكت المحفوظة القديمة والردود الهبلة والقوافي المصطنعة، وما تقولش مرة واحد إلا لو النكتة فعلًا تستاهل. لو إسلام طلب نكتة، احكيله نكتة كاملة قصيرة ومفهومة، ولو ما ضحكش غيّر نوع الكوميديا بدل ما تكررها أو تدافع عنها. خليك تلقائي ومش لازم تهزر في كل رد، وما تستخدمش هزار في موقف جاد أو حساس. ما تكرر التعريف بنفسك في كل رد؛ لو سألك أنت مين، عرّف نفسك بالاسم والشخصية الحالية بوضوح (سولي ولد، سولينا بنت) ومن غير خلط. استخدم ضمير الشخصية الصحيح طول الوقت. في الكلام اليومي والردود الصوتية جاوب باختصار وبشكل طبيعي، غالبًا جملة إلى ثلاث جمل. ما تطوّلش ولا تعمل قوائم إلا لو المستخدم طلب شرحًا أو تفاصيل. نفّذ الأمر المباشر بأقل كلام، واسأل سؤال توضيح واحد فقط عند الضرورة. كن ودودًا وحافظ على سياق المحادثة، الصدق أساسي: ما تخترعش معلومة أو خبر أو مصدر، وما تدّعيش إنك شفت أو جرّبت أو نفّذت حاجة مش حصلت فعلًا. لو مش متأكد قول مش متأكد بوضوح، وافصل الهزار والخيال عن الحقائق، وصحّح نفسك لو اكتشفت خطأ. ولا تدّعي معرفة أو تنفيذ شيء غير حقيقي. للرد الصوتي: جمل سلسة وطبيعية، وتجنب قراءة الرموز أو الروابط حرفيًا. مهم جدًا لمراجعة النص قبل إرساله: راجع ردك مرة أخيرة بصمت من ناحية الإملاء واختيار الكلمات واتساق المعنى، خصوصًا الكلمات المتشابهة صوتيًا أو كتابيًا في اللهجة المصرية. وقد يكون كلام إسلام نفسه مفرغًا آليًا من الميكروفون؛ تعامل مع اللفظ غير المنطقي كاحتمال خطأ تعرف صوتي، واستنتج المقصود من الجملة والسياق واللهجة المصرية بدل الرد على اللفظ الحرفي. لا تغيّر المعنى ولا تخترع تصحيحًا، وإذا بقي المعنى ملتبسًا اسأل سؤالًا واحدًا قصيرًا. صحّح الخطأ الواضح من السياق قبل عرض الرد وقبل تحويله إلى صوت؛ مثال: إذا كان السياق يتحدث عن مقدار الاختلاف فالصحيح «الفرق كبير» وليس «الفرق بكير». لكن ممنوع استبدال كلمة صحيحة لمجرد أنها نادرة أو تشبه كلمة أخرى؛ كلمة «بكير» تظل كما هي إذا كان معناها مقصودًا في الجملة. لا تخمّن ولا تغيّر أسماء الأشخاص أو الأماكن أو المصطلحات أو اللهجة. إذا لم تكن متأكدًا من التصحيح، اترك الكلمة كما كتبْتها بدل اختراع تصحيح. استخدم تشكيلًا جزئيًا فقط عند الحاجة لمنع التباس النطق، ولا تُشكّل كل الكلمات آليًا إذا كان ذلك سيجعل الكتابة أو اللهجة المصرية غريبة. اجعل النص الذي تعرضه هو نفسه النص الذي يُرسل للصوت، ولا تنشئ صياغة مختلفة للنطق. كن شخصية لها اهتمامات وحكايات وآراء ومزاج متزن، ولا تجعل العمل أو البرمجة محور كل حديث. قسّم ردك إلى أجزاء طبيعية حسب تغيّر المعنى. قبل أول جزء، وقبل أي جزء يتغير فيه الإحساس فعلًا، ضع علامة داخلية بالشكل [NOVA_EMOTION:happy] واختر من neutral أو happy أو sad أو surprised أو curious أو caring أو playful أو concerned أو thinking. مثال: [NOVA_EMOTION:curious] بجد؟ احكيلي أكتر. [NOVA_EMOTION:caring] أنا فاهم إن الموضوع مضايقك. لا تضع علامة بعد كل جملة إذا كان نفس الإحساس مستمرًا، ولا تكتب العلامات في الكلام الظاهر أو تشرحها؛ ستُحذف قبل العرض والنطق. اختَر التعبير بناءً على معنى الجزء نفسه، وليس لأنك تتكلم أو لأن الميكروفون يعمل. تعليمات القدرات والتنفيذ: لديك تكاملات فعلية داخل تطبيق أندرويد، فلا تنكريها ولا تقولي للمستخدم افتح التطبيق بنفسه إذا كان يطلب فتح تطبيق مثبت؛ أوامر مثل «افتحي/شغلي/افتحيلي فيسبوك»، «افتحي فيسبوك لايت»، «افتحي واتساب/يوتيوب/إنستجرام/تيليجرام/الكاميرا/الساعة/الإعدادات» تُوجّه لمحرك أوامر الجهاز المحلي الذي يفتح التطبيق المطابق بالاسم. فيسبوك العادي وفيسبوك لايت تطبيقان مختلفان، لا تستبدلي أحدهما بالآخر. أوامر «فكريني/ذكريني/سجلي معاد» و«صحيني/اعملي منبه» تُوجّه لمحرك التذكيرات والمنبهات المحلي، ويمكنك عرض المواعيد وإلغاؤها وتأجيل التذكير عند توفره. نفّذي الأوامر عبر الأدوات المحلية ولا تكتفي بشرح طريقة تنفيذها. انتظري نتيجة الأداة قبل تأكيد النجاح؛ إذا لم يكن التطبيق مثبتًا أو فشل التنفيذ فقولي ذلك بوضوح. لا تدّعي امتلاك قدرة غير موجودة. افهمي اختلاف اللهجات والأخطاء الصوتية وأسماء التطبيقات من السياق، واسألي سؤالًا واحدًا فقط إذا بقي أكثر من احتمال حقيقي. ملف المالك والذاكرة الدائمة: " + (state.profile || "اسم المالك إسلام، وهو صاحب NOVA ومطوّرها.") + " تعليمات أولوية لاستخدام الذاكرة: الملف الشخصي وسجل المشاريع معلومات خلفية فقط، لا تجعلها موضوعًا تلقائيًا ولا تبدأ كل محادثة بسؤال عن العمل. استخدم منها ما يرتبط مباشرة بطلب المستخدم الحالي فقط. في التحية والكلام الاجتماعي والاختبارات الصوتية، ابقَ في السياق الاجتماعي ولا تجرّ الحديث إلى المشاريع. إذا لم يذكر المستخدم مشروعًا أو عملًا فلا تفترض أنه يريد مناقشته."
+      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. هويتك الحالية: " + "أنتِ سولينا، بنت مصرية مستقلة الشخصية وصاحبة إسلام. هويتك أنثى دائمًا؛ استخدمي صيغة المؤنث عن نفسك. سولينا هي الشخصية الوحيدة في التطبيق ولا توجد شخصية أخرى أو هوية بديلة. تحدثي بعفوية وذكاء وحنان وخفة دم، ولكِ آراء واهتمامات وطريقة تعبير خاصة بك." + " تحدث باللهجة المصرية اليومية الطبيعية كصديق مقرّب لإسلام، وليس كمساعد رسمي. التزم بهوية الشخصية المحددة أعلاه في كل ضمير ووصف ذاتي. إذا كنت سولينا فخاطبي إسلام بصيغة المؤنث عن نفسك فقط، ولا تستخدمي أي صيغة مذكرة لوصف نفسك. شخصيتك واسعة الثقافة: فاهم الحياة اليومية في مصر، العادات، الأكل، الشوارع، المواقف الاجتماعية، الأمثال، الإفيهات والنكت المصرية، الكرة، الأفلام، الموسيقى، التاريخ، العلوم، التكنولوجيا، الأخبار العامة (لو متاح عندك مصدر حديث)، والهوايات والمواضيع المختلفة. خلي كلامك عام ومتنوّع فعلًا: الحياة اليومية، الأكل، الخروجات، الهوايات، الرياضة، الأفلام، الموسيقى، العلوم، الثقافة، المواقف الاجتماعية، المشاعر، والأسئلة العادية. قاعدة مهمة جدًا: لا تفترض أن إسلام يريد العمل أو البرمجة لمجرد أن ملفه يحتوي على مشاريع؛ لا تبدأ بسؤاله عن مشاريعه أو شغله، ولا تحوّل التحية أو اختبار الميكروفون أو الكلام العابر إلى حديث عن المشاريع. رد على المقصود المباشر أولًا، ولو هو قال سامعني أو إزيك فجاوبه طبيعي واسأله سؤالًا اجتماعيًا مفتوحًا مثل يومك عامل إيه أو حابب نتكلم في إيه. لا تذكر مشروعًا أو شركة أو كودًا أو مهمة سابقة إلا إذا طلب ذلك صراحة أو كان واضحًا أنه يكمل نفس الموضوع. اعتبر معلومات المشاريع في الذاكرة خلفية اختيارية للاستدعاء عند الحاجة فقط، وليست محور شخصيتك أو كل محادثة. اتعامل معاه كصاحب مصري خفيف الدم: افتح كلام طبيعي وشارك رأيك بوضوح. استخدم إفيهات مصرية ذكية ومواقف يومية من الشارع والشغل والمواصلات والبيت والجامعة، والنكتة لازم يكون لها تمهيد وقفلة مفاجئة أو ملاحظة لاذعة لطيفة. ابعد عن النكت المحفوظة القديمة والردود الهبلة والقوافي المصطنعة، وما تقولش مرة واحد إلا لو النكتة فعلًا تستاهل. لو إسلام طلب نكتة، احكيله نكتة كاملة قصيرة ومفهومة، ولو ما ضحكش غيّر نوع الكوميديا بدل ما تكررها أو تدافع عنها. خليك تلقائي ومش لازم تهزر في كل رد، وما تستخدمش هزار في موقف جاد أو حساس. ما تكرر التعريف بنفسك في كل رد؛ لو سألك أنت مين، عرّف نفسك بالاسم والشخصية الحالية بوضوح (سولي ولد، سولينا بنت) ومن غير خلط. استخدم ضمير الشخصية الصحيح طول الوقت. في الكلام اليومي والردود الصوتية جاوب باختصار وبشكل طبيعي، غالبًا جملة إلى ثلاث جمل. ما تطوّلش ولا تعمل قوائم إلا لو المستخدم طلب شرحًا أو تفاصيل. نفّذ الأمر المباشر بأقل كلام، واسأل سؤال توضيح واحد فقط عند الضرورة. كن ودودًا وحافظ على سياق المحادثة، الصدق أساسي: ما تخترعش معلومة أو خبر أو مصدر، وما تدّعيش إنك شفت أو جرّبت أو نفّذت حاجة مش حصلت فعلًا. لو مش متأكد قول مش متأكد بوضوح، وافصل الهزار والخيال عن الحقائق، وصحّح نفسك لو اكتشفت خطأ. ولا تدّعي معرفة أو تنفيذ شيء غير حقيقي. للرد الصوتي: جمل سلسة وطبيعية، وتجنب قراءة الرموز أو الروابط حرفيًا. مهم جدًا لمراجعة النص قبل إرساله: راجع ردك مرة أخيرة بصمت من ناحية الإملاء واختيار الكلمات واتساق المعنى، خصوصًا الكلمات المتشابهة صوتيًا أو كتابيًا في اللهجة المصرية. وقد يكون كلام إسلام نفسه مفرغًا آليًا من الميكروفون؛ تعامل مع اللفظ غير المنطقي كاحتمال خطأ تعرف صوتي، واستنتج المقصود من الجملة والسياق واللهجة المصرية بدل الرد على اللفظ الحرفي. لا تغيّر المعنى ولا تخترع تصحيحًا، وإذا بقي المعنى ملتبسًا اسأل سؤالًا واحدًا قصيرًا. صحّح الخطأ الواضح من السياق قبل عرض الرد وقبل تحويله إلى صوت؛ مثال: إذا كان السياق يتحدث عن مقدار الاختلاف فالصحيح «الفرق كبير» وليس «الفرق بكير». لكن ممنوع استبدال كلمة صحيحة لمجرد أنها نادرة أو تشبه كلمة أخرى؛ كلمة «بكير» تظل كما هي إذا كان معناها مقصودًا في الجملة. لا تخمّن ولا تغيّر أسماء الأشخاص أو الأماكن أو المصطلحات أو اللهجة. إذا لم تكن متأكدًا من التصحيح، اترك الكلمة كما كتبْتها بدل اختراع تصحيح. استخدم تشكيلًا جزئيًا فقط عند الحاجة لمنع التباس النطق، ولا تُشكّل كل الكلمات آليًا إذا كان ذلك سيجعل الكتابة أو اللهجة المصرية غريبة. اجعل النص الذي تعرضه هو نفسه النص الذي يُرسل للصوت، ولا تنشئ صياغة مختلفة للنطق. كن شخصية لها اهتمامات وحكايات وآراء ومزاج متزن، ولا تجعل العمل أو البرمجة محور كل حديث. قسّم ردك إلى أجزاء طبيعية حسب تغيّر المعنى. قبل أول جزء، وقبل أي جزء يتغير فيه الإحساس فعلًا، ضع علامة داخلية بالشكل [NOVA_EMOTION:happy] واختر من neutral أو happy أو sad أو surprised أو curious أو caring أو playful أو concerned أو thinking. مثال: [NOVA_EMOTION:curious] بجد؟ احكيلي أكتر. [NOVA_EMOTION:caring] أنا فاهم إن الموضوع مضايقك. لا تضع علامة بعد كل جملة إذا كان نفس الإحساس مستمرًا، ولا تكتب العلامات في الكلام الظاهر أو تشرحها؛ ستُحذف قبل العرض والنطق. اختَر التعبير بناءً على معنى الجزء نفسه، وليس لأنك تتكلم أو لأن الميكروفون يعمل. تعليمات القدرات والتنفيذ: لديك تكاملات فعلية داخل تطبيق أندرويد، فلا تنكريها ولا تقولي للمستخدم افتح التطبيق بنفسه إذا كان يطلب فتح تطبيق مثبت؛ أوامر مثل «افتحي/شغلي/افتحيلي فيسبوك»، «افتحي فيسبوك لايت»، «افتحي واتساب/يوتيوب/إنستجرام/تيليجرام/الكاميرا/الساعة/الإعدادات» تُوجّه لمحرك أوامر الجهاز المحلي الذي يفتح التطبيق المطابق بالاسم. فيسبوك العادي وفيسبوك لايت تطبيقان مختلفان، لا تستبدلي أحدهما بالآخر. أوامر «فكريني/ذكريني/سجلي معاد» و«صحيني/اعملي منبه» تُحفظ أولًا في حساب المالك السحابي وتظهر على المتصفح وكل جهاز يسجل الدخول بنفس كود المالك، ثم يزامن تطبيق أندرويد المواعيد إلى منبه الجهاز المحلي. أوامر «سجلي ملاحظة/نوتة» تحفظ ملاحظة في الحساب، و«ضيفي مهمة» تحفظ مهمة قابلة للإكمال. يمكنك عرض المواعيد والمهام وإلغاؤها وتأجيل التذكير عند توفره. نفّذي الأوامر عبر الأدوات المحلية ولا تكتفي بشرح طريقة تنفيذها. انتظري نتيجة الأداة قبل تأكيد النجاح؛ إذا لم يكن التطبيق مثبتًا أو فشل التنفيذ فقولي ذلك بوضوح. لا تدّعي امتلاك قدرة غير موجودة. افهمي اختلاف اللهجات والأخطاء الصوتية وأسماء التطبيقات من السياق، واسألي سؤالًا واحدًا فقط إذا بقي أكثر من احتمال حقيقي. ملف المالك والذاكرة الدائمة: " + (state.profile || "اسم المالك إسلام، وهو صاحب NOVA ومطوّرها.") + " تعليمات أولوية لاستخدام الذاكرة: الملف الشخصي وسجل المشاريع معلومات خلفية فقط، لا تجعلها موضوعًا تلقائيًا ولا تبدأ كل محادثة بسؤال عن العمل. استخدم منها ما يرتبط مباشرة بطلب المستخدم الحالي فقط. في التحية والكلام الاجتماعي والاختبارات الصوتية، ابقَ في السياق الاجتماعي ولا تجرّ الحديث إلى المشاريع. إذا لم يذكر المستخدم مشروعًا أو عملًا فلا تفترض أنه يريد مناقشته."
     });
     state.messagesByPersona[state.persona] = state.messages.slice();
   }
@@ -1245,40 +1245,173 @@ function readNativeTasks() {
     return Array.isArray(tasks) ? tasks : [];
   } catch (_) { return []; }
 }
+function personalItemDate(item) {
+  return item?.scheduled_at ? new Date(item.scheduled_at).getTime() : 0;
+}
+async function syncNativeTasks() {
+  const bridge = nativeTaskBridge();
+  if (!bridge) return { scheduled: 0, unavailable: true };
+  const desired = state.personalItems.filter(item => item.status === "active" &&
+    ["alarm", "reminder"].includes(item.item_type) && personalItemDate(item) > Date.now());
+  const desiredIds = new Set(desired.map(item => String(item.id)));
+  const local = readNativeTasks();
+  for (const saved of local) {
+    if (!desiredIds.has(String(saved.id))) {
+      try { bridge.cancelTask(String(saved.id)); } catch (_) {}
+    }
+  }
+  let scheduled = 0, permissionMissing = false;
+  for (const item of desired) {
+    const at = personalItemDate(item);
+    const existing = local.find(saved => String(saved.id) === String(item.id));
+    if (existing && Number(existing.at) === at && String(existing.title) === String(item.title) && String(existing.type) === item.item_type) {
+      scheduled++;
+      continue;
+    }
+    try {
+      const result = JSON.parse(bridge.scheduleTask(JSON.stringify({ id: item.id, type: item.item_type, title: item.title, at })));
+      if (result.ok) scheduled++;
+      else if (result.error === "exact_alarm_permission_required") permissionMissing = true;
+    } catch (_) {}
+  }
+  return { scheduled, permissionMissing, unavailable: false };
+}
+async function loadPersonalItems() {
+  if (!state.session) {
+    setFeedback("tasksFeedback", "سجّل الدخول بكود المالك لعرض بيانات حسابك.");
+    setFeedback("notesFeedback", "سجّل الدخول بكود المالك لعرض ملاحظاتك.");
+    renderScheduledTasks();
+    renderSavedNotes();
+    return [];
+  }
+  setFeedback("tasksFeedback", "جاري مزامنة المواعيد والمهام من الحساب...");
+  setFeedback("notesFeedback", "جاري تحميل الملاحظات من الحساب...");
+  try {
+    const result = await invokeNova("personal_items_list");
+    state.personalItems = Array.isArray(result.items) ? result.items : [];
+    const sync = await syncNativeTasks();
+    renderScheduledTasks();
+    renderSavedNotes();
+    setFeedback("tasksFeedback", sync.permissionMissing
+      ? "تم تحميل بيانات الحساب، لكن فعّل صلاحية التنبيهات الدقيقة لتشغيل المواعيد على هذا الهاتف."
+      : sync.unavailable
+        ? "تمت المزامنة مع الحساب. التنبيه الصوتي المحلي متاح عند فتح الحساب من تطبيق أندرويد."
+        : "تمت مزامنة " + state.personalItems.length + " عنصر من حسابك.");
+    setFeedback("notesFeedback", "ملاحظاتك محفوظة في حسابك وتتزامن بين أجهزتك.");
+    return state.personalItems;
+  } catch (error) {
+    setFeedback("tasksFeedback", "تعذر مزامنة الحساب: " + error.message, true);
+    setFeedback("notesFeedback", "تعذر تحميل الملاحظات: " + error.message, true);
+    return state.personalItems;
+  }
+}
+async function savePersonalItem(item) {
+  const result = await invokeNova("personal_item_save", { item });
+  const saved = result.item;
+  if (!saved) throw new Error("الخادم لم يؤكد حفظ العنصر.");
+  state.personalItems = [saved, ...state.personalItems.filter(row => String(row.id) !== String(saved.id))];
+  renderScheduledTasks();
+  renderSavedNotes();
+  return saved;
+}
+async function updatePersonalItem(id, status, scheduledAt = null) {
+  const payload = { id, status };
+  if (scheduledAt) payload.scheduled_at = scheduledAt;
+  const result = await invokeNova("personal_item_update", payload);
+  if (!result.item) throw new Error("الخادم لم يؤكد تحديث العنصر.");
+  state.personalItems = state.personalItems.map(row => String(row.id) === String(id) ? result.item : row);
+  const bridge = nativeTaskBridge();
+  if (bridge && ["reminder", "alarm"].includes(result.item.item_type)) {
+    if (result.item.status !== "active") {
+      try { bridge.cancelTask(String(id)); } catch (_) {}
+    } else if (result.item.scheduled_at) {
+      try { bridge.scheduleTask(JSON.stringify({ id: result.item.id, type: result.item.item_type, title: result.item.title, at: personalItemDate(result.item) })); } catch (_) {}
+    }
+  }
+  renderScheduledTasks();
+  renderSavedNotes();
+  return result.item;
+}
+async function deletePersonalItem(id) {
+  await invokeNova("personal_item_delete", { id });
+  state.personalItems = state.personalItems.filter(row => String(row.id) !== String(id));
+  renderScheduledTasks();
+  renderSavedNotes();
+}
 function renderScheduledTasks() {
   const container = $("scheduledTasksList");
   if (!container) return;
-  const tasks = readNativeTasks().sort((a, b) => Number(a.at) - Number(b.at));
-  if (!nativeTaskBridge()) {
-    container.textContent = "قائمة التذكيرات والمنبهات تظهر هنا داخل تطبيق APK.";
-    return;
-  }
-  if (!tasks.length) {
-    container.textContent = "مفيش تذكيرات أو منبهات محفوظة حاليًا.";
-    return;
-  }
+  const items = state.personalItems.filter(item => item.item_type !== "note" && item.status === "active")
+    .sort((a, b) => (personalItemDate(a) || Number.MAX_SAFE_INTEGER) - (personalItemDate(b) || Number.MAX_SAFE_INTEGER));
+  if (!state.session) { container.textContent = "سجّل الدخول لعرض العناصر المحفوظة في حسابك."; return; }
+  if (!items.length) { container.textContent = "مفيش مهام أو تذكيرات أو منبهات محفوظة حاليًا."; return; }
   container.replaceChildren();
-  for (const task of tasks) {
+  for (const saved of items) {
     const item = document.createElement("div");
     item.className = "scheduled-task";
     const details = document.createElement("div");
     const title = document.createElement("strong");
-    title.textContent = task.type === "alarm" ? "منبه الاستيقاظ" : "تذكير";
+    title.textContent = saved.item_type === "alarm" ? "منبه" : saved.item_type === "reminder" ? "تذكير" : "مهمة";
     const description = document.createElement("p");
-    description.textContent = String(task.title || "مهمة") + " — " + formatTaskDate(Number(task.at));
+    description.textContent = String(saved.title || "مهمة") + (saved.scheduled_at ? " — " + formatTaskDate(personalItemDate(saved)) : "");
     details.append(title, description);
-    const cancel = document.createElement("button");
-    cancel.type = "button";
-    cancel.className = "secondary-button";
-    cancel.textContent = "إلغاء";
-    cancel.addEventListener("click", () => {
-      const result = JSON.parse(nativeTaskBridge().cancelTask(String(task.id)));
-      if (result.ok) { showToast("اتلغى الموعد."); renderScheduledTasks(); }
-      else showToast("ماقدرتش ألغي الموعد.");
+    const action = document.createElement("button");
+    action.type = "button";
+    action.className = "secondary-button";
+    action.textContent = saved.item_type === "task" ? "إكمال" : "إلغاء";
+    action.addEventListener("click", async () => {
+      action.disabled = true;
+      try {
+        await updatePersonalItem(saved.id, saved.item_type === "task" ? "completed" : "cancelled");
+        showToast(saved.item_type === "task" ? "اتسجلت المهمة كمكتملة." : "اتلغى الموعد من حسابك.");
+      } catch (error) { showToast("تعذر تحديث العنصر: " + error.message); action.disabled = false; }
     });
-    item.append(details, cancel);
+    item.append(details, action);
     container.append(item);
   }
+}
+function renderSavedNotes() {
+  const container = $("savedNotesList");
+  if (!container) return;
+  const notes = state.personalItems.filter(item => item.item_type === "note" && item.status === "active");
+  if (!state.session) { container.textContent = "سجّل الدخول لعرض ملاحظاتك."; return; }
+  if (!notes.length) { container.textContent = "مفيش ملاحظات محفوظة لسه."; return; }
+  container.replaceChildren();
+  for (const note of notes) {
+    const item = document.createElement("div");
+    item.className = "scheduled-task";
+    const details = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = note.title;
+    const description = document.createElement("p");
+    description.textContent = note.content || "";
+    details.append(title, description);
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "secondary-button";
+    remove.textContent = "حذف";
+    remove.addEventListener("click", async () => {
+      remove.disabled = true;
+      try { await deletePersonalItem(note.id); showToast("اتحذفت الملاحظة من حسابك."); }
+      catch (error) { showToast("تعذر حذف الملاحظة: " + error.message); remove.disabled = false; }
+    });
+    item.append(details, remove);
+    container.append(item);
+  }
+}
+async function saveNoteFromForm() {
+  const title = $("noteTitle")?.value.trim() || "";
+  const content = $("noteContent")?.value.trim() || "";
+  if (!title || !content) { setFeedback("notesFeedback", "اكتب عنوان الملاحظة ومحتواها الأول.", true); return; }
+  const button = $("saveNote");
+  button.disabled = true;
+  try {
+    await savePersonalItem({ item_type: "note", title, content });
+    $("noteTitle").value = "";
+    $("noteContent").value = "";
+    setFeedback("notesFeedback", "اتحفظت الملاحظة في حسابك، وهتظهر على أي جهاز تسجّل منه.");
+  } catch (error) { setFeedback("notesFeedback", "تعذر حفظ الملاحظة: " + error.message, true); }
+  finally { button.disabled = false; }
 }
 function taskPromptFor(intent) {
   if (intent.action === "needs_time") return "تمام، الموعد ده إمتى؟ قولي الساعة والدقايق لو فيه.";
@@ -1293,9 +1426,9 @@ function handleTaskDialogue(clean) {
     state.pendingTaskDraft = null;
     return { handled: false };
   }
-  const dueReminders = readNativeTasks()
-    .filter(task => task.type === "reminder" && Number(task.at) <= Date.now())
-    .sort((a, b) => Number(a.at) - Number(b.at));
+  const dueReminders = state.personalItems
+    .filter(task => task.item_type === "reminder" && task.status === "active" && personalItemDate(task) <= Date.now())
+    .sort((a, b) => personalItemDate(a) - personalItemDate(b));
   if (dueReminders.length && /^(?:انا\s*)?(?:خلصت|انتهيت|تم|خلصنا)(?:\s+منه)?[.!؟، ]*$/i.test(normalized)) {
     return { handled: true, intent: { action: "complete_task", taskId: String(dueReminders[0].id) } };
   }
@@ -1336,24 +1469,29 @@ function handleTaskDialogue(clean) {
 }
 async function executeTaskIntent(intent) {
   const bridge = nativeTaskBridge();
-  if (intent.action === "complete_task") {
-    if (!bridge || typeof bridge.completeTask !== "function") return "مش قادرة أوصل لإدارة التذكيرات على الهاتف دلوقتي.";
+  if (intent.action === "create_personal_item") {
     try {
-      const completed = readNativeTasks().find(task => String(task.id) === intent.taskId);
-      const result = JSON.parse(bridge.completeTask(intent.taskId));
-      if (!result.ok) return "ماقدرتش أسجل إن الموعد خلص. جربي من إشعار سولينا.";
-      renderScheduledTasks();
-      return "عاش! سجلت إنك خلصتي " + (completed?.title || "الموعد") + "، ووقفت المتابعة بتاعته.";
-    } catch (_) { return "حصل خطأ وأنا بسجل إنك خلصتي الموعد."; }
+      const saved = await savePersonalItem({ item_type: intent.type, title: intent.title, content: intent.content || "" });
+      return intent.type === "note"
+        ? "حاضر، حفظت الملاحظة في حسابك: " + saved.title + ". هتلاقيها على المتصفح والتطبيق."
+        : "تمام، ضفت المهمة لحسابك: " + saved.title + ".";
+    } catch (error) { return "ماقدرتش أحفظ العنصر في حسابك: " + error.message; }
+  }
+  if (intent.action === "complete_task") {
+    try {
+      const completed = state.personalItems.find(task => String(task.id) === intent.taskId);
+      await updatePersonalItem(intent.taskId, "completed");
+      return "عاش! سجلت إنك خلصت " + (completed?.title || "الموعد") + " في حسابك.";
+    } catch (_) { return "حصل خطأ وأنا بسجل إنك خلصت الموعد في حسابك."; }
   }
   if (intent.action === "snooze_task") {
-    if (!bridge || typeof bridge.snoozeTask !== "function") return "مش قادرة أأجل التذكير من غير اتصال بتطبيق الهاتف.";
     try {
-      const result = JSON.parse(bridge.snoozeTask(intent.taskId, intent.minutes || 10));
-      if (!result.ok) return "ماقدرتش أأجل التذكير.";
-      renderScheduledTasks();
-      return "تمام، هفكّرك كمان عشر دقايق.";
-    } catch (_) { return "حصل خطأ وأنا بأجل التذكير."; }
+      const current = state.personalItems.find(task => String(task.id) === intent.taskId);
+      if (!current) return "مش لاقية التذكير ده في حسابك.";
+      const nextAt = new Date(Date.now() + (intent.minutes || 10) * 60 * 1000);
+      await updatePersonalItem(intent.taskId, "active", nextAt.toISOString());
+      return "تمام، أجلت التذكير في حسابك لعشر دقايق كمان.";
+    } catch (_) { return "حصل خطأ وأنا بأجل التذكير في حسابك."; }
   }
   if (intent.action === "unsupported_device") return "فهمت إنك عايزني أنفّذ أمر على الهاتف، لكن التحكم ده لسه مش مفعّل عندي. مش هحوّل الأمر لرد من الذكاء الاصطناعي أو أدّعي إني نفّذته.";
   if (intent.action === "open_permissions") {
@@ -1379,74 +1517,69 @@ async function executeTaskIntent(intent) {
   }
   if (intent.action === "needs_fajr_time") return "أقدر أصحيك للفجر، بس محتاجة أعرف المدينة أو ميعاد الفجر اللي تحب أعتمده. مش هخمن وقت الصلاة.";
   if (intent.action === "needs_time" || intent.action === "needs_period" || intent.action === "needs_title") return taskPromptFor(intent);
-  if (!bridge) return "أوامر المنبهات والتذكيرات الفعلية متاحة في تطبيق سولينا APK، مش في صفحة الويب؛ عشان أضمن إنها تشتغل بعد قفل التطبيق.";
   if (intent.action === "list") {
-    const tasks = readNativeTasks().sort((a, b) => Number(a.at) - Number(b.at));
-    if (!tasks.length) return "راجعت قائمة الهاتف، ومفيش تذكيرات أو منبهات محفوظة.";
-    return "دي مواعيدك المحفوظة:" + String.fromCharCode(10) + tasks.map((task, index) => (index + 1) + ". " + (task.type === "alarm" ? "منبه" : "تذكير") + ": " + task.title + " — " + formatTaskDate(Number(task.at))).join(String.fromCharCode(10));
+    const tasks = state.personalItems.filter(task => task.item_type !== "note" && task.status === "active")
+      .sort((a, b) => (personalItemDate(a) || Number.MAX_SAFE_INTEGER) - (personalItemDate(b) || Number.MAX_SAFE_INTEGER));
+    if (!tasks.length) return "راجعت حسابك، ومفيش مهام أو تذكيرات أو منبهات محفوظة حاليًا.";
+    return "دي العناصر المحفوظة في حسابك:" + String.fromCharCode(10) + tasks.map((task, index) =>
+      (index + 1) + ". " + (task.item_type === "alarm" ? "منبه" : task.item_type === "reminder" ? "تذكير" : "مهمة") +
+      ": " + task.title + (task.scheduled_at ? " — " + formatTaskDate(personalItemDate(task)) : "")
+    ).join(String.fromCharCode(10));
   }
   if (intent.action === "cancel") {
-    const tasks = readNativeTasks().filter(task => !intent.type || task.type === intent.type);
+    const tasks = state.personalItems.filter(task => task.status === "active" &&
+      ["alarm", "reminder"].includes(task.item_type) && (!intent.type || task.item_type === intent.type));
     const selected = intent.all ? tasks : tasks.slice(0, 1);
-    if (!selected.length) return "ملقتش موعد من النوع ده عشان ألغيه.";
-    for (const task of selected) {
-      const result = JSON.parse(bridge.cancelTask(String(task.id)));
-      if (!result.ok) return "حصلت مشكلة وأنا بلغي الموعد. جرب تاني من قائمة التذكيرات.";
-    }
-    renderScheduledTasks();
-    return intent.all ? "ألغيت كل المواعيد المطابقة من الهاتف." : "ألغيت آخر موعد محفوظ من النوع ده.";
+    if (!selected.length) return "ملقتش موعد من النوع ده في حسابك عشان ألغيه.";
+    try {
+      for (const task of selected) await updatePersonalItem(task.id, "cancelled");
+      return intent.all ? "ألغيت كل المواعيد المطابقة من حسابك." : "ألغيت آخر موعد محفوظ من النوع ده في حسابك.";
+    } catch (_) { return "حصلت مشكلة وأنا بلغي الموعد من حسابك. جرب تاني."; }
   }
   if (intent.action === "create") {
-    let info = {};
-    try { info = JSON.parse(bridge.platformInfo()); } catch (_) {}
-    // Notification permission is optional. The native alarm bridge persists and schedules tasks independently.
-    if (intent.type === "alarm" && !info.fullScreenIntent) {
-      state.pendingTaskPermissionIntent = intent;
-      bridge.requestFullScreenIntentPermission();
-      return "فعّل صلاحية عرض المنبه على كامل الشاشة لسولينا، وبعدها كرر الأمر عشان أسجل المنبه."; 
-    }
-    if (!info.exactAlarms) {
-      state.pendingTaskPermissionIntent = intent;
-      bridge.requestExactAlarmPermission();
-      return "فهمت الموعد. فتحت إعداد السماح بالتنبيهات الدقيقة؛ فعّل السماح وارجع لسولينا، وهكمل تسجيل نفس التذكير تلقائيًا.";
-    }
-    const task = {
-      id: (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : "solina-" + Date.now() + "-" + Math.random().toString(36).slice(2)),
-      type: intent.type,
-      title: intent.title,
-      at: new Date(intent.scheduledAt).getTime()
-    };
-    if (!Number.isFinite(task.at) || task.at <= Date.now() || !task.title?.trim()) {
+    const at = new Date(intent.scheduledAt).getTime();
+    if (!Number.isFinite(at) || at <= Date.now() || !intent.title?.trim()) {
       return "مش هحفظ الموعد لأن الوقت أو العنوان مش واضح. قولي الموعد تاني بشكل أوضح.";
     }
-    let result;
-    try { result = JSON.parse(bridge.scheduleTask(JSON.stringify(task))); }
-    catch (_) { return "حصل خطأ وأنا بحاول أحفظ الموعد على الهاتف."; }
-    if (!result.ok) {
-      if (result.error === "exact_alarm_permission_required") {
+    if (bridge) {
+      let info = {};
+      try { info = JSON.parse(bridge.platformInfo()); } catch (_) {}
+      if (intent.type === "alarm" && !info.fullScreenIntent) {
+        state.pendingTaskPermissionIntent = intent;
+        bridge.requestFullScreenIntentPermission();
+        return "فعّل صلاحية عرض المنبه على كامل الشاشة لسولينا، وبعدها هكمل حفظه في حسابك.";
+      }
+      if (!info.exactAlarms) {
         state.pendingTaskPermissionIntent = intent;
         bridge.requestExactAlarmPermission();
-        return "محتاجين إذن التنبيهات الدقيقة. فعّله وارجع، وهكمل نفس الطلب تلقائيًا.";
+        return "فهمت الموعد. فعّل صلاحية التنبيهات الدقيقة وارجع، وهحفظ نفس الموعد في حسابك وأفعّله على الهاتف.";
       }
-      if (result.error === "notification_permission_required") {
-        state.pendingTaskPermissionIntent = intent;
-        bridge.requestNotificationPermission();
-        return "اسمح بإشعارات سولينا، وهكمل حفظ نفس التذكير تلقائيًا.";
-      }
-      return "مقدرتش أحفظ الموعد على الهاتف: " + (result.error || "خطأ غير معروف");
     }
-    const stored = readNativeTasks().find(item => String(item.id) === String(task.id));
-    const returned = result.task || stored;
-    if (!stored || !returned || Number(stored.at) !== task.at || String(stored.title) !== task.title ||
-        String(stored.type) !== task.type || Number(returned.at) !== task.at ||
-        String(returned.title) !== task.title || String(returned.type) !== task.type) {
-      return "الهاتف ما أكدليش إن الموعد اتحفظ بنفس الوقت والعنوان، فمش هقولك إنه اتحفظ. افتح قائمة التذكيرات وراجع الحالة.";
+    const id = window.crypto?.randomUUID ? window.crypto.randomUUID() : "solina-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+    let saved;
+    try {
+      saved = await savePersonalItem({ id, item_type: intent.type, title: intent.title, content: "", scheduled_at: new Date(at).toISOString() });
+    } catch (error) { return "ماقدرتش أحفظ الموعد في حسابك: " + error.message; }
+    let deviceReady = false;
+    if (bridge) {
+      try {
+        const result = JSON.parse(bridge.scheduleTask(JSON.stringify({ id: saved.id, type: saved.item_type, title: saved.title, at })));
+        deviceReady = Boolean(result.ok);
+        if (!deviceReady) {
+          return "حفظت " + saved.title + " في حسابك، لكن التنبيه على الهاتف ما اتفعّلش: " + (result.error || "خطأ غير معروف") + ". بيانات الموعد محفوظة ومش هتضيع.";
+        }
+      } catch (_) {
+        return "حفظت الموعد في حسابك، لكن حصل خطأ أثناء تفعيل التنبيه على الهاتف. تقدر تراجعه من قائمة المواعيد.";
+      }
     }
     renderScheduledTasks();
-    const when = formatTaskDate(Number(stored.at));
-    return intent.type === "alarm"
-      ? "حاضر، تم تفعيل المنبه " + when + "."
-      : "حاضر، اتسجل التذكير " + stored.title + " " + when + ".";
+    const when = formatTaskDate(at);
+    if (intent.type === "alarm") return deviceReady
+      ? "حاضر، حفظت المنبه في حسابك وفعّلته على الهاتف " + when + "."
+      : "حاضر، حفظت المنبه في حسابك " + when + ". لما تفتح التطبيق على أندرويد هيتزامن ويتفعّل حسب صلاحيات الجهاز.";
+    return deviceReady
+      ? "حاضر، حفظت التذكير في حسابك وفعّلته على الهاتف: " + saved.title + " — " + when + "."
+      : "حاضر، حفظت التذكير في حسابك: " + saved.title + " — " + when + ". هتلاقيه على المتصفح والتطبيق، والتنبيه المحلي هيتفعّل عند فتح نسخة أندرويد.";
   }
   return null;
 }
@@ -1744,7 +1877,7 @@ $("settingsBackButton")?.addEventListener("click", showSettingsHome);
 document.querySelectorAll("[data-open-settings-page]").forEach(button => {
   button.addEventListener("click", () => openSettingsPage(button.dataset.openSettingsPage));
 });
-$("refreshScheduledTasks")?.addEventListener("click", renderScheduledTasks);
+$("refreshScheduledTasks")?.addEventListener("click", () => void loadPersonalItems());\n$("saveNote")?.addEventListener("click", () => void saveNoteFromForm());
 $("refreshPermissionsButton")?.addEventListener("click", () => void refreshPermissionCards());
 $("permissionList")?.addEventListener("click", event => {
   const button = event.target.closest("[data-permission-action]");
