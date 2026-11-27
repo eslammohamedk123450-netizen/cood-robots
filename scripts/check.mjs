@@ -152,7 +152,7 @@ assert.match(edge, /NOVA_PROVIDER_TIMING/, "Provider latency must be logged per 
 
 assert.match(app, /Wake-word gate: ambient speech is transcribed locally but never sent to AI/, "Ambient voice must not trigger AI without wake word");
 assert.match(app, /if \(!local\.addressed && !local\.handled\)/, "Unaddressed speech must be ignored before AI dispatch");
-assert.match(app, /const wakePattern = \/\(\?:\^\|\\s\)\/, "Wake word detection must support NOVA and accepted aliases mid-phrase");
+assert.ok(app.includes("const wakePattern = /(?:^|\\s)"), "Wake word detection must support NOVA and accepted aliases mid-phrase");
 assert.match(app, /return \{ handled: false, addressed, text: command \}/, "Voice AI requests must receive only the phrase after the wake word");
 assert.match(app, /}, 950\);/, "Voice turn should use a shorter but non-zero end-of-speech pause");
 assert.doesNotMatch(app, /const memoryMatches = await searchConversationMemory\(text, signal\)/, "Memory retrieval must not add a separate browser round trip before chat");
