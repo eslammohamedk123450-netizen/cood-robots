@@ -116,3 +116,8 @@ assert.match(css, /body\[data-mood="speaking"\] #novaFaceMount #novaFaceAvatar \
 assert.match(css, /nova-face-laugh/, "A playful laugh must animate the face");
 assert.match(css, /face-cheek/, "The face must include expressive cheek details");
 assert.match(css, /face-screen\.pink/, "Solina must have a dedicated pink OLED appearance");
+
+assert.match(app, /messagesByPersona: \{ soly: \[\], soleen: \[\] \}/, "Soly and Solina must have separate conversation histories");
+assert.match(app, /state\.messagesByPersona\[state\.persona\] = state\.messages\.slice\(\)/, "Current persona history must be saved independently");
+assert.match(app, /state\.messages = \(state\.messagesByPersona\[persona\] \|\| \[\]\)\.slice\(\)/, "Switching persona must restore only that persona's history");
+assert.match(app, /ابدأ محادثة جديدة مع /, "Persona switch must visually separate the conversation");
