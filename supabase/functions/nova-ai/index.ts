@@ -73,6 +73,15 @@ function normalizeMessages(value: unknown): Array<{role:"system"|"user"|"assista
   if (clean[clean.length - 1].role !== "user") return null;
   return clean;
 }
+function sanitizeInternalReplyText(input: unknown): string {
+  let text = String(input ?? "");
+  const entities: Record<string,string> = { "&lt;":"<", "&gt;":">", "&quot;":"\\\"", "&#91;":"[", "&#93;":"]", "&amp;":"&", "&#60;":"<", "&#62;":">" };
+  for (let pass = 0; pass < 3; pass++) text = text.replace(/&lt;|&gt;|&quot;|&#91;|&#93;|&amp;|&#60;|&#62;/gi, (entity) => entities[entity.toLowerCase()] ?? entity);
+  text = text.replace(/<\\s*\\/?\\s*(?:NOVA|NOA)[_-]?MEMORY\\b[^>]*>/gi, "");
+  text = text.replace(/<\\s*\\/?\\s*(?:OWNER|NOVA)[_-]?(?:MEMORY|MEMORY_DATA)\\b[^>]*>/gi, "");
+  text = text.replace(/\\b(?:NOVA|NOA)[_-]?MEMORY\\b\\s*[:=]?\\s*\\{\\s*["']facts["']\\s*:\\s*\\[[\\s\\S]*?\\]\\s*\\}/gi, "");
+  return text.replace(/\\s{2,}/g, " ").trim();
+}
 function cleanString(v: unknown, max = 120): string {
   return typeof v === "string" ? v.trim().slice(0, max) : "";
 }
@@ -691,9 +700,10 @@ Deno.serve(async (req: Request) => {
           if (rawReply) {
             let reply = rawReply;
             let memorySaved = false;
-            const memoryMatch = rawReply.match(/<NOVA_MEMORY>\s*([\s\S]*?)\s*<\/NOVA_MEMORY>/i);
+            const normalizedReply = sanitizeInternalReplyText(rawReply);
+            const memoryMatch = rawReply.match(/<\s*(?:NOVA|NOA)[_-]?MEMORY\s*>\s*([\s\S]*?)\s*<\s*\/\s*(?:NOVA|NOA)[_-]?MEMORY\s*>/i);
             if (memoryMatch) {
-              reply = rawReply.replace(/\s*<NOVA_MEMORY>[\s\S]*?<\/NOVA_MEMORY>\s*/ig, "").trim();
+              reply = sanitizeInternalReplyText(rawReply);
               try {
                 const parsedMemory = JSON.parse(memoryMatch[1]);
                 const facts = Array.isArray(parsedMemory?.facts)
@@ -717,9 +727,9 @@ Deno.serve(async (req: Request) => {
               }
             } else {
               // Keep internal memory metadata out of the visible conversation if a provider omits or alters the marker.
-              reply = rawReply;
+              reply = normalizedReply;
             }
-            return json({ reply, model: model.model_id, provider: providerType, memory_saved: memorySaved }, 200, origin);
+            return json({ reply: sanitizeInternalReplyText(reply), model: model.model_id, provider: providerType, memory_saved: memorySaved }, 200, origin);
           }
           failures.push(model.model_id + ": empty response");
         } catch (error) {
