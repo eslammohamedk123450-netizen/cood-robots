@@ -8,7 +8,7 @@ const SPOKEN_NUMBERS = {
 };
 function replaceSpokenNumbers(text) {
   const words = Object.keys(SPOKEN_NUMBERS).join("|");
-  return text.replace(new RegExp("(^|\\\\s)(" + words + ")(?=$|\\\\s)", "g"), (all, prefix, word) => prefix + SPOKEN_NUMBERS[word]);
+  return text.replace(new RegExp("(^|\\s)(" + words + ")(?=$|\\s)", "g"), (all, prefix, word) => prefix + SPOKEN_NUMBERS[word]);
 }
 export function normalizeTaskText(value) {
   return String(value || "")
@@ -67,7 +67,7 @@ function stripCommandWords(text) {
   return text
     .replace(/(?:يا\s*)?سولينا/g, " ")
     .replace(/(?:من فضلك|لو سمحتي|لو سمحت|ممكن|عايزك|عاوزك|اعملي|اعمل|سجلي|سجل|ضيفي|ضيف|فكريني|فكرني|ذكريني|ذكرني|صحيني|اصحيني|اصحى|منبه|تذكير|تذكيرني|بكره|بكرة|غدا|بعد بكره|بعد بكرة|بعد غد|النهارده|اليوم|الساعه|الساعة|صباحا|صباح|الصبح|مساء|بالليل|ليل)/g, " ")
-    .replace(new RegExp("(^|\\\\s)(?:" + numberWords + ")(?=$|\\\\s)", "g"), " ")
+    .replace(new RegExp("(^|\\s)(?:" + numberWords + ")(?=$|\\s)", "g"), " ")
     .replace(/\d{1,2}(?::\d{2})?/g, " ")
     .replace(/\s+/g, " ")
     .trim();
