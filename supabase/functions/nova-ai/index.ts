@@ -511,11 +511,10 @@ Deno.serve(async (req: Request) => {
       const byId = new Map((conversations ?? []).map(item => [item.id, item]));
       const matches = (rows ?? []).filter(row => {
         const convo = byId.get(row.conversation_id);
-        return convo && (!body?.exclude_conversation_id || convo.id !== body.exclude_conversation_id);
+        return convo && convo.persona === "soleen" && (!body?.exclude_conversation_id || convo.id !== body.exclude_conversation_id);
       }).slice(0,12).map(row => {
         const convo = byId.get(row.conversation_id);
-        if (convo.persona !== "soleen") return null;
-        return { persona: "soleen", title: row.title || convo.title, role: row.role, content: String(row.content).slice(0,1600), created_at: row.created_at };
+        return { persona: "soleen", title: convo.title, role: row.role, content: String(row.content).slice(0,1600), created_at: row.created_at };
       });
       return json({ matches }, 200, origin);
     }
