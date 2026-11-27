@@ -44,6 +44,7 @@ class AlarmActivity : Activity() {
         val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
         ringtone = RingtoneManager.getRingtone(this, uri)
+        if (Build.VERSION.SDK_INT >= 28) ringtone?.isLooping = true
         ringtone?.play()
     }
 
