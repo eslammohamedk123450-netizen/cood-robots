@@ -1242,6 +1242,10 @@ function activateOwnerSession(token) {
   void loadConversationHistory(true);
 }
 window.addEventListener("nova:authenticated", (event) => activateOwnerSession(event.detail?.token || null));
+// pin.js may finish its async session check before this module has executed.
+// The token is written only after a successful server validation, so adopt it here too.
+const savedOwnerSession = localStorage.getItem("nova.owner.session.v2");
+if (savedOwnerSession) activateOwnerSession(savedOwnerSession);
 
 // Owner session restoration is handled only by pin.js to avoid two
 // competing startup checks clearing a freshly authenticated session.
