@@ -359,6 +359,47 @@ public class MainActivity extends Activity {
             });
         }
 
+        @JavascriptInterface public void requestPermission(String name) {
+            activity.runOnUiThread(() -> {
+                if ("microphone".equals(name)) {
+                    if (activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                        android.content.SharedPreferences prefs = activity.getSharedPreferences("solina_permissions", MODE_PRIVATE);
+                        boolean asked = prefs.getBoolean("microphone_prompted", false);
+                        if (asked && !activity.shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)) {
+                            Intent settings = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(Uri.parse("package:" + activity.getPackageName()));
+                            activity.startActivity(settings);
+                        } else {
+                            prefs.edit().putBoolean("microphone_prompted", true).apply();
+                            activity.requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, 2101);
+                        }
+                    }
+                } else if ("notifications".equals(name)) {
+                    requestNotificationPermission();
+                } else if ("exactAlarms".equals(name)) {
+                    requestExactAlarmPermission();
+                } else if ("fullScreenIntent".equals(name)) {
+                    requestFullScreenIntentPermission();
+                } else if ("appSettings".equals(name)) {
+                    Intent settings = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(Uri.parse("package:" + activity.getPackageName()));
+                    activity.startActivity(settings);
+                }
+            });
+        }
+
+        @JavascriptInterface public String permissionInfo() {
+            AlarmManager alarms = (AlarmManager) activity.getSystemService(Context.ALARM_SERVICE);
+            NotificationManager manager = (NotificationManager) activity.getSystemService(Context.NOTIFICATION_SERVICE);
+            boolean microphone = activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+            boolean notifications = Build.VERSION.SDK_INT < 33 || activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+            boolean exact = Build.VERSION.SDK_INT < 31 || alarms.canScheduleExactAlarms();
+            boolean fullScreen = Build.VERSION.SDK_INT < 34 || manager.canUseFullScreenIntent();
+            try {
+                return new JSONObject().put("platform", "android").put("microphone", microphone)
+                        .put("notifications", notifications).put("exactAlarms", exact)
+                        .put("fullScreenIntent", fullScreen).toString();
+            } catch (Exception ignored) { return "{\\"platform\\":\\"android\\"}"; }
+        }
+
         @JavascriptInterface public String platformInfo() {
             AlarmManager alarms = (AlarmManager) activity.getSystemService(Context.ALARM_SERVICE);
             NotificationManager notificationsManager = (NotificationManager) activity.getSystemService(Context.NOTIFICATION_SERVICE);
