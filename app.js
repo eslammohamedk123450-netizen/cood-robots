@@ -708,7 +708,7 @@ async function addProvider() {
   finally { button.disabled = false; button.textContent = "حفظ المفتاح واكتشاف النماذج"; }
 }
 function updateMemoryMeta(updatedAt = null) {
-  const count = state.profile.split(/\\r?\\n/).map((line) => line.trim()).filter(Boolean).length;
+  const count = state.profile.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).length;
   let timestamp = "لم يتم حفظ الذاكرة بعد";
   if (updatedAt) {
     const parsed = new Date(updatedAt);
