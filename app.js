@@ -1,5 +1,5 @@
 // Android APK build refresh: settings pages + staged native reminder bridge.
-import { parseTaskCommand, formatTaskDate, normalizeTaskText } from "./task-manager.js?v=solina-task-dialogue-v3";
+import { parseTaskCommand, formatTaskDate, normalizeTaskText } from "./task-manager.js?v=solina-task-dialogue-v4";
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soleen", emotion: "idle", listening: false, speaking: false,
