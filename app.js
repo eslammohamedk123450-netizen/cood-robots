@@ -374,7 +374,8 @@ async function speak(text, segments = []) {
       return;
     }
     if (engine === "auto" && !localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
-    const voiceId = localStorage.getItem(persona === "soleen" ? "nova.sonex.voice.female" : "nova.sonex.voice.male") || "";
+    const speechProvider = $("speechProvider")?.value || "elevenlabs";
+    const voiceId = localStorage.getItem((speechProvider === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.") + (persona === "soleen" ? "female" : "male")) || "";
     const speechProvider = engine === "gemini" ? "tts_gemini" : "tts";
     const result = await invokeNova(speechProvider, { text: spokenText, persona, voice_id: voiceId });
     if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
@@ -684,11 +685,13 @@ async function saveOwnerMemory() {
   } catch (error) { setFeedback("memoryFeedback", error.message, true); }
   finally { button.disabled = false; }
 }
-async function loadSonexVoices() {
+async function loadSpeechVoices() {
   const result = await invokeNova("speech_voices");
   const voices = Array.isArray(result.voices) ? result.voices : [];
+  const provider = result.provider || $("speechProvider")?.value || "elevenlabs";
+  const prefix = provider === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
   const fill = (select, gender, storageKey) => {
-    const options = voices.filter(v => v.gender === gender);
+    const options = voices.filter(v => String(v.gender || "").toLowerCase() === gender);
     const usable = options.length ? options : voices;
     select.replaceChildren();
     for (const voice of usable) {
@@ -701,24 +704,25 @@ async function loadSonexVoices() {
     if (saved && [...select.options].some(o => o.value === saved)) select.value = saved;
     if (select.value) localStorage.setItem(storageKey, select.value);
   };
-  fill($("speechMaleVoice"), "male", "nova.sonex.voice.male");
-  fill($("speechFemaleVoice"), "female", "nova.sonex.voice.female");
-  if (!voices.length) throw new Error("Sonex لم يرجع أصواتًا متاحة.");
-  setFeedback("speechFeedback", "تم تحميل " + voices.length + " صوتًا. اختار صوت سولي وسولينا من القائمتين.");
+  fill($("speechMaleVoice"), "male", prefix + "male");
+  fill($("speechFemaleVoice"), "female", prefix + "female");
+  if (!voices.length) throw new Error(provider + " لم يرجع أصواتًا متاحة.");
+  setFeedback("speechFeedback", "تم التحقق من الاتصال وتحميل " + voices.length + " صوتًا. اختار صوت سولي وسولينا.");
 }
 async function loadSpeechSettings() {
   if (!state.session) return;
   try {
     const result = await invokeNova("speech_get");
     if (result.configured) {
+      if ($("speechProvider")) $("speechProvider").value = result.provider || "elevenlabs";
       const savedEngine = localStorage.getItem("nova.speech.engine") || "auto";
       if ($("speechEngine")) $("speechEngine").value = savedEngine;
       if (!localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
       setFeedback("speechEngineFeedback", savedEngine === "device" ? "صوت الجهاز محدد يدويًا." : savedEngine === "server" ? "Sonex Labs محدد؛ وعند الفشل سيتم الرجوع لصوت الجهاز." : "الوضع التلقائي: Sonex أولًا، ثم صوت الجهاز عند الحاجة.");
-      setFeedback("speechFeedback", "المفتاح محفوظ في Vault. الأصوات يتم جلبها تلقائيًا في الخلفية عند توفر الاتصال.");
-      try { await loadSonexVoices(); }
+      setFeedback("speechFeedback", "مفتاح " + result.provider + " محفوظ في Vault. جاري تحميل الأصوات.");
+      try { await loadSpeechVoices(); }
       catch (voiceError) { setFeedback("speechFeedback", "المفتاح محفوظ، لكن تعذر تحميل الأصوات: " + voiceError.message, true); }
-    } else setFeedback("speechFeedback", "أضف مفتاح Sonex Labs الذي يبدأ بـ vsk_ لتفعيل الصوت.");
+    } else setFeedback("speechFeedback", "أدخل مفتاح ElevenLabs أو Sonex Labs لتفعيل الصوت.");
   } catch (error) {
     setFeedback("speechFeedback", "تعذر قراءة إعدادات الصوت: " + error.message, true);
   }
@@ -726,16 +730,17 @@ async function loadSpeechSettings() {
 async function saveSpeechSettings() {
   const button = $("saveSpeechSettings");
   const api_key = $("speechApiKey")?.value.trim() || "";
-  if (!api_key) { setFeedback("speechFeedback", "الصق مفتاح Sonex Labs أولًا.", true); return; }
+  const provider = $("speechProvider")?.value || "elevenlabs";
+  if (!api_key) { setFeedback("speechFeedback", "الصق مفتاح " + provider + " أولًا.", true); return; }
   button.disabled = true;
-  button.textContent = "جاري حفظ المفتاح في Supabase...";
+  button.textContent = "جاري اختبار المفتاح وحفظه في Vault...";
   try {
-    await invokeNova("speech_save", { api_key });
+    const saved = await invokeNova("speech_save", { api_key, provider });
     $("speechApiKey").value = "";
     await loadSpeechSettings();
     if ($("speechEngine")) $("speechEngine").value = "server";
     localStorage.setItem("nova.speech.engine", "server");
-    setFeedback("speechFeedback", "تم حفظ المفتاح بأمان. تم اختيار Sonex Labs عبر Supabase كمحرك الصوت.");
+    setFeedback("speechFeedback", "تم اختبار المفتاح وحفظه بأمان. " + (saved.message || "محرك " + provider + " أصبح جاهزًا."));
   } catch (error) {
     setFeedback("speechFeedback", error.message, true);
   } finally {
@@ -928,12 +933,23 @@ $("saveSpeechSettings")?.addEventListener("click", () => void saveSpeechSettings
 $("reloadSpeechVoices")?.addEventListener("click", async () => {
   const button = $("reloadSpeechVoices");
   button.disabled = true;
-  try { await loadSonexVoices(); }
+  try { await loadSpeechVoices(); }
   catch (error) { setFeedback("speechFeedback", error.message, true); }
   finally { button.disabled = false; }
 });
-$("speechMaleVoice")?.addEventListener("change", (event) => localStorage.setItem("nova.sonex.voice.male", event.target.value));
-$("speechFemaleVoice")?.addEventListener("change", (event) => localStorage.setItem("nova.sonex.voice.female", event.target.value));
+$("speechMaleVoice")?.addEventListener("change", (event) => {
+  const prefix = $("speechProvider")?.value === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
+  localStorage.setItem(prefix + "male", event.target.value);
+});
+$("speechFemaleVoice")?.addEventListener("change", (event) => {
+  const prefix = $("speechProvider")?.value === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
+  localStorage.setItem(prefix + "female", event.target.value);
+});
+$("speechProvider")?.addEventListener("change", () => {
+  const label = $("speechProvider").value === "elevenlabs" ? "ElevenLabs" : "Sonex Labs";
+  $("speechApiKey").placeholder = "الصق مفتاح " + label + " هنا";
+  setFeedback("speechFeedback", "بعد تغيير المزود، أدخل مفتاحه واضغط اختبار المفتاح وحفظه.");
+});
 
 const speechEngineSelect = $("speechEngine");
 if (speechEngineSelect) {
