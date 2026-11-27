@@ -98,3 +98,10 @@ for (const [name, source] of [["index.html", html], ["app.js", app], ["style.css
   for (const pattern of secretPatterns) assert.doesNotMatch(source, pattern, name + " may contain a committed secret");
 }
 console.log("NOVA repository checks passed.");
+
+assert.match(app, /animateFaceFromAudio/, "The face must react continuously to the actual decoded speech waveform");
+assert.match(app, /getByteFrequencyData/, "Audio-reactive facial effects must use frequency analysis as well as amplitude");
+assert.match(css, /body\[data-mood="speaking"\].*face-mouth[\s\S]*?animation:none!important/, "CSS must not override waveform-driven mouth movement with fake looping talk");
+assert.match(css, /nova-face-laugh/, "A playful laugh must animate the face");
+assert.match(css, /face-cheek/, "The face must include expressive cheek details");
+assert.match(css, /face-screen\.pink/, "Solina must have a dedicated feminine pink OLED appearance");
