@@ -161,12 +161,12 @@ assert.match(edge, /سياق مسترجع من محادثات سابقة للش�
 assert.match(edge, /oldRowsResult\.error/, "Parallel history retrieval errors must be handled explicitly");
 assert.match(edge, /const \[\{ data: memoryRow, error: memoryReadError \}, \{ data: models, error \}, oldRowsResult\] = await Promise\.all\(/, "Independent memory, model, and history reads must run concurrently");
 assert.match(edge, /const secretEntries = await Promise\.all\(/, "Provider secrets must be fetched concurrently instead of serially");
-assert.match(html, /solina-voice-orb-v4/, "Solina client bundle must use a fresh cache version");
+assert.match(html, /solina-voice-orb-v5/, "Solina client bundle must use a fresh cache version");
 assert.match(css, /solina-orb-stage/, "Responsive Solina voice-first layout must be present");
 
 assert.match(app, /Keep the dedicated interrupt listener alive during playback/, "Voice interruption listener must remain active while NOVA speaks");
 assert.doesNotMatch(app, /if \(state\.listening\) startInterruptRecognition\(\);\s*stopInterruptRecognition\(\)/, "Speech playback must not immediately disable the interrupt listener");
-assert.match(html, /solina-voice-orb-v4/, "Solina client bundle must use a fresh cache version");
+assert.match(html, /solina-voice-orb-v5/, "Solina client bundle must use a fresh cache version");
 
 assert.match(app, /راجع ردك مرة أخيرة بصمت من ناحية الإملاء واختيار الكلمات واتساق المعنى/, "NOVA must proofread Egyptian Arabic contextually before replying");
 assert.match(app, /كلمة «بكير» تظل كما هي إذا كان معناها مقصودًا/, "Contextual proofreading must preserve valid words instead of blanket replacements");
@@ -187,3 +187,9 @@ assert.match(app, /window\.solinaWave\?\.setLevel\(amount, energy\)/, "Audio orb
 
 assert.match(app, /wakePattern = .*سولينا/, "Only the Solina wake word should activate voice turns");
 assert.doesNotMatch(app, /نوفا\|نوفة\|nova\|سولي\|سولين/, "Old wake-word aliases must not activate the assistant");
+
+assert.doesNotMatch(app, /واجهة NOVA مفتوحة حاليًا في الوضع المحلي/, "Cloud AI must never silently fall back to a fake local reply");
+assert.match(app, /async function restoreOwnerSession\(/, "App startup must independently restore the saved owner session");
+assert.match(app, /action: "check_session", token: saved/, "Saved session must be validated against the live Edge Function");
+assert.match(app, /activateOwnerSession\(saved\)/, "Validated saved sessions must activate cloud services");
+assert.match(app, /جلسة سولينا غير متصلة/, "Missing authentication must be surfaced instead of returning a fake assistant reply");
