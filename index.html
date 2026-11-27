@@ -81,8 +81,12 @@
 طريقة التواصل المفضلة: العربية المصرية، شرح عملي مباشر خطوة بخطوة، إجابات واضحة، وعدم الادعاء بتنفيذ أي شيء لم يتم التحقق منه.
 تعامل مع إسلام باعتباره صاحب SOLINA ومديرها ومطوّرها، ونفّذ توجيهاته التقنية ضمن حدود الأمان والصلاحيات. كود المالك موجود بالفعل.
 ملاحظة خصوصية: لا تخزن كلمات المرور أو مفاتيح API أو رموز الجلسات أو أي أسرار داخل الذاكرة.</textarea></label>
-        <button type="button" class="save-button enabled-button" id="saveOwnerMemory">حفظ الذاكرة يدويًا</button>
+        <div class="memory-actions">
+          <button type="button" class="save-button enabled-button" id="saveOwnerMemory">حفظ التعديلات</button>
+          <button type="button" class="secondary-button" id="reloadOwnerMemory">تحديث الذاكرة</button>
+        </div>
         <p class="settings-feedback" id="memoryFeedback" role="status">جاري تحميل الذاكرة المحفوظة...</p>
+        <p class="settings-feedback memory-meta" id="memoryUpdated" role="status">لم يتم تحميل بيانات الذاكرة بعد.</p>
       </section>
       <section class="settings-section">
         <h3>محرك إخراج الصوت</h3>
