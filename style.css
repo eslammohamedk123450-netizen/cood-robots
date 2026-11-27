@@ -352,3 +352,35 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opac
 @media(max-width:700px){.app-shell{padding-inline:15px}.topbar{height:70px}.meeting-screen{padding:23px 0 22px;gap:14px}.character-stage{height:345px}.stage-orbit.orbit-one{width:310px;height:140px}.stage-orbit.orbit-two{width:390px;height:175px}#novaFaceMount #novaFaceAvatar.face-avatar>.face-screen{width:min(82vw,340px)!important;height:225px!important;border-radius:31px!important}.face-eyes{top:58px;gap:72px}.face-eye{width:39px;height:49px}.face-mouth{top:145px}.voice-area{padding:16px 13px;border-radius:21px}.mic-button{width:75px;height:75px}}
 @media(max-width:390px){.character-stage{height:315px}#novaFaceMount #novaFaceAvatar.face-avatar>.face-screen{height:205px!important}.face-eyes{top:51px;gap:62px}.face-eye{width:35px;height:45px}.face-mouth{top:132px}}
 @media(prefers-reduced-motion:reduce){body:before{display:none}.mic-button,.icon-button,.subtle-button{transition:none}}
+
+/* EXPRESSIVE NOVA FACE: eye pupils, eyelids and speech-driven facial acting */
+#novaFaceMount .face-screen{--face-talk-energy:0;isolation:isolate}
+#novaFaceMount .face-eyes{z-index:2;gap:78px;align-items:center}
+#novaFaceMount .face-eye{display:grid;place-items:center;overflow:hidden;width:49px;height:62px;border-radius:48% 48% 44% 44%;background:radial-gradient(ellipse at 38% 28%,#fff 0 8%,#bff7ff 22%,#53cfff 54%,#1675d9 100%);box-shadow:0 0 12px #51d5ff,0 0 30px #168bff,0 0 55px #168bff66;transition:height .2s,width .2s,filter .2s;transform-origin:center}
+#novaFaceMount .face-pupil{display:block;width:18px;height:25px;border-radius:50%;background:radial-gradient(circle at 35% 28%,#fff 0 10%,#17314c 20%,#061323 72%);box-shadow:0 0 0 2px #d8fbff66,0 0 8px #041426;transform:translate(var(--look-x,0px),var(--look-y,0px));transition:transform .12s ease}
+#novaFaceMount .face-eye:before{content:"";position:absolute;z-index:3;left:-5%;right:-5%;top:-105%;height:110%;border-radius:0 0 50% 50%;background:linear-gradient(#07172b,#102b48);pointer-events:none;animation:nova-eye-blink 5.8s infinite}
+#novaFaceMount .face-eye:after{inset:7px 10px 12px;border-radius:50%;background:linear-gradient(135deg,#fff,#d7faff 40%,transparent 70%);opacity:.68;filter:blur(2px)}
+#novaFaceMount .face-brows{z-index:3;top:39px;gap:78px}
+#novaFaceMount .face-brow{width:50px;border-top-width:5px;filter:drop-shadow(0 0 5px color-mix(in srgb,var(--persona) 75%,transparent));transition:transform .22s cubic-bezier(.2,.8,.2,1),opacity .2s}
+#novaFaceMount .face-cheek{z-index:1;top:139px;width:34px;height:18px;filter:blur(9px);transition:opacity .22s,transform .22s}
+#novaFaceMount .face-mouth{z-index:2;min-width:30px;will-change:height,width,border-radius;box-shadow:0 0 10px color-mix(in srgb,var(--persona) 90%,white),0 0 25px color-mix(in srgb,var(--persona) 75%,transparent),inset 0 -4px 8px #06132355}
+#novaFaceMount .face-screen[data-emotion="happy"] .face-mouth,#novaFaceMount .face-screen[data-emotion="playful"] .face-mouth{border-radius:8px 8px 48px 48px!important;border-bottom-width:5px!important;box-shadow:0 0 16px var(--persona),inset 0 -8px 8px #06132366}
+#novaFaceMount .face-screen[data-emotion="sad"] .face-mouth{border-radius:48px 48px 8px 8px!important;border-top:3px solid var(--persona)!important;border-bottom:0!important;transform:translateX(-50%) rotate(180deg)}
+#novaFaceMount .face-screen[data-emotion="surprised"] .face-mouth{border-radius:50%!important;width:26px!important;min-width:26px!important}
+#novaFaceMount .face-screen[data-emotion="curious"] .face-brow.left{transform:rotate(-18deg) translateY(-5px) scaleX(.9)}
+#novaFaceMount .face-screen[data-emotion="curious"] .face-brow.right{transform:rotate(10deg) translateY(3px)}
+#novaFaceMount .face-screen[data-emotion="thinking"] .face-brow.left{transform:rotate(-13deg) translateY(-5px)}
+#novaFaceMount .face-screen[data-emotion="thinking"] .face-brow.right{transform:rotate(7deg) translateY(3px)}
+#novaFaceMount .face-screen[data-emotion="surprised"] .face-eye{height:72px;width:53px;filter:brightness(1.2)}
+#novaFaceMount .face-screen[data-emotion="sad"] .face-eye{height:48px;transform:translateY(5px) scaleY(.84)}
+#novaFaceMount .face-screen[data-emotion="concerned"] .face-eye{height:54px;transform:scaleY(.9)}
+#novaFaceMount .face-screen[data-emotion="happy"] .face-eye,#novaFaceMount .face-screen[data-emotion="playful"] .face-eye{height:54px;transform:scaleY(.88)}
+#novaFaceMount .face-screen[data-emotion="happy"] .face-cheek,#novaFaceMount .face-screen[data-emotion="playful"] .face-cheek{opacity:.9;transform:scale(1.18)}
+#novaFaceMount .face-screen[data-emotion="caring"] .face-cheek{opacity:.55}
+#novaFaceMount .face-screen.face-speaking-emphasis .face-brow{transform:translateY(calc(var(--face-talk-energy)*-5px))}
+#novaFaceMount .face-screen.face-speaking-emphasis .face-cheek{opacity:calc(.18 + var(--face-talk-energy)*.45)}
+#novaFaceMount .face-screen.audio-laugh .face-eye{height:44px;transform:scaleY(.58) rotate(-4deg)}
+#novaFaceMount .face-screen.audio-laugh .face-mouth{border-radius:12px 12px 45px 45px!important}
+#novaFaceMount .face-screen.pink .face-pupil{background:radial-gradient(circle at 35% 28%,#fff 0 10%,#552044 20%,#180a20 72%)}
+@keyframes nova-eye-blink{0%,43%,47%,100%{top:-105%}45%{top:-2%}}
+@media(max-width:700px){#novaFaceMount .face-eyes{gap:66px}#novaFaceMount .face-eye{width:43px;height:55px}#novaFaceMount .face-brows{top:33px;gap:66px}#novaFaceMount .face-brow{width:43px}#novaFaceMount .face-cheek{top:119px}}
