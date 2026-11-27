@@ -141,7 +141,7 @@
       </section>
       <section class="settings-section">
         <h3>محرك إخراج الصوت</h3>
-        <p class="security-note">اختار محرك إخراج الصوت من القائمة دي فقط. Chatterbox لا يحتاج مفتاح API؛ والصوت يلتزم بالمحرك والصوت المختارين؛ لن يبدّل تلقائيًا لصوت مختلف عند تعذر الاتصال.</p>
+        <p class="security-note">صوت الجهاز يعمل محليًا على أندرويد ولا يستهلك طلبات Gemini TTS. Gemini يرسل الرد كاملًا في طلب صوت واحد، وليس طلبًا لكل جملة؛ ويعيد استخدام الصوت المطابق من ذاكرة الجلسة لتجنب التوليد المتكرر. Chatterbox لا يحتاج مفتاح API، ولن يتغير صوتك المختار تلقائيًا عند الفشل.</p>
         <label class="field-label">مصدر الصوت
           <select id="speechEngine" dir="rtl">
             <option value="auto">تلقائي — المحرك السحابي المحدد</option>
@@ -209,6 +209,6 @@
 
   <div class="toast" id="toast" role="status"></div>
   <script src="pin.js?v=persistent-owner-session-v23"></script>
-  <script type="module" src="app.js?v=nova-quick-conversation-v57"></script>
+  <script type="module" src="app.js?v=nova-smart-tts-cache-v58"></script>
 </body>
 </html>
