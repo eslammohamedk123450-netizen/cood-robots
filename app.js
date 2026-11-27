@@ -46,7 +46,7 @@ function setStatus(label, mood = "idle") {
   const orb = $("novaAudioOrb"); if (orb) orb.dataset.mood = mood;
 }
 const NOVA_EMOTIONS = new Set(["neutral","happy","sad","surprised","curious","caring","playful","concerned","thinking"]);
-function setSpeechSegmentTone(emotion) { state.replyEmotion = NOVA_EMOTIONS.has(emotion) ? emotion : "neutral"; }
+function setSpeechSegmentTone(emotion) { state.replyEmotion = NOVA_EMOTIONS.has(emotion) ? emotion : "neutral"; const orb = $("novaAudioOrb"); if (orb) orb.dataset.expression = state.replyEmotion; }
 function inferReplyTone(reply) {
   const value = String(reply || "").toLowerCase();
   const patterns = [
@@ -118,11 +118,12 @@ function setSpeechMouthLevel(level, brightness = 0) {
   const orb = $("novaAudioOrb"); if (!orb) return;
   const amount = Math.max(0, Math.min(1, level)), energy = Math.max(0, Math.min(1, brightness));
   orb.style.setProperty("--audio-level", amount.toFixed(3));
+  orb.style.setProperty("--mouth-scale", (0.48 + amount * 1.75).toFixed(3));
   orb.style.setProperty("--audio-brightness", energy.toFixed(3));
 }
 function resetSpeechMouth() {
   const orb = $("novaAudioOrb");
-  if (orb) { orb.style.setProperty("--audio-level", "0"); orb.style.setProperty("--audio-brightness", ".12"); }
+  if (orb) { orb.style.setProperty("--audio-level", "0"); orb.style.setProperty("--mouth-scale", ".48"); orb.style.setProperty("--audio-brightness", ".12"); }
 }
 function connectSpeechAnalyser(source) {
   try {
