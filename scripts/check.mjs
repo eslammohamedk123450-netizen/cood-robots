@@ -150,11 +150,11 @@ assert.match(edge, /ordinary words/, "Server sanitizer must remove plain-text NO
 assert.match(edge, /NOVA_PROVIDER_TIMING/, "Provider latency must be logged per model without logging prompts or credentials");
 
 
-assert.match(app, /Wake-word gate: ambient speech is transcribed locally but never sent to AI/, "Ambient voice must not trigger AI without wake word");
-assert.match(app, /if \(!local\.addressed && !local\.handled\)/, "Unaddressed speech must be ignored before AI dispatch");
-assert.ok(app.includes("const wakePattern = /(?:^|\\s)"), "Wake word detection must support NOVA and accepted aliases mid-phrase");
-assert.match(app, /return \{ handled: false, addressed, text: command \}/, "Voice AI requests must receive only the phrase after the wake word");
-assert.match(app, /}, 950\);/, "Voice turn should use a shorter but non-zero end-of-speech pause");
+assert.match(app, /if \(!state\.voiceSessionActive && !local\.addressed\)/, "Ambient speech must not trigger AI until Solina is addressed");
+assert.match(app, /const wakePattern = .*سولينا/, "Only Solina wake word should arm hands-free voice");
+assert.match(app, /return \{ handled: false, addressed, text: command \}/, "Wake-word requests must send only the phrase after Solina");
+assert.match(app, /state\.voiceSessionActive = true/, "Solina wake word must keep the voice session armed");
+assert.match(app, /}, 600\);/, "Voice turn should start after a short 600ms natural pause");
 assert.doesNotMatch(app, /const memoryMatches = await searchConversationMemory\(text, signal\)/, "Memory retrieval must not add a separate browser round trip before chat");
 assert.match(app, /exclude_conversation_id: state\.conversationIds\[state\.persona\]/, "Chat request must exclude the active conversation from older-memory retrieval");
 assert.match(edge, /سياق مسترجع من محادثات سابقة للشخصيتين/, "Chat endpoint must retrieve cross-persona history in the same request");
