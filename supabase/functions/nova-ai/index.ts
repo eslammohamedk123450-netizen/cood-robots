@@ -769,7 +769,6 @@ Deno.serve(async (req: Request) => {
         if (!response.ok) throw new Error("محرك البحث غير متاح حاليًا.");
         const html = (await response.text()).slice(0, 1_200_000);
         const results: Array<{ title: string; url: string; snippet: string }> = [];
-        const results: Array<{ title: string; url: string; snippet: string }> = [];
         const clean = (value: string) => value.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/\s+/g, " ").trim();
         const linkPattern = /<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
         for (const match of html.matchAll(linkPattern)) {
@@ -790,7 +789,7 @@ Deno.serve(async (req: Request) => {
       if (kind === "prayer") {
         const city = cleanString(body?.city, 100) || "المحلة الكبرى";
         const country = cleanString(body?.country, 80) || "Egypt";
-        const date = new Date().toISOString().slice(0, 10).split("-").reverse().join("-");
+        const date = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Cairo", day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date());
         const endpoint = "https://api.aladhan.com/v1/timingsByCity/" + date + "?" + new URLSearchParams({
           city, country, method: "5",
         }).toString();
