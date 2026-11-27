@@ -765,3 +765,8 @@ body{background:radial-gradient(ellipse at 50% 43%,rgba(28,51,86,.46),transparen
 .memory-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .memory-actions button{flex:1 1 150px}
 .memory-meta{opacity:.72;font-size:.88rem}
+
+.scheduled-tasks-list{display:grid;gap:10px;margin-top:12px;color:var(--muted,#aaa);font-size:.92rem}
+.scheduled-task{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid var(--line,rgba(255,255,255,.12));border-radius:14px;background:rgba(128,110,190,.07)}
+.scheduled-task p{margin:5px 0 0;line-height:1.6}
+.scheduled-task .secondary-button{flex:0 0 auto;min-height:36px}
