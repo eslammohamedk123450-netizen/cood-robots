@@ -143,10 +143,12 @@ assert.match(app, /}, 950\);/, "Voice turn should use a shorter but non-zero end
 assert.doesNotMatch(app, /const memoryMatches = await searchConversationMemory\(text, signal\)/, "Memory retrieval must not add a separate browser round trip before chat");
 assert.match(app, /exclude_conversation_id: state\.conversationIds\[state\.persona\]/, "Chat request must exclude the active conversation from older-memory retrieval");
 assert.match(edge, /سياق مسترجع من محادثات سابقة للشخصيتين/, "Chat endpoint must retrieve cross-persona history in the same request");
-assert.match(edge, /oldRowsError/, "Server-side history retrieval errors must be handled explicitly");
-assert.match(html, /nova-quick-conversation-v56/, "Client cache version must be refreshed after UX changes");
+assert.match(edge, /oldRowsResult\.error/, "Parallel history retrieval errors must be handled explicitly");
+assert.match(edge, /const \[\{ data: memoryRow, error: memoryReadError \}, \{ data: models, error \}, oldRowsResult\] = await Promise\.all\(/, "Independent memory, model, and history reads must run concurrently");
+assert.match(edge, /const secretEntries = await Promise\.all\(/, "Provider secrets must be fetched concurrently instead of serially");
+assert.match(html, /nova-quick-conversation-v57/, "Client cache version must be refreshed after UX changes");
 assert.match(css, /NOVA responsive voice-first polish/, "Responsive voice-first visual polish must be present");
 
 assert.match(app, /Keep the dedicated interrupt listener alive during playback/, "Voice interruption listener must remain active while NOVA speaks");
 assert.doesNotMatch(app, /if \(state\.listening\) startInterruptRecognition\(\);\s*stopInterruptRecognition\(\)/, "Speech playback must not immediately disable the interrupt listener");
-assert.match(html, /nova-quick-conversation-v56/, "Client bundle cache must refresh after the interrupt fix");
+assert.match(html, /nova-quick-conversation-v57/, "Client bundle cache must refresh after the interrupt fix");
