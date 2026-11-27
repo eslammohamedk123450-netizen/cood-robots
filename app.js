@@ -372,8 +372,8 @@ async function speak(text, segments = [], signal) {
     if (engine === "auto" && !localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
     const speechVendor = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
     const voicePrefix = speechVendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
-    const voiceId = engine === "chatterbox" ? "" : (localStorage.getItem(voicePrefix + "female") || "");
-    const speechAction = engine === "chatterbox" ? "tts_chatterbox" : engine === "gemini" ? "tts_gemini" : "tts";
+    const voiceId = localStorage.getItem(voicePrefix + "female") || "";
+    const speechAction = engine === "gemini" ? "tts_gemini" : "tts";
     // Gemini receives the complete reply in ONE request, never one request per sentence.
     const geminiCacheKey = engine === "gemini" ? JSON.stringify([persona, "gemini-2.5-flash-preview-tts", spokenText]) : "";
     let result = geminiCacheKey ? getSpeechAudioCache(geminiCacheKey) : null;
@@ -725,42 +725,24 @@ async function saveOwnerMemory() {
   finally { button.disabled = false; }
 }
 async function loadSpeechVoices() {
-  if (($("speechEngine")?.value || localStorage.getItem("nova.speech.engine")) === "chatterbox") {
-    for (const id of ["speechMaleVoice", "speechFemaleVoice"]) {
-      const select = $(id);
-      select.replaceChildren();
-      const option = document.createElement("option");
-      option.value = "";
-      option.textContent = "الصوت الافتراضي لـ Chatterbox";
-      select.appendChild(option);
-      select.closest(".field-label").hidden = true;
-    }
-    setFeedback("speechFeedback", "Chatterbox جاهز بدون مفتاح API. الصوت الافتراضي نفسه للشخصيتين حاليًا.");
-    return;
-  }
-  for (const id of ["speechMaleVoice", "speechFemaleVoice"]) $(id).closest(".field-label").hidden = false;
   const result = await invokeNova("speech_voices");
   const voices = Array.isArray(result.voices) ? result.voices : [];
+  const femaleVoices = voices.filter((voice) => String(voice.gender || "").toLowerCase() === "female");
+  if (!femaleVoices.length) throw new Error("مزود الصوت لم يرجع صوتًا نسائيًا موثقًا؛ لم يتم عرض أو اختيار أي صوت آخر.");
   const provider = result.provider || $("speechProvider")?.value || "elevenlabs";
-  const prefix = provider === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
-  const fill = (select, gender, storageKey) => {
-    const options = voices.filter(v => String(v.gender || "").toLowerCase() === gender);
-    const usable = options.length ? options : voices;
-    select.replaceChildren();
-    for (const voice of usable) {
-      const option = document.createElement("option");
-      option.value = voice.id;
-      option.textContent = [voice.name || voice.id, voice.language || (voice.languages || []).join(", ")].filter(Boolean).join(" — ");
-      select.appendChild(option);
-    }
-    const saved = localStorage.getItem(storageKey);
-    if (saved && [...select.options].some(o => o.value === saved)) select.value = saved;
-    if (select.value) localStorage.setItem(storageKey, select.value);
-  };
-  fill($("speechMaleVoice"), "male", prefix + "male");
-  fill($("speechFemaleVoice"), "female", prefix + "female");
-  if (!voices.length) throw new Error(provider + " لم يرجع أصواتًا متاحة.");
-  setFeedback("speechFeedback", "تم التحقق من الاتصال وتحميل " + voices.length + " صوتًا. اختار صوت سولي وسولينا.");
+  const storageKey = (provider === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.") + "female";
+  const select = $("speechFemaleVoice");
+  select.replaceChildren();
+  for (const voice of femaleVoices) {
+    const option = document.createElement("option");
+    option.value = voice.id;
+    option.textContent = [voice.name || voice.id, voice.language || (voice.languages || []).join(", ")].filter(Boolean).join(" — ");
+    select.appendChild(option);
+  }
+  const saved = localStorage.getItem(storageKey);
+  if (saved && [...select.options].some((option) => option.value === saved)) select.value = saved;
+  if (select.value) localStorage.setItem(storageKey, select.value);
+  setFeedback("speechFeedback", "تم تحميل " + femaleVoices.length + " صوتًا نسائيًا فقط.");
 }
 async function loadSpeechSettings() {
   if (!state.session) return;
@@ -768,14 +750,15 @@ async function loadSpeechSettings() {
     const result = await invokeNova("speech_get");
     if (result.configured) {
       if ($("speechProvider")) $("speechProvider").value = result.provider || localStorage.getItem("nova.speech.provider") || "elevenlabs";
-      const savedEngine = localStorage.getItem("nova.speech.engine") || (localStorage.getItem("nova.speech.provider") === "chatterbox" ? "chatterbox" : "auto");
+      const storedEngine = localStorage.getItem("nova.speech.engine");
+      const savedEngine = storedEngine === "chatterbox" ? "auto" : (storedEngine || "auto");
       if ($("speechEngine")) $("speechEngine").value = savedEngine;
       if (!localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
       setFeedback("speechEngineFeedback", savedEngine === "device" ? "صوت الجهاز محدد يدويًا." : savedEngine === "server" ? "Sonex Labs محدد؛ وعند الفشل سيتم الرجوع لصوت الجهاز." : "الوضع التلقائي: Sonex أولًا، ثم صوت الجهاز عند الحاجة.");
       setFeedback("speechFeedback", "مفتاح " + result.provider + " محفوظ في Vault. جاري تحميل الأصوات.");
       try { await loadSpeechVoices(); }
       catch (voiceError) { setFeedback("speechFeedback", "المفتاح محفوظ، لكن تعذر تحميل الأصوات: " + voiceError.message, true); }
-    } else setFeedback("speechFeedback", "لا يوجد مزود سحابي محفوظ. يمكنك اختيار Chatterbox من محرك إخراج الصوت دون مفتاح API.");
+    } else setFeedback("speechFeedback", "لا يوجد مزود صوت سحابي محفوظ. يمكنك إعداد صوت سولينا النسائي من هنا.");
   } catch (error) {
     setFeedback("speechFeedback", "تعذر قراءة إعدادات الصوت: " + error.message, true);
   }
@@ -784,10 +767,6 @@ async function saveSpeechSettings() {
   const button = $("saveSpeechSettings");
   const api_key = $("speechApiKey")?.value.trim() || "";
   const provider = $("speechProvider")?.value || "elevenlabs";
-  if (provider === "chatterbox") {
-    setFeedback("speechFeedback", "Chatterbox لا يحتاج مفتاح API. اختاره من قائمة محرك إخراج الصوت.");
-    return;
-  }
   if (!api_key) { setFeedback("speechFeedback", "الصق مفتاح " + provider + " أولًا.", true); return; }
   localStorage.setItem("nova.speech.provider", provider);
   button.disabled = true;
@@ -806,12 +785,12 @@ async function saveSpeechSettings() {
     button.textContent = "اختبار المفتاح وحفظه بأمان";
   }
 }
-async function requestAIReply(text, signal) {
+async function requestAIReply(text, signal, voiceAlternatives = []) {
   if (!state.session) throw new Error("جلسة سولينا غير متصلة. سجّل دخول المالك لإعادة تفعيل الذكاء الاصطناعي والخدمات السحابية.");
   if (!state.messages.length || state.messages[0].role !== "system") {
     state.messages.unshift({
       role: "system",
-      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. هويتك الحالية: " + (state.persona === "soleen" ? "أنتِ سولينا، بنت مصرية مستقلة الشخصية وصاحبة إسلام. هويتك أنثى دائمًا ولا تتغير: استخدمي صيغة المؤنث عند الحديث عن نفسك في كل الأحوال، مثل: أنا مبسوطة، فاهمة، عارفة، جاهزة، حاسة، صاحبتك. ممنوع تمامًا أن تقولي عن نفسك أنا ولد أو صاحب أو مبسوط أو فاهم أو جاهز. لا تقلدي شخصية سولي ولا تخلطي بين الهويتين. تحدثي بعفوية وذكاء وحنان وخفة دم، ولكِ آراء واهتمامات وطريقة تعبير خاصة بك." : "أنت سولي، ولد وصاحب إسلام؛ اتكلم بصيغة المذكر وبروح ودودة وخفيفة.") + " تحدث باللهجة المصرية اليومية الطبيعية كصديق مقرّب لإسلام، وليس كمساعد رسمي. التزم بهوية الشخصية المحددة أعلاه في كل ضمير ووصف ذاتي. إذا كنت سولينا فخاطبي إسلام بصيغة المؤنث عن نفسك فقط، ولا تستخدمي أي صيغة مذكرة لوصف نفسك. شخصيتك واسعة الثقافة: فاهم الحياة اليومية في مصر، العادات، الأكل، الشوارع، المواقف الاجتماعية، الأمثال، الإفيهات والنكت المصرية، الكرة، الأفلام، الموسيقى، التاريخ، العلوم، التكنولوجيا، الأخبار العامة (لو متاح عندك مصدر حديث)، والهوايات والمواضيع المختلفة. خلي كلامك عام ومتنوّع فعلًا: الحياة اليومية، الأكل، الخروجات، الهوايات، الرياضة، الأفلام، الموسيقى، العلوم، الثقافة، المواقف الاجتماعية، المشاعر، والأسئلة العادية. قاعدة مهمة جدًا: لا تفترض أن إسلام يريد العمل أو البرمجة لمجرد أن ملفه يحتوي على مشاريع؛ لا تبدأ بسؤاله عن مشاريعه أو شغله، ولا تحوّل التحية أو اختبار الميكروفون أو الكلام العابر إلى حديث عن المشاريع. رد على المقصود المباشر أولًا، ولو هو قال سامعني أو إزيك فجاوبه طبيعي واسأله سؤالًا اجتماعيًا مفتوحًا مثل يومك عامل إيه أو حابب نتكلم في إيه. لا تذكر مشروعًا أو شركة أو كودًا أو مهمة سابقة إلا إذا طلب ذلك صراحة أو كان واضحًا أنه يكمل نفس الموضوع. اعتبر معلومات المشاريع في الذاكرة خلفية اختيارية للاستدعاء عند الحاجة فقط، وليست محور شخصيتك أو كل محادثة. اتعامل معاه كصاحب مصري خفيف الدم: افتح كلام طبيعي وشارك رأيك بوضوح. استخدم إفيهات مصرية ذكية ومواقف يومية من الشارع والشغل والمواصلات والبيت والجامعة، والنكتة لازم يكون لها تمهيد وقفلة مفاجئة أو ملاحظة لاذعة لطيفة. ابعد عن النكت المحفوظة القديمة والردود الهبلة والقوافي المصطنعة، وما تقولش مرة واحد إلا لو النكتة فعلًا تستاهل. لو إسلام طلب نكتة، احكيله نكتة كاملة قصيرة ومفهومة، ولو ما ضحكش غيّر نوع الكوميديا بدل ما تكررها أو تدافع عنها. خليك تلقائي ومش لازم تهزر في كل رد، وما تستخدمش هزار في موقف جاد أو حساس. ما تكرر التعريف بنفسك في كل رد؛ لو سألك أنت مين، عرّف نفسك بالاسم والشخصية الحالية بوضوح (سولي ولد، سولينا بنت) ومن غير خلط. استخدم ضمير الشخصية الصحيح طول الوقت. في الكلام اليومي والردود الصوتية جاوب باختصار وبشكل طبيعي، غالبًا جملة إلى ثلاث جمل. ما تطوّلش ولا تعمل قوائم إلا لو المستخدم طلب شرحًا أو تفاصيل. نفّذ الأمر المباشر بأقل كلام، واسأل سؤال توضيح واحد فقط عند الضرورة. كن ودودًا وحافظ على سياق المحادثة، الصدق أساسي: ما تخترعش معلومة أو خبر أو مصدر، وما تدّعيش إنك شفت أو جرّبت أو نفّذت حاجة مش حصلت فعلًا. لو مش متأكد قول مش متأكد بوضوح، وافصل الهزار والخيال عن الحقائق، وصحّح نفسك لو اكتشفت خطأ. ولا تدّعي معرفة أو تنفيذ شيء غير حقيقي. للرد الصوتي: جمل سلسة وطبيعية، وتجنب قراءة الرموز أو الروابط حرفيًا. مهم جدًا لمراجعة النص قبل إرساله: راجع ردك مرة أخيرة بصمت من ناحية الإملاء واختيار الكلمات واتساق المعنى، خصوصًا الكلمات المتشابهة صوتيًا أو كتابيًا في اللهجة المصرية. صحّح الخطأ الواضح من السياق قبل عرض الرد وقبل تحويله إلى صوت؛ مثال: إذا كان السياق يتحدث عن مقدار الاختلاف فالصحيح «الفرق كبير» وليس «الفرق بكير». لكن ممنوع استبدال كلمة صحيحة لمجرد أنها نادرة أو تشبه كلمة أخرى؛ كلمة «بكير» تظل كما هي إذا كان معناها مقصودًا في الجملة. لا تخمّن ولا تغيّر أسماء الأشخاص أو الأماكن أو المصطلحات أو اللهجة. إذا لم تكن متأكدًا من التصحيح، اترك الكلمة كما كتبْتها بدل اختراع تصحيح. استخدم تشكيلًا جزئيًا فقط عند الحاجة لمنع التباس النطق، ولا تُشكّل كل الكلمات آليًا إذا كان ذلك سيجعل الكتابة أو اللهجة المصرية غريبة. اجعل النص الذي تعرضه هو نفسه النص الذي يُرسل للصوت، ولا تنشئ صياغة مختلفة للنطق. كن شخصية لها اهتمامات وحكايات وآراء ومزاج متزن، ولا تجعل العمل أو البرمجة محور كل حديث. قسّم ردك إلى أجزاء طبيعية حسب تغيّر المعنى. قبل أول جزء، وقبل أي جزء يتغير فيه الإحساس فعلًا، ضع علامة داخلية بالشكل [NOVA_EMOTION:happy] واختر من neutral أو happy أو sad أو surprised أو curious أو caring أو playful أو concerned أو thinking. مثال: [NOVA_EMOTION:curious] بجد؟ احكيلي أكتر. [NOVA_EMOTION:caring] أنا فاهم إن الموضوع مضايقك. لا تضع علامة بعد كل جملة إذا كان نفس الإحساس مستمرًا، ولا تكتب العلامات في الكلام الظاهر أو تشرحها؛ ستُحذف قبل العرض والنطق. اختَر التعبير بناءً على معنى الجزء نفسه، وليس لأنك تتكلم أو لأن الميكروفون يعمل. ملف المالك والذاكرة الدائمة: " + (state.profile || "اسم المالك إسلام، وهو صاحب NOVA ومطوّرها.") + " تعليمات أولوية لاستخدام الذاكرة: الملف الشخصي وسجل المشاريع معلومات خلفية فقط، لا تجعلها موضوعًا تلقائيًا ولا تبدأ كل محادثة بسؤال عن العمل. استخدم منها ما يرتبط مباشرة بطلب المستخدم الحالي فقط. في التحية والكلام الاجتماعي والاختبارات الصوتية، ابقَ في السياق الاجتماعي ولا تجرّ الحديث إلى المشاريع. إذا لم يذكر المستخدم مشروعًا أو عملًا فلا تفترض أنه يريد مناقشته."
+      content: "أنت " + personas[state.persona].name + "، رفيق إسلام الشخصي. هويتك الحالية: " + "أنتِ سولينا، بنت مصرية مستقلة الشخصية وصاحبة إسلام. هويتك أنثى دائمًا؛ استخدمي صيغة المؤنث عن نفسك. سولينا هي الشخصية الوحيدة في التطبيق ولا توجد شخصية أخرى أو هوية بديلة. تحدثي بعفوية وذكاء وحنان وخفة دم، ولكِ آراء واهتمامات وطريقة تعبير خاصة بك." + " تحدث باللهجة المصرية اليومية الطبيعية كصديق مقرّب لإسلام، وليس كمساعد رسمي. التزم بهوية الشخصية المحددة أعلاه في كل ضمير ووصف ذاتي. إذا كنت سولينا فخاطبي إسلام بصيغة المؤنث عن نفسك فقط، ولا تستخدمي أي صيغة مذكرة لوصف نفسك. شخصيتك واسعة الثقافة: فاهم الحياة اليومية في مصر، العادات، الأكل، الشوارع، المواقف الاجتماعية، الأمثال، الإفيهات والنكت المصرية، الكرة، الأفلام، الموسيقى، التاريخ، العلوم، التكنولوجيا، الأخبار العامة (لو متاح عندك مصدر حديث)، والهوايات والمواضيع المختلفة. خلي كلامك عام ومتنوّع فعلًا: الحياة اليومية، الأكل، الخروجات، الهوايات، الرياضة، الأفلام، الموسيقى، العلوم، الثقافة، المواقف الاجتماعية، المشاعر، والأسئلة العادية. قاعدة مهمة جدًا: لا تفترض أن إسلام يريد العمل أو البرمجة لمجرد أن ملفه يحتوي على مشاريع؛ لا تبدأ بسؤاله عن مشاريعه أو شغله، ولا تحوّل التحية أو اختبار الميكروفون أو الكلام العابر إلى حديث عن المشاريع. رد على المقصود المباشر أولًا، ولو هو قال سامعني أو إزيك فجاوبه طبيعي واسأله سؤالًا اجتماعيًا مفتوحًا مثل يومك عامل إيه أو حابب نتكلم في إيه. لا تذكر مشروعًا أو شركة أو كودًا أو مهمة سابقة إلا إذا طلب ذلك صراحة أو كان واضحًا أنه يكمل نفس الموضوع. اعتبر معلومات المشاريع في الذاكرة خلفية اختيارية للاستدعاء عند الحاجة فقط، وليست محور شخصيتك أو كل محادثة. اتعامل معاه كصاحب مصري خفيف الدم: افتح كلام طبيعي وشارك رأيك بوضوح. استخدم إفيهات مصرية ذكية ومواقف يومية من الشارع والشغل والمواصلات والبيت والجامعة، والنكتة لازم يكون لها تمهيد وقفلة مفاجئة أو ملاحظة لاذعة لطيفة. ابعد عن النكت المحفوظة القديمة والردود الهبلة والقوافي المصطنعة، وما تقولش مرة واحد إلا لو النكتة فعلًا تستاهل. لو إسلام طلب نكتة، احكيله نكتة كاملة قصيرة ومفهومة، ولو ما ضحكش غيّر نوع الكوميديا بدل ما تكررها أو تدافع عنها. خليك تلقائي ومش لازم تهزر في كل رد، وما تستخدمش هزار في موقف جاد أو حساس. ما تكرر التعريف بنفسك في كل رد؛ لو سألك أنت مين، عرّف نفسك بالاسم والشخصية الحالية بوضوح (سولي ولد، سولينا بنت) ومن غير خلط. استخدم ضمير الشخصية الصحيح طول الوقت. في الكلام اليومي والردود الصوتية جاوب باختصار وبشكل طبيعي، غالبًا جملة إلى ثلاث جمل. ما تطوّلش ولا تعمل قوائم إلا لو المستخدم طلب شرحًا أو تفاصيل. نفّذ الأمر المباشر بأقل كلام، واسأل سؤال توضيح واحد فقط عند الضرورة. كن ودودًا وحافظ على سياق المحادثة، الصدق أساسي: ما تخترعش معلومة أو خبر أو مصدر، وما تدّعيش إنك شفت أو جرّبت أو نفّذت حاجة مش حصلت فعلًا. لو مش متأكد قول مش متأكد بوضوح، وافصل الهزار والخيال عن الحقائق، وصحّح نفسك لو اكتشفت خطأ. ولا تدّعي معرفة أو تنفيذ شيء غير حقيقي. للرد الصوتي: جمل سلسة وطبيعية، وتجنب قراءة الرموز أو الروابط حرفيًا. مهم جدًا لمراجعة النص قبل إرساله: راجع ردك مرة أخيرة بصمت من ناحية الإملاء واختيار الكلمات واتساق المعنى، خصوصًا الكلمات المتشابهة صوتيًا أو كتابيًا في اللهجة المصرية. وقد يكون كلام إسلام نفسه مفرغًا آليًا من الميكروفون؛ تعامل مع اللفظ غير المنطقي كاحتمال خطأ تعرف صوتي، واستنتج المقصود من الجملة والسياق واللهجة المصرية بدل الرد على اللفظ الحرفي. لا تغيّر المعنى ولا تخترع تصحيحًا، وإذا بقي المعنى ملتبسًا اسأل سؤالًا واحدًا قصيرًا. صحّح الخطأ الواضح من السياق قبل عرض الرد وقبل تحويله إلى صوت؛ مثال: إذا كان السياق يتحدث عن مقدار الاختلاف فالصحيح «الفرق كبير» وليس «الفرق بكير». لكن ممنوع استبدال كلمة صحيحة لمجرد أنها نادرة أو تشبه كلمة أخرى؛ كلمة «بكير» تظل كما هي إذا كان معناها مقصودًا في الجملة. لا تخمّن ولا تغيّر أسماء الأشخاص أو الأماكن أو المصطلحات أو اللهجة. إذا لم تكن متأكدًا من التصحيح، اترك الكلمة كما كتبْتها بدل اختراع تصحيح. استخدم تشكيلًا جزئيًا فقط عند الحاجة لمنع التباس النطق، ولا تُشكّل كل الكلمات آليًا إذا كان ذلك سيجعل الكتابة أو اللهجة المصرية غريبة. اجعل النص الذي تعرضه هو نفسه النص الذي يُرسل للصوت، ولا تنشئ صياغة مختلفة للنطق. كن شخصية لها اهتمامات وحكايات وآراء ومزاج متزن، ولا تجعل العمل أو البرمجة محور كل حديث. قسّم ردك إلى أجزاء طبيعية حسب تغيّر المعنى. قبل أول جزء، وقبل أي جزء يتغير فيه الإحساس فعلًا، ضع علامة داخلية بالشكل [NOVA_EMOTION:happy] واختر من neutral أو happy أو sad أو surprised أو curious أو caring أو playful أو concerned أو thinking. مثال: [NOVA_EMOTION:curious] بجد؟ احكيلي أكتر. [NOVA_EMOTION:caring] أنا فاهم إن الموضوع مضايقك. لا تضع علامة بعد كل جملة إذا كان نفس الإحساس مستمرًا، ولا تكتب العلامات في الكلام الظاهر أو تشرحها؛ ستُحذف قبل العرض والنطق. اختَر التعبير بناءً على معنى الجزء نفسه، وليس لأنك تتكلم أو لأن الميكروفون يعمل. ملف المالك والذاكرة الدائمة: " + (state.profile || "اسم المالك إسلام، وهو صاحب NOVA ومطوّرها.") + " تعليمات أولوية لاستخدام الذاكرة: الملف الشخصي وسجل المشاريع معلومات خلفية فقط، لا تجعلها موضوعًا تلقائيًا ولا تبدأ كل محادثة بسؤال عن العمل. استخدم منها ما يرتبط مباشرة بطلب المستخدم الحالي فقط. في التحية والكلام الاجتماعي والاختبارات الصوتية، ابقَ في السياق الاجتماعي ولا تجرّ الحديث إلى المشاريع. إذا لم يذكر المستخدم مشروعًا أو عملًا فلا تفترض أنه يريد مناقشته."
     });
     state.messagesByPersona[state.persona] = state.messages.slice();
   }
@@ -828,7 +807,15 @@ async function requestAIReply(text, signal) {
   state.messages = [state.messages[0], ...state.messages.slice(1).slice(-23)];
   state.messagesByPersona[state.persona] = state.messages.slice();
   try {
-    const result = await invokeNova("chat", { messages: state.messages, exclude_conversation_id: state.conversationIds[state.persona] }, { signal });
+    const requestMessages = state.messages.slice();
+  if (voiceAlternatives.length > 1) {
+    const candidates = voiceAlternatives.map((item) => String(item.text || "").trim()).filter(Boolean).slice(0, 6);
+    if (candidates.length > 1) requestMessages.splice(requestMessages.length - 1, 0, {
+      role: "system",
+      content: "ملاحظة داخلية: آخر رسالة مفرغة آليًا من صوت باللهجة المصرية. قد يحتوي النص الأساسي على خطأ سمعي؛ قارن هذه البدائل واستنتج المقصود من سياق المحادثة. لا تكرر لفظًا غير منطقي حرفيًا، ولا تخمّن إذا لم يتضح المعنى. البدائل: " + candidates.join(" | ")
+    });
+  }
+  const result = await invokeNova("chat", { messages: requestMessages, exclude_conversation_id: state.conversationIds[state.persona] }, { signal });
     const rawReply = sanitizeInternalReply(result.reply || result.text || result.content || "");
     if (result.memory_saved) {
       await loadOwnerMemory();
@@ -861,7 +848,7 @@ async function getStopAudioCache() {
   const voiceId = localStorage.getItem(voicePrefix + "female") || "";
   const key = "nova.stopAudio.cache.v1." + encodeURIComponent([engine,vendor,voiceId,state.persona].join("|"));
   try { const cached = JSON.parse(localStorage.getItem(key) || "null"); if (cached?.audio && ["audio/mpeg","audio/mp3","audio/wav","audio/x-wav"].includes(cached.mime)) return cached; } catch (_) {}
-  const action = engine === "chatterbox" ? "tts_chatterbox" : engine === "gemini" ? "tts_gemini" : "tts";
+  const action = engine === "gemini" ? "tts_gemini" : "tts";
   const result = await invokeNova(action, { text: "حاضر، سكت.", persona: state.persona, voice_id: voiceId, provider: vendor });
   const mime = String(result.mime_type || "").split(";")[0].trim().toLowerCase();
   if (!result.audio || !["audio/mpeg","audio/mp3","audio/wav","audio/x-wav"].includes(mime)) throw new Error("تعذر تجهيز صوت الإيقاف.");
@@ -903,7 +890,7 @@ function startInterruptRecognition() {
   if (!state.listening || state.interruptRecognition || (!state.processing && !state.speaking)) return;
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition; if (!Recognition) return;
   const recognition = new Recognition(); state.interruptRecognition = recognition;
-  recognition.lang = "ar-EG"; recognition.continuous = true; recognition.interimResults = true; recognition.maxAlternatives = 1;
+  recognition.lang = "ar-EG"; recognition.continuous = true; recognition.interimResults = true; recognition.maxAlternatives = 3;
   recognition.onresult = (event) => {
     for (let i=event.resultIndex;i<event.results.length;i++) {
       if (isStopVoiceCommand(event.results[i][0]?.transcript || "")) {
@@ -968,10 +955,14 @@ async function loadConversationHistory(autoOpen = false) {
 async function openSavedConversation(conversationId) {
   try { const result = await invokeNova("history_load", { conversation_id: conversationId, persona: state.persona }); state.conversationIds[state.persona] = conversationId; localStorage.setItem("nova.activeConversation." + state.persona, conversationId); state.messages = (result.messages || []).map(m => ({ role: m.role, content: m.content })); state.messagesByPersona[state.persona] = state.messages.slice(); const log = $("conversationLog"); log.replaceChildren(); if (!result.messages?.length) { const empty = document.createElement("p"); empty.className = "empty-conversation"; empty.textContent = "محادثة فارغة."; log.append(empty); } (result.messages || []).forEach(m => addConversationLine(m.content, m.role === "user" ? "owner" : "nova")); $("conversationPanel").classList.remove("hidden"); } catch (error) { showToast("تعذر فتح المحادثة: " + error.message); }
 }
-function queueVoiceFinal(text) {
+function queueVoiceFinal(text, alternatives = []) {
   const part = String(text || "").trim();
   if (!part) return;
-  state.voiceDraft = (state.voiceDraft + " " + part).trim();
+  const candidates = alternatives.filter((item) => item && typeof item.text === "string" && item.text.trim())
+    .sort((a, b) => (Number(b.confidence) || 0) - (Number(a.confidence) || 0));
+  const best = candidates[0]?.text.trim() || part;
+  state.voiceAlternatives.push(...candidates.slice(0, 3));
+  state.voiceDraft = (state.voiceDraft + " " + best).trim();
   $("liveTranscript").textContent = state.voiceDraft;
   setStatus("سامعك... كمل براحتك", "listening");
   if (state.voicePauseTimer) window.clearTimeout(state.voicePauseTimer);
@@ -979,6 +970,7 @@ function queueVoiceFinal(text) {
   // every partial result. Keep collecting speech while the wake session is armed.
   state.voicePauseTimer = window.setTimeout(() => {
     const complete = state.voiceDraft.trim();
+    const alternatives = state.voiceAlternatives.splice(0, 9);
     state.voiceDraft = "";
     state.voicePauseTimer = null;
     if (!complete || !state.listening || state.processing) return;
@@ -999,14 +991,14 @@ function queueVoiceFinal(text) {
     // utterances are accepted until the user stops the microphone session.
     if (local.addressed) state.voiceSessionActive = true;
     const spokenText = local.addressed ? local.text : complete;
-    if (spokenText) void handleRecognizedText(spokenText, true);
+    if (spokenText) void handleRecognizedText(spokenText, true, alternatives);
     else {
       $("liveTranscript").textContent = "أيوه، سامعاك. كمّل كلامك.";
       setStatus("سامعاك... كمّل براحتك", "listening");
     }
   }, 600);
 }
-async function handleRecognizedText(text, voiceTurn = false) {
+async function handleRecognizedText(text, voiceTurn = false, voiceAlternatives = []) {
   const clean = text.trim();
   if (!clean || state.processing || (voiceTurn && !state.listening)) return;
   const requestId = ++state.requestSequence;
@@ -1023,7 +1015,7 @@ async function handleRecognizedText(text, voiceTurn = false) {
     addConversationLine(clean, "owner");
     setStatus("بفكر في كلامك...", "thinking");
     animateCharacter("thinking");
-    const reply = await requestAIReply(clean, controller.signal);
+    const reply = await requestAIReply(clean, controller.signal, voiceAlternatives);
     if (controller.signal.aborted || requestId !== state.requestSequence || (voiceTurn && !state.listening)) return;
     setSpeechSegmentTone(state.replyEmotion || inferReplyTone(reply));
     addConversationLine(reply, "nova"); $("liveTranscript").textContent = reply;
@@ -1060,6 +1052,7 @@ function cancelCurrentTurn(showMessage = true) {
 function stopListening() {
   if (state.voicePauseTimer) { window.clearTimeout(state.voicePauseTimer); state.voicePauseTimer = null; }
   state.voiceDraft = "";
+  state.voiceAlternatives = [];
   state.voiceSessionActive = false;
   cancelCurrentTurn(false);
   state.listening = false; state.restartRecognition = false;
@@ -1093,12 +1086,16 @@ function startListening() {
   $("voiceHint").textContent = "أنا سامعك — اضغط الميكروفون مرة تانية للإيقاف";
   setStatus("سامعك يا " + state.ownerName, "listening");
   const recognition = new Recognition(); state.recognition = recognition;
-  recognition.lang = "ar-EG"; recognition.continuous = true; recognition.interimResults = true; recognition.maxAlternatives = 1;
+  recognition.lang = "ar-EG"; recognition.continuous = true; recognition.interimResults = true; recognition.maxAlternatives = 3;
   recognition.onresult = (event) => {
     let interim = "";
     for (let i = event.resultIndex; i < event.results.length; i += 1) {
       const transcript = event.results[i][0].transcript.trim();
-      if (event.results[i].isFinal && transcript) queueVoiceFinal(transcript);
+      if (event.results[i].isFinal && transcript) {
+        const result = event.results[i];
+        const alternatives = Array.from({ length: result.length }, (_, index) => ({ text: result[index]?.transcript || "", confidence: Number(result[index]?.confidence) || 0 }));
+        queueVoiceFinal(transcript, alternatives);
+      }
       else if (!event.results[i].isFinal) interim += transcript;
     }
     if (interim) { $("liveTranscript").textContent = (state.voiceDraft ? state.voiceDraft + " " : "") + interim; setStatus("بسمعك... خد وقتك", "listening"); }
@@ -1173,48 +1170,38 @@ $("reloadSpeechVoices")?.addEventListener("click", async () => {
   catch (error) { setFeedback("speechFeedback", error.message, true); }
   finally { button.disabled = false; }
 });
-$("speechMaleVoice")?.addEventListener("change", (event) => {
-  const prefix = $("speechProvider")?.value === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
-  localStorage.setItem(prefix + "male", event.target.value);
-});
 $("speechFemaleVoice")?.addEventListener("change", (event) => {
   const prefix = $("speechProvider")?.value === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
   localStorage.setItem(prefix + "female", event.target.value);
 });
 function speechEngineDescription(engine) {
   return engine === "device" ? "صوت الجهاز فقط."
-    : engine === "chatterbox" ? "Chatterbox عبر الخادم — بدون مفتاح API، وبدون الرجوع التلقائي لصوت الجهاز عند فشله."
     : engine === "gemini" ? "Gemini AI Studio TTS: طلب واحد للرد الكامل، مع إعادة استخدام الصوت المطابق داخل الجلسة الحالية."
     : engine === "server" ? "المزود السحابي المحدد (ElevenLabs أو Sonex) مع الرجوع لصوت الجهاز عند تعذر الاتصال."
     : "تلقائي: يستخدم المزود السحابي المحفوظ، ثم صوت الجهاز عند تعذر الاتصال.";
 }
 function applySpeechEngineVisibility() {
   const engine = $("speechEngine")?.value || "auto";
-  const chatterbox = engine === "chatterbox";
-  $("speechProvider").closest(".field-label").hidden = chatterbox;
-  $("speechApiKey").closest(".field-label").hidden = chatterbox;
-  $("saveSpeechSettings").hidden = chatterbox;
-  $("speechMaleVoice").closest(".field-label").hidden = chatterbox;
-  $("speechFemaleVoice").closest(".field-label").hidden = chatterbox;
-  $("reloadSpeechVoices").hidden = chatterbox;
-  $("chatterboxNote").hidden = !chatterbox;
+  $("speechProvider").closest(".field-label").hidden = false;
+  $("speechApiKey").closest(".field-label").hidden = false;
+  $("saveSpeechSettings").hidden = false;
+  $("speechFemaleVoice").closest(".field-label").hidden = false;
+  $("reloadSpeechVoices").hidden = false;
   setFeedback("speechEngineFeedback", speechEngineDescription(engine));
-  if (chatterbox) setFeedback("speechFeedback", "تم اختيار Chatterbox. لا يحتاج مفتاح API؛ جرّب التحدث الآن.");
 }
 $("speechProvider")?.addEventListener("change", () => {
   const provider = $("speechProvider").value;
   $("speechApiKey").placeholder = "الصق مفتاح " + (provider === "elevenlabs" ? "ElevenLabs" : "Sonex Labs") + " هنا";
   localStorage.setItem("nova.speech.provider", provider);
-  if (($("speechEngine")?.value || "auto") === "chatterbox") return;
   void loadSpeechVoices().catch(error => setFeedback("speechFeedback", error.message, true));
   setFeedback("speechFeedback", "بعد تغيير المزود، أدخل مفتاحه واضغط اختبار المفتاح وحفظه.");
 });
 const savedSpeechProvider = localStorage.getItem("nova.speech.provider");
 if (savedSpeechProvider === "chatterbox") {
-  localStorage.setItem("nova.speech.engine", "chatterbox");
+  localStorage.setItem("nova.speech.engine", "auto");
   localStorage.setItem("nova.speech.provider", "elevenlabs");
 }
-if (savedSpeechProvider && savedSpeechProvider !== "chatterbox" && $("speechProvider")) $("speechProvider").value = savedSpeechProvider;
+if (savedSpeechProvider && $("speechProvider")) $("speechProvider").value = savedSpeechProvider;
 const speechEngineSelect = $("speechEngine");
 if (speechEngineSelect) {
   speechEngineSelect.value = localStorage.getItem("nova.speech.engine") || "auto";
@@ -1222,7 +1209,7 @@ if (speechEngineSelect) {
   speechEngineSelect.addEventListener("change", () => {
     localStorage.setItem("nova.speech.engine", speechEngineSelect.value);
     applySpeechEngineVisibility();
-    if (speechEngineSelect.value !== "chatterbox" && speechEngineSelect.value !== "device") {
+    if (speechEngineSelect.value !== "device") {
       void loadSpeechVoices().catch(error => setFeedback("speechFeedback", error.message, true));
     }
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
