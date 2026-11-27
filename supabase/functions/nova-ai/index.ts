@@ -438,6 +438,8 @@ Deno.serve(async (req: Request) => {
       history_list: 60,
       history_load: 60,
       history_save: 60,
+      history_append: 120,
+      history_search: 30,
     };
     const requestLimit = actionLimits[action];
     if (!requestLimit) return json({ error: "Unknown action" }, 400, origin);
@@ -467,6 +469,52 @@ Deno.serve(async (req: Request) => {
       if (conversationError) throw conversationError; if (!conversation) return json({ error: "المحادثة غير موجودة." }, 404, origin);
       const { data, error } = await admin.from("nova_messages").select("role,content,created_at").eq("conversation_id", conversationId).eq("user_id", userId).order("created_at", { ascending: true }).limit(500);
       if (error) throw error; return json({ messages: data ?? [] }, 200, origin);
+    }
+    if (action === "history_append") {
+      const persona = body?.persona === "soleen" ? "soleen" : body?.persona === "soly" ? "soly" : "";
+      const role = body?.role === "assistant" ? "assistant" : body?.role === "user" ? "user" : "";
+      const content = typeof body?.content === "string" ? body.content.trim().slice(0,12000) : "";
+      if (!persona || !role || !content) return json({ error: "بيانات الرسالة غير مكتملة." }, 400, origin);
+      let conversationId = typeof body?.conversation_id === "string" && /^[0-9a-f-]{36}$/i.test(body.conversation_id) ? body.conversation_id : "";
+      if (conversationId) {
+        const { data: existing, error: existingError } = await admin.from("nova_conversations").select("id").eq("id", conversationId).eq("user_id", userId).eq("persona", persona).maybeSingle();
+        if (existingError) throw existingError;
+        if (!existing) conversationId = "";
+      }
+      if (!conversationId) {
+        const title = (role === "user" ? content : "محادثة جديدة").replace(/\s+/g," ").slice(0,72);
+        const { data: created, error: createError } = await admin.from("nova_conversations").insert({ user_id: userId, persona, title }).select("id").single();
+        if (createError) throw createError;
+        conversationId = created.id;
+      }
+      const { error: messageError } = await admin.from("nova_messages").insert({ conversation_id: conversationId, user_id: userId, role, content });
+      if (messageError) throw messageError;
+      const { error: updateError } = await admin.from("nova_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId).eq("user_id", userId);
+      if (updateError) throw updateError;
+      return json({ saved: true, conversation_id: conversationId }, 200, origin);
+    }
+    if (action === "history_search") {
+      const query = typeof body?.query === "string" ? body.query.trim().slice(0,240) : "";
+      if (query.length < 2) return json({ matches: [] }, 200, origin);
+      const tokens = [...new Set((query.match(/[\p{L}\p{N}]{2,}/gu) || []).filter(word => !/^(من|في|على|الى|إلى|عن|ده|دي|هو|هي|انا|أنا|انت|أنت|كان|قال|قالي|ليه|ايه|إيه|ازاي|إزاي|مع|ولا|او|أو)$/u.test(word)))].slice(0,6);
+      if (!tokens.length) return json({ matches: [] }, 200, origin);
+      const escaped = tokens.map(word => word.replace(/[,%_()]/g, " "));
+      const { data: rows, error: searchError } = await admin.from("nova_messages").select("conversation_id,role,content,created_at").eq("user_id", userId).or(escaped.map(word => `content.ilike.%${word}%`).join(",")).order("created_at", { ascending: false }).limit(20);
+      if (searchError) throw searchError;
+      const ids = [...new Set((rows ?? []).map(row => row.conversation_id))];
+      const { data: conversations, error: conversationsError } = ids.length
+        ? await admin.from("nova_conversations").select("id,persona,title").eq("user_id", userId).in("id", ids)
+        : { data: [], error: null };
+      if (conversationsError) throw conversationsError;
+      const byId = new Map((conversations ?? []).map(item => [item.id, item]));
+      const matches = (rows ?? []).filter(row => {
+        const convo = byId.get(row.conversation_id);
+        return convo && (!body?.exclude_conversation_id || convo.id !== body.exclude_conversation_id);
+      }).slice(0,12).map(row => {
+        const convo = byId.get(row.conversation_id);
+        return { persona: convo.persona, title: convo.title, role: row.role, content: String(row.content).slice(0,1600), created_at: row.created_at };
+      });
+      return json({ matches }, 200, origin);
     }
     if (action === "history_save") {
       const persona = body?.persona === "soleen" ? "soleen" : body?.persona === "soly" ? "soly" : ""; const userText = typeof body?.user_text === "string" ? body.user_text.trim().slice(0,12000) : ""; const assistantText = typeof body?.assistant_text === "string" ? body.assistant_text.trim().slice(0,12000) : "";
