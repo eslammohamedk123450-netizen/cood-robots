@@ -161,12 +161,12 @@ assert.match(edge, /سياق مسترجع من محادثات سابقة للش�
 assert.match(edge, /oldRowsResult\.error/, "Parallel history retrieval errors must be handled explicitly");
 assert.match(edge, /const \[\{ data: memoryRow, error: memoryReadError \}, \{ data: models, error \}, oldRowsResult\] = await Promise\.all\(/, "Independent memory, model, and history reads must run concurrently");
 assert.match(edge, /const secretEntries = await Promise\.all\(/, "Provider secrets must be fetched concurrently instead of serially");
-assert.match(html, /solina-voice-orb-v6/, "Solina client bundle must use a fresh cache version");
+assert.match(html, /solina-voice-orb-v7/, "Solina client bundle must use a fresh cache version");
 assert.match(css, /solina-orb-stage/, "Responsive Solina voice-first layout must be present");
 
 assert.match(app, /Keep the dedicated interrupt listener alive during playback/, "Voice interruption listener must remain active while NOVA speaks");
 assert.doesNotMatch(app, /if \(state\.listening\) startInterruptRecognition\(\);\s*stopInterruptRecognition\(\)/, "Speech playback must not immediately disable the interrupt listener");
-assert.match(html, /solina-voice-orb-v6/, "Solina client bundle must use a fresh cache version");
+assert.match(html, /solina-voice-orb-v7/, "Solina client bundle must use a fresh cache version");
 
 assert.match(app, /راجع ردك مرة أخيرة بصمت من ناحية الإملاء واختيار الكلمات واتساق المعنى/, "NOVA must proofread Egyptian Arabic contextually before replying");
 assert.match(app, /كلمة «بكير» تظل كما هي إذا كان معناها مقصودًا/, "Contextual proofreading must preserve valid words instead of blanket replacements");
@@ -201,3 +201,8 @@ assert.match(app, /}, 600\);/, "AI turn must begin after a short 600ms natural s
 assert.match(app, /ناديني: سولينا/, "The wake prompt must use Solina, never NOVA");
 assert.doesNotMatch(app, /مستني تناديني: نوفا|مستني تناديني يا نوفا/, "No stale NOVA wake prompt may remain");
 assert.match(app, /state\.voiceSessionActive = false;\s*cancelCurrentTurn/, "Stopping the microphone must close the armed voice session");
+
+assert.match(app, /function openSettings\(\) \{ \$\("settingsDialog"\)\.showModal\(\); void loadProviders\(\); \}/, "Opening settings must refresh saved API keys from the server");
+assert.match(app, /جاري تحميل مفاتيح API المحفوظة/, "Provider list must show a loading state instead of a false empty state");
+assert.match(app, /تعذر تحميل المفاتيح من الخادم:/, "Provider list failures must be shown as errors, not as an empty key list");
+assert.match(html, /id="reloadProvidersButton"/, "Settings must provide a manual API key list refresh control");
