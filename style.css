@@ -24,42 +24,6 @@ button,input{font:inherit}button{cursor:pointer}
 .stage-orbit{position:absolute;left:50%;top:50%;border:1px solid rgba(212,175,55,.12);border-radius:50%;transform:translate(-50%,-50%) rotate(-20deg)}
 .orbit-one{width:380px;height:160px}.orbit-two{width:480px;height:210px;transform:translate(-50%,-50%) rotate(25deg);border-color:rgba(125,154,198,.10)}
 .character-3d-mount{position:absolute;inset:0;display:grid;place-items:center;z-index:2}
-.character-fallback{position:relative;width:300px;height:370px;transform:scale(.92);transform-origin:center bottom}
-.robot-shadow{position:absolute;width:220px;height:25px;left:40px;bottom:5px;border-radius:50%;background:#02040a;filter:blur(12px)}
-.robot-body{position:absolute;inset:22px 0 0;transform-origin:50% 75%;animation:float 4.2s ease-in-out infinite}
-.antenna{position:absolute;top:0;left:149px;width:3px;height:25px;background:#7c8aa3}
-.antenna span{position:absolute;top:-7px;left:-4px;width:11px;height:11px;border-radius:50%;background:var(--gold);box-shadow:0 0 13px var(--gold)}
-.ear{position:absolute;top:66px;width:28px;height:54px;border-radius:13px;background:var(--persona-deep);box-shadow:inset 0 0 0 5px rgba(255,255,255,.12)}
-.ear-left{left:29px}.ear-right{right:29px}
-.robot-head{position:absolute;z-index:3;top:27px;left:52px;width:196px;height:160px;border-radius:48px 48px 42px 42px;background:linear-gradient(145deg,#f9fbff 0%,#c9d5e6 48%,#8fa3c1 100%);border:5px solid var(--persona);box-shadow:inset 0 -9px 0 rgba(20,30,48,.12),0 18px 35px rgba(0,0,0,.3);transition:border-color .3s}
-.robot-head:before{content:'';position:absolute;inset:9px;border-radius:38px;background:linear-gradient(145deg,#26354d,#101827)}
-.hair{position:absolute;z-index:5;top:-11px;left:18px;right:18px;height:28px;border-radius:50% 50% 8px 8px;background:#8c237f}
-.bow{position:absolute;z-index:6;top:-27px;right:20px;width:38px;height:25px;border-radius:8px;background:#f5c5e1;transform:rotate(13deg)}
-.brow{position:absolute;z-index:6;top:45px;width:34px;height:5px;border-radius:8px;background:#a7b8d3}
-.brow-left{left:31px;transform:rotate(-8deg)}.brow-right{right:31px;transform:rotate(8deg)}
-.eye{position:absolute;z-index:6;top:60px;width:34px;height:40px;border-radius:50%;background:#f9fbff;box-shadow:0 0 12px rgba(120,183,255,.25);transition:height .2s}
-.eye-left{left:32px}.eye-right{right:32px}
-.eye span{position:absolute;width:15px;height:15px;top:13px;left:10px;border-radius:50%;background:var(--persona-deep);box-shadow:inset -3px -2px 0 rgba(0,0,0,.18)}
-.cheek{position:absolute;z-index:6;bottom:32px;width:24px;height:11px;border-radius:50%;background:rgba(255,145,183,.5);filter:blur(2px)}
-.cheek-left{left:18px}.cheek-right{right:18px}
-.mouth{position:absolute;z-index:6;bottom:27px;left:calc(50% - 19px);width:38px;height:6px;border-radius:0 0 30px 30px;background:#f28eaa;transition:.18s}
-body[data-mood="speaking"] .mouth{height:19px;border-radius:8px 8px 20px 20px}
-body[data-mood="happy"] .mouth{height:13px}
-.neck{position:absolute;top:183px;left:137px;width:26px;height:25px;background:#91a5c2}
-.robot-torso{position:absolute;top:197px;left:70px;width:160px;height:118px;border:5px solid var(--persona);border-radius:37px 37px 28px 28px;background:linear-gradient(145deg,#f4f7fc,#a8bad3 70%,#7388a7);box-shadow:inset 0 -10px 0 rgba(20,30,48,.14),0 15px 25px rgba(0,0,0,.24);transition:border-color .3s}
-.torso-core{display:block;width:31px;height:31px;margin:21px auto 8px;border-radius:50%;background:var(--persona);box-shadow:0 0 22px var(--persona)}
-.torso-line{display:block;width:58px;height:4px;margin:auto;border-radius:5px;background:#687d9d}
-.arm{position:absolute;z-index:2;top:214px;width:27px;height:86px;border:4px solid #b8c8df;border-radius:20px;background:linear-gradient(90deg,#e7eef8,#8398b7);transform-origin:50% 8px;transition:transform .5s}
-.arm span{position:absolute;bottom:-12px;left:-8px;width:34px;height:26px;border-radius:13px;background:#d9e4f2;border:3px solid var(--persona)}
-.arm-left{left:42px;transform:rotate(15deg)}.arm-right{right:42px;transform:rotate(-15deg)}
-.leg{position:absolute;top:307px;width:34px;height:43px;border-radius:10px 10px 15px 15px;background:linear-gradient(90deg,#7e91ad,#d7e2f0);border-bottom:6px solid var(--persona)}
-.leg-left{left:102px}.leg-right{right:102px}
-.character-stage.gesture-wave .arm-right{transform:rotate(-68deg) translateY(-15px)}
-.character-stage.gesture-wave .arm-left{transform:rotate(8deg)}
-.character-stage.gesture-happy .robot-body{animation:celebrate .75s ease-in-out 2}
-.character-stage.gesture-thinking .robot-head{transform:rotate(7deg)}
-.character-stage.gesture-nod .robot-head{animation:nod .45s ease-in-out 2}
-.robot-head,.robot-torso{transition:transform .3s,border-color .3s}
 .character-caption{position:absolute;bottom:12px;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:9px;color:#b9c4d4;font-size:11px}
 .persona-name{margin-top:-4px}.persona-name h1{margin:0;font-size:29px;line-height:1.3;color:var(--persona);transition:color .3s}.persona-name span{color:var(--muted);font-size:11px}
 .voice-area{width:min(100%,620px);display:flex;flex-direction:column;align-items:center;gap:14px}
@@ -115,8 +79,8 @@ body[data-mood="happy"] .mouth{height:13px}
 @keyframes nod{0%,100%{transform:rotate(0)}50%{transform:rotate(8deg)}}
 @keyframes listen-pulse{50%{box-shadow:0 0 0 10px rgba(212,175,55,.08),0 0 45px rgba(212,175,55,.4)}}
 @keyframes halo{50%{transform:scale(1.13);opacity:.45}}
-@media(max-width:700px){.app-shell{padding:0 16px}.topbar{height:67px}.meeting-screen{justify-content:flex-start;padding:25px 0 20px;gap:12px}.character-stage{height:365px}.character-fallback{transform:scale(.78);transform-origin:center bottom}.stage-orbit.orbit-one{width:300px;height:130px}.stage-orbit.orbit-two{width:370px;height:160px}.character-heading p{font-size:13px}.persona-name h1{font-size:25px}.voice-area{gap:12px}.mic-button{width:69px;height:69px}.footer{flex-direction:column;text-align:center;gap:5px}}
-@media(max-width:380px){.character-stage{height:330px}.character-fallback{transform:scale(.7);transform-origin:center bottom}.connection-pill{font-size:9px}.persona-options{grid-template-columns:1fr}}
+@media(max-width:700px){.app-shell{padding:0 16px}.topbar{height:67px}.meeting-screen{justify-content:flex-start;padding:25px 0 20px;gap:12px}.character-stage{height:365px}.stage-orbit.orbit-one{width:300px;height:130px}.stage-orbit.orbit-two{width:370px;height:160px}.character-heading p{font-size:13px}.persona-name h1{font-size:25px}.voice-area{gap:12px}.mic-button{width:69px;height:69px}.footer{flex-direction:column;text-align:center;gap:5px}}
+@media(max-width:380px){.character-stage{height:330px}.connection-pill{font-size:9px}.persona-options{grid-template-columns:1fr}}
 
 .settings-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .enabled-button{background:linear-gradient(135deg,#d4af37,#b88a2b);color:#101521;font-weight:800}
@@ -134,8 +98,6 @@ body[data-mood="happy"] .mouth{height:13px}
 .model-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--persona);flex:0 0 auto;cursor:pointer}
 .empty-provider-list{font-size:10px;color:var(--muted);text-align:center;padding:12px}
 
-.character-3d-mount canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:3}
-.character-3d-mount.has-3d .character-fallback{display:none}
 
 .model-list[hidden]{display:none}
 .provider-card .badge{font-size:9px;color:#e9d99f;background:#2b2a21;border-radius:20px;padding:3px 7px;white-space:nowrap}
@@ -168,46 +130,7 @@ body[data-mood="happy"] .mouth{height:13px}
 #pinSetupForm[hidden],#pinLoginForm[hidden]{display:none!important}
 
 
-/* NOVA expressive character animation layer */
-.robot-head{transform-origin:50% 78%;animation:head-idle 5.8s ease-in-out infinite}
-.eye{transform-origin:50% 50%;animation:blink 5.2s infinite}
-.eye-left{animation-delay:.12s}
-.eye-right{animation-delay:.12s}
-.eye span{animation:pupil-look 8s ease-in-out infinite}
-.antenna span{animation:antenna-glow 2.4s ease-in-out infinite}
-.torso-core{animation:core-pulse 2.8s ease-in-out infinite}
-.arm-left{animation:arm-idle-left 4.6s ease-in-out infinite}
-.arm-right{animation:arm-idle-right 4.6s ease-in-out infinite}
-body[data-mood="listening"] .robot-head{animation:listen-head 1.8s ease-in-out infinite}
-body[data-mood="listening"] .eye{animation:blink 3.2s infinite}
-body[data-mood="listening"] .robot-body{animation:listen-bob 1.5s ease-in-out infinite}
-body[data-mood="thinking"] .robot-head{animation:think-head 1.3s ease-in-out infinite}
-body[data-mood="thinking"] .arm-right{animation:think-arm 1.3s ease-in-out infinite}
-body[data-mood="speaking"] .robot-head{animation:speak-head 1.1s ease-in-out infinite}
-body[data-mood="speaking"] .mouth{animation:talk-mouth .19s ease-in-out infinite alternate}
-body[data-mood="speaking"] .eye{animation:blink 3.8s infinite}
-body[data-mood="speaking"] .arm-left{animation:speak-arm-left .85s ease-in-out infinite alternate}
-body[data-mood="speaking"] .arm-right{animation:speak-arm-right .85s ease-in-out infinite alternate}
-body[data-mood="happy"] .robot-body{animation:celebrate .65s ease-in-out 3}
-body[data-mood="error"] .robot-head{animation:error-tilt .5s ease-in-out 2}
-@keyframes blink{0%,43%,47%,100%{transform:scaleY(1)}45%{transform:scaleY(.08)}}
-@keyframes head-idle{0%,100%{transform:rotate(0)}30%{transform:rotate(-2deg)}65%{transform:rotate(1.5deg)}}
-@keyframes pupil-look{0%,100%{transform:translate(0,0)}25%{transform:translate(4px,1px)}55%{transform:translate(-3px,-1px)}78%{transform:translate(0,2px)}}
-@keyframes antenna-glow{0%,100%{box-shadow:0 0 8px var(--gold);transform:scale(1)}50%{box-shadow:0 0 22px var(--gold);transform:scale(1.25)}}
-@keyframes core-pulse{0%,100%{transform:scale(1);box-shadow:0 0 14px var(--persona)}50%{transform:scale(1.12);box-shadow:0 0 27px var(--persona)}}
-@keyframes arm-idle-left{0%,100%{transform:rotate(15deg)}50%{transform:rotate(22deg)}}
-@keyframes arm-idle-right{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(-22deg)}}
-@keyframes listen-head{0%,100%{transform:rotate(0)}50%{transform:rotate(-5deg) translateY(-3px)}}
-@keyframes listen-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-@keyframes think-head{0%,100%{transform:rotate(6deg)}50%{transform:rotate(10deg) translateY(-2px)}}
-@keyframes think-arm{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(-48deg) translateY(-8px)}}
-@keyframes speak-head{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-3px) rotate(1.5deg)}}
-@keyframes talk-mouth{from{height:5px;width:31px;left:calc(50% - 15px)}to{height:23px;width:40px;left:calc(50% - 20px)}}
-@keyframes speak-arm-left{from{transform:rotate(12deg)}to{transform:rotate(28deg)}}
-@keyframes speak-arm-right{from{transform:rotate(-12deg)}to{transform:rotate(-30deg)}}
-@keyframes error-tilt{0%,100%{transform:rotate(0)}50%{transform:rotate(-9deg)}}
-@media(prefers-reduced-motion:reduce){.robot-body,.robot-head,.eye,.eye span,.antenna span,.torso-core,.arm{animation:none!important}}
-
+/* Legacy robot body/head/limb styles and animations deleted. */
 /* Luminous screen-face avatar */
 .character-stage{height:390px}
 .character-stage .stage-orbit{opacity:.25}
@@ -244,11 +167,11 @@ body[data-mood="happy"] .face-mouth{width:86px;height:24px;border-bottom:4px sol
 
 /* NOVA animated floating screen companion — no mannequin / doll body */
 #character3dMount{overflow:visible!important}
-#character3dMount:not(.has-3d) #characterFallback.face-avatar{
+#character3dMount #characterFallback.face-avatar{
   width:100%!important;height:100%!important;max-width:none!important;
   display:grid!important;place-items:center!important;transform:none!important;
 }
-#character3dMount:not(.has-3d) #characterFallback.face-avatar>.face-screen{
+#character3dMount #characterFallback.face-avatar>.face-screen{
   width:min(78vw,350px)!important;height:250px!important;
   border-radius:34px!important;
   border:3px solid color-mix(in srgb,var(--persona) 78%,#dffaff)!important;
@@ -280,24 +203,18 @@ body[data-mood="listening"] #characterFallback.face-avatar .face-screen{animatio
 @keyframes nova-face-think{0%,100%{rotate:0deg}50%{rotate:-4deg;translate:-8px 0}}
 @keyframes nova-face-nod{0%,100%{translate:0 0}35%{translate:0 12px}70%{translate:0 -4px}}
 @media(max-width:700px){
- #character3dMount:not(.has-3d) #characterFallback.face-avatar>.face-screen{width:min(82vw,320px)!important;height:218px!important;border-radius:29px!important}
+ #character3dMount #characterFallback.face-avatar>.face-screen{width:min(82vw,320px)!important;height:218px!important;border-radius:29px!important}
  .face-eyes{top:54px!important;gap:58px!important}
  .face-eye{width:39px!important;height:53px!important}
  .face-mouth{top:151px!important}
  body[data-mood="speaking"] .face-mouth{top:139px!important}
 }
 @media(prefers-reduced-motion:reduce){
- #character3dMount:not(.has-3d) #characterFallback.face-avatar>.face-screen{animation:none!important}
+ #character3dMount #characterFallback.face-avatar>.face-screen{animation:none!important}
 }
 
-/* Hard override: never show the legacy doll over the OLED face */
-#character3dMount:not(.has-3d) #characterFallback.face-avatar{display:grid!important;visibility:visible!important;opacity:1!important;z-index:5!important}
-#character3dMount:not(.has-3d) #characterFallback.face-avatar .robot-body,
-#character3dMount:not(.has-3d) #characterFallback.face-avatar .robot-head,
-#character3dMount:not(.has-3d) #characterFallback.face-avatar .robot-torso,
-#character3dMount:not(.has-3d) #characterFallback.face-avatar .arm,
-#character3dMount:not(.has-3d) #characterFallback.face-avatar .leg{display:none!important}
-#character3dMount:not(.has-3d) canvas{display:none!important}\n/* Semantic expressions: the face reacts to the meaning of NOVA's reply. */
+/* Only the OLED face is rendered in the character mount. */
+/* Semantic expressions: the face reacts to the meaning of NOVA's reply. */
 #character3dMount .character-fallback{pointer-events:none}
 #character3dMount .face-screen[data-emotion="happy"] .face-mouth{width:88px;height:25px;border-bottom:4px solid #70f2c0;border-radius:0 0 60px 60px}
 #character3dMount .face-screen[data-emotion="happy"] .face-eye{height:48px;transform:scaleY(.82)}
