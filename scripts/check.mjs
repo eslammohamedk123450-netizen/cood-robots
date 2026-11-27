@@ -284,6 +284,8 @@ assert.equal(morningAlarm?.action, "create", "Explicit morning alarm should be s
 assert.equal(new Date(morningAlarm.scheduledAt).getHours(), 9, "Morning alarm should preserve the requested hour");
 assert.equal(parseTaskCommand("صحيني الفجر", fixedNow)?.action, "needs_fajr_time", "Fajr alarm must request a real prayer time");
 assert.equal(parseTaskCommand("صحيني بعد دقيقتين", fixedNow)?.action, "create", "Two-minute wake-up command should be recognized");
+assert.match(parseTaskCommand("فكريني بعد ثلاث دقايق إن أنا أغسل سناني", fixedNow)?.title || "", /أغسل سناني/, "Relative reminder titles must remove filler words and preserve the actual task");
+assert.doesNotMatch(parseTaskCommand("فكريني بعد ثلاث دقايق إن أنا أغسل سناني", fixedNow)?.title || "", /إن أنا|ثلاث|دقايق|فكريني/, "Reminder title must not contain command words or relative time");
 assert.equal(new Date(parseTaskCommand("صحيني بعد دقيقتين", fixedNow).scheduledAt).getTime(), fixedNow.getTime() + 120000, "Two-minute alarm should preserve the relative delay");
 assert.equal(parseTaskCommand("ظبطيلي منبه بعد دقيقتين", fixedNow)?.type, "alarm", "Colloquial alarm setup command should be recognized");
 assert.equal(parseTaskCommand("صحييني بعد دقيقتين", fixedNow)?.action, "create", "Alternate Egyptian wake-up pronunciation should be recognized");
@@ -321,9 +323,14 @@ assert.equal(parseTaskCommand("الغى كل التذكيرات", fixedNow)?.all
 assert.equal(normalizeTaskText("الساعة ٩:٣٠"), "الساعة 9:30", "Arabic numerals and clock separators should normalize safely");
 assert.match(app, /parseTaskCommand\(clean\)/, "Voice and text turns should route task commands locally");
 assert.match(app, /function handleTaskDialogue\(clean\)/, "Task setup must support multi-turn conversational slot filling");
-assert.match(app, /if \(intent\.action === "create"\) return \{ handled: true, intent \}/, "Clear reminder requests should schedule directly without a second confirmation");
+assert.match(app, /if \(intent\.action === "create"\) return \{ handled: true, reply: beginTaskConfirmation\(intent\) \}/, "Every new reminder or alarm must be read back for confirmation before saving");
+assert.match(app, /state\.pendingTaskDraft = null;\s*return \{ handled: true, reply: beginTaskConfirmation\(parsed\) \}/, "A completed multi-turn task draft must be cleared before confirmation");
+assert.match(app, /clockQuestion/, "A current-time question must not be appended to a pending reminder");
+assert.match(app, /const stored = readNativeTasks\(\)\.find/, "The app must verify the exact saved task before claiming success");
+assert.match(app, /Number\(stored\.at\) !== task\.at/, "The app must verify the saved minute exactly");
 assert.match(app, /pendingTaskPermissionIntent/, "A reminder must be retained while Android permissions are requested");
 assert.match(app, /pendingTaskDraft/, "Pending task details must remain available between voice turns");
+assert.match(app, /state\.pendingTaskDraft = null;\s*return \{ handled: false \}/, "Unrelated speech must leave a pending task dialogue and reach normal chat");
 assert.match(app, /window\.SolinaNative/, "Task actions must use the native Android bridge");
 assert.equal(parseTaskCommand("عايز أديك الصلاحية", fixedNow)?.action, "open_permissions", "Permission requests must open the native permission center, not fall through to AI");
 assert.equal(parseTaskCommand("افتحي صلاحيات التطبيق", fixedNow)?.action, "open_permissions", "Spoken request to open permissions must be handled locally");
