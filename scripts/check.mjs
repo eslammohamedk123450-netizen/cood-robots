@@ -330,14 +330,14 @@ assert.equal(parseTaskCommand("افتحي صلاحيات التطبيق", fixedN
 assert.match(html, /data-settings-page="permissions"/, "Settings must include a dedicated device permissions page");
 assert.match(html, /data-permission-action="exactAlarms"/, "Exact alarm access must be controllable from the permission center");
 assert.match(app, /function refreshPermissionCards\(/, "Permission statuses must be read from the Android bridge");
-assert.match(androidMain, /permissionInfo\(\)/, "Android bridge must report real device permission state");
-assert.match(androidMain, /requestPermission\(String name\)/, "Android bridge must request or open each permission directly");
 assert.match(css, /\.solina-transcript\{display:none!important\}/, "Idle voice text must not cover the visible conversation transcript");
 assert.match(html, /class="conversation-log solina-conversation-feed" id="conversationLog"/, "Conversation transcript must remain visible below voice controls");
 assert.match(html, /id="scheduledTasksList"/, "Settings should expose saved reminders and alarms");
 console.log("Arabic task parser checks passed.");
 
 const androidMain = read("../android/app/src/main/java/com/solina/assistant/MainActivity.java");
+assert.match(androidMain, /permissionInfo\(\)/, "Android bridge must report real device permission state");
+assert.match(androidMain, /requestPermission\(String name\)/, "Android bridge must request or open each permission directly");
 assert.match(app, /solina-native-speech-result/, "The app must consume Android native speech results");
 assert.match(app, /state\.nativeSpeech/, "The app must keep native speech capture active across turns");
 assert.match(androidMain, /SpeechRecognizer\.createSpeechRecognizer/, "The Android app must provide native speech recognition");
