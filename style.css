@@ -759,3 +759,9 @@ body{background:radial-gradient(ellipse at 50% 43%,rgba(28,51,86,.46),transparen
 @media(prefers-reduced-motion:reduce){.holo-person,.holo-body,.holo-head{animation:none!important}}
 
 /* NOVA supplied avatar canvas is loaded by index.html. */
+
+
+/* Owner memory controls */
+.memory-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.memory-actions button{flex:1 1 150px}
+.memory-meta{opacity:.72;font-size:.88rem}
