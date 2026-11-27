@@ -273,8 +273,9 @@ function getDeviceArabicVoice() {
   const voices = window.speechSynthesis?.getVoices?.() || [];
   const arabic = voices.filter((voice) => /^ar(-|$)/i.test(voice.lang || ""));
   const egyptian = arabic.filter((voice) => /^ar-EG$/i.test(voice.lang || ""));
-  const pool = egyptian.length ? egyptian : arabic;
-  return pool.find((voice) => voice.gender === "female" || /female|woman|salma|zira|sara|hoda|laila|layla|noura|noora/i.test(voice.name || "")) || null;
+  const female = (pool) => pool.find((voice) => voice.gender === "female" || /female|woman|salma|zira|sara|hoda|laila|layla|noura|noora/i.test(voice.name || ""));
+  // Prefer an Egyptian female voice, but never block speech because gender metadata is missing.
+  return female(egyptian) || egyptian[0] || female(arabic) || arabic[0] || voices[0] || null;
 }
 function speakWithDevice(text, segments = []) {
   return new Promise((resolve, reject) => {
@@ -284,12 +285,11 @@ function speakWithDevice(text, segments = []) {
     }
     window.speechSynthesis.cancel();
     const voice = getDeviceArabicVoice();
-    if (!voice) { reject(new Error("مش لاقية صوت عربي نسائي واضح على الجهاز. اختاري صوتًا نسائيًا من مزود الصوت السحابي.")); return; }
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = voice.lang || "ar-EG";
+    utterance.lang = voice?.lang || "ar-EG";
     utterance.rate = 0.98;
-    utterance.pitch = 1.16;
-    utterance.voice = voice;
+    utterance.pitch = 1.08;
+    if (voice) utterance.voice = voice;
 
     // Android's SpeechSynthesis often emits no boundary events and exposes no audio
     // waveform. Drive the Solina audio orb from a speech-timed syllable envelope instead.
@@ -382,9 +382,9 @@ async function speak(text, segments = [], signal) {
     const speechVendor = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
     const voicePrefix = speechVendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
     const voiceId = localStorage.getItem(voicePrefix + "female") || "";
-    const useGeminiTts = engine === "auto" || engine === "gemini";
+    const useGeminiTts = engine === "gemini";
     const speechAction = useGeminiTts ? "tts_gemini" : "tts";
-    // Auto uses Gemini's fixed female cloud voice; it never depends on Android's installed voices.
+    // Auto follows the provider selected in settings. Any cloud failure falls back to the phone TTS.
     // Gemini receives the complete reply in ONE request, never one request per sentence.
     const geminiCacheKey = useGeminiTts ? JSON.stringify([persona, "gemini-2.5-flash-preview-tts", spokenText]) : "";
     let result = geminiCacheKey ? getSpeechAudioCache(geminiCacheKey) : null;
@@ -450,8 +450,21 @@ async function speak(text, segments = [], signal) {
     resetSpeechMouth();
     if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
     if (error?.name === "AbortError" || signal?.aborted) { resetSpeechMouth(); return; }
-    const reason = error?.name ? error.name + ": " + (error.message || "") : (error.message || "خطأ غير معروف");
-    showToast("تعذر تشغيل صوت سولينا السحابي: " + reason.slice(0, 180));
+    // Last-resort voice: use any installed phone voice (Arabic preferred), without
+    // surfacing provider/network errors to the conversation. Never let TTS failure
+    // block the text reply.
+    if (engine !== "device" && !signal?.aborted) {
+      try {
+        state.audio = { pause: () => { window.speechSynthesis?.cancel?.(); finish(); } };
+        await speakWithDevice(spokenText, speechSegments);
+        finish();
+        return;
+      } catch (deviceError) {
+        console.warn("All speech outputs unavailable; keeping the text reply visible.", error, deviceError);
+      }
+    } else {
+      console.warn("Selected device speech output is unavailable.", error);
+    }
     finish();
   }
 }
