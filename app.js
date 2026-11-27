@@ -580,7 +580,7 @@ async function requestAIReply(text) {
   state.messages = [state.messages[0], ...state.messages.slice(1).slice(-23)];
   try {
     const result = await invokeNova("chat", { messages: state.messages });
-    const rawReply = result.reply || "وصلني رد فاضي من النموذج.";
+    if (result.memory_saved) {\n      await loadOwnerMemory();\n      if ($("memoryFeedback")) $("memoryFeedback").textContent = "NOVA حفظ معلومة جديدة من كلامك تلقائيًا، وتقدر تراجعها أو تعدلها من الإعدادات.";\n    }\n    const rawReply = result.reply || "وصلني رد فاضي من النموذج.";
     const parsedReply = extractReplyEmotion(rawReply);
     setFaceEmotion(parsedReply.emotion);
     state.messages.push({ role: "assistant", content: parsedReply.text });
