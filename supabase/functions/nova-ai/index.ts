@@ -662,7 +662,7 @@ Deno.serve(async (req: Request) => {
               }
             } else {
               // Keep internal memory metadata out of the visible conversation if a provider omits or alters the marker.
-              reply = rawReply.replace(/\s*<NOVA_MEMORY>[\s\S]*?<\/NOVA_MEMORY>\s*/ig, "").trim();
+              reply = rawReply;
             }
             return json({ reply, model: model.model_id, provider: providerType, memory_saved: memorySaved }, 200, origin);
           }
