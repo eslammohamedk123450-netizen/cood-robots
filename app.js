@@ -1,3 +1,4 @@
+import { novaAvatar } from "./nova-avatar-controller.js";
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: (localStorage.getItem("nova.persona") === "soleen" ? "soleen" : "soly"), emotion: "idle", listening: false, speaking: false,
@@ -43,10 +44,10 @@ function setStatus(label, mood = "idle") {
   $("characterStatus").textContent = label;
   $("voiceState").textContent = label;
   document.body.dataset.mood = mood;
-  const orb = $("novaAudioOrb"); if (orb) { orb.dataset.mood = mood; if (mood !== "speaking") orb.dataset.expression = mood === "thinking" ? "thinking" : "neutral"; }
+  const orb = $("novaAudioOrb"); if (orb) { orb.dataset.mood = mood; if (mood !== "speaking") orb.dataset.expression = mood === "thinking" ? "thinking" : "neutral"; }\n  novaAvatar?.setMood(mood);
 }
 const NOVA_EMOTIONS = new Set(["neutral","happy","sad","surprised","curious","caring","playful","concerned","thinking"]);
-function setSpeechSegmentTone(emotion) { state.replyEmotion = NOVA_EMOTIONS.has(emotion) ? emotion : "neutral"; const orb = $("novaAudioOrb"); if (orb) orb.dataset.expression = state.replyEmotion; }
+function setSpeechSegmentTone(emotion) { state.replyEmotion = NOVA_EMOTIONS.has(emotion) ? emotion : "neutral"; const orb = $("novaAudioOrb"); if (orb) orb.dataset.expression = state.replyEmotion; novaAvatar?.setExpression(state.replyEmotion); }
 function inferReplyTone(reply) {
   const value = String(reply || "").toLowerCase();
   const patterns = [
@@ -119,7 +120,7 @@ function setSpeechMouthLevel(level, brightness = 0) {
   const amount = Math.max(0, Math.min(1, level)), energy = Math.max(0, Math.min(1, brightness));
   orb.style.setProperty("--audio-level", amount.toFixed(3));
   orb.style.setProperty("--mouth-scale", (0.48 + amount * 1.75).toFixed(3));
-  orb.style.setProperty("--audio-brightness", energy.toFixed(3));
+  orb.style.setProperty("--audio-brightness", energy.toFixed(3));\n  novaAvatar?.setSpeechLevel(amount, energy);
 }
 function resetSpeechMouth() {
   const orb = $("novaAudioOrb");
