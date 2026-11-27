@@ -7,8 +7,10 @@ const SPOKEN_NUMBERS = {
 };
 export function normalizeTaskText(value) {
   return String(value || "").replace(/[٠-٩]/g, digit => String(ARABIC_DIGITS.indexOf(digit)))
-    .replace(/[ًٌٍَُِّْـ]/g, "").replace(/[،.!؟?؛,]/g, " ")
-    .replace(/\s+/g, " ").trim().toLocaleLowerCase("ar");
+    .replace(/[ًٌٍَُِّْـ]/g, "").replace(/[أإآ]/g, "ا").replace(/[ىي]/g, "ي")
+    .replace(/[،.!؟?؛,]/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("ar")
+    .replace(/(^|\s)(?:سو\s*لينا|سولي\s*نا|سوليينا|سولينه|سولينا|سيلينه|سيلينا|سلينا|سيليا|solina)(?=$|\s)/giu, "$1سولينا")
+    .replace(/\s+/g, " ").trim();
 }
 function nextClockTime(hour, minute, dayPart, explicitDay, now) {
   let hours = hour;
@@ -78,7 +80,7 @@ export function parseTaskCommand(value, now = new Date()) {
   if (/(?:الصلاحيات|الصلاحية|صلاحيات|صلاحية|الاذن|الإذن).*(?:المنبه|التذكير|الميكروفون|الاشعارات|الإشعارات|سولينا|التطبيق)?/.test(text)
       || /(?:عايز|عاوز|محتاج|ممكن).*(?:اديك|اديلك|أديكي|أديك|اسمحلك|اسمحلكي).*(?:الصلاحية|صلاحية|اذن|إذن)/.test(text)
       || /(?:افتحي|افتح).*(?:صلاحيات|اذونات|أذونات)/.test(text)) return { action: "open_permissions" };
-  const settingsCommand = text.match(/^(?:(?:يا\s*)?سولينا\s*)?(?:افتحي|افتح|شغلي|شغل)\s+(?:(?:لي|لنا)\s+)?(?:تطبيق\s+)?(.+)$/);
+  const settingsCommand = text.match(/^(?:(?:يا\\s*)?سولينا\\s*)?(?:افتحيلي|افتحلي|افتحي|افتح|شغللي|شغلي|شغل)\\s+(?:(?:لي|لنا)\\s+)?(?:تطبيق\\s+)?(.+)$/);
   if (settingsCommand) {
     const appName = settingsCommand[1].trim();
     if (/^(?:الإعدادات|الاعدادات|اعدادات|الضبط|ضبط|settings)$/i.test(appName)) return { action: "open_settings" };
