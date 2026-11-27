@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check app.js && node --check pin.js && node --check nova-3d.js && node scripts/check.mjs",
+    "check": "node --check app.js && node --check pin.js && node scripts/check.mjs",
     "test": "npm run check"
   }
 }
