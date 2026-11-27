@@ -759,7 +759,9 @@ async function loadSpeechSettings() {
     if (result.configured) {
       if ($("speechProvider")) $("speechProvider").value = result.provider || localStorage.getItem("nova.speech.provider") || "elevenlabs";
       const storedEngine = localStorage.getItem("nova.speech.engine");
-      const savedEngine = storedEngine === "chatterbox" ? "auto" : (storedEngine || "auto");
+      const allowedEngines = ["auto", "gemini", "server", "device"];
+      const savedEngine = allowedEngines.includes(storedEngine) ? storedEngine : "auto";
+      if (storedEngine !== savedEngine) localStorage.setItem("nova.speech.engine", savedEngine);
       if ($("speechEngine")) $("speechEngine").value = savedEngine;
       if (!localStorage.getItem("nova.speech.engine")) localStorage.setItem("nova.speech.engine", "auto");
       setFeedback("speechEngineFeedback", savedEngine === "device" ? "صوت الجهاز محدد يدويًا." : savedEngine === "server" ? "Sonex Labs محدد؛ وعند الفشل سيتم الرجوع لصوت الجهاز." : "الوضع التلقائي: Sonex أولًا، ثم صوت الجهاز عند الحاجة.");
@@ -1205,11 +1207,9 @@ $("speechProvider")?.addEventListener("change", () => {
   setFeedback("speechFeedback", "بعد تغيير المزود، أدخل مفتاحه واضغط اختبار المفتاح وحفظه.");
 });
 const savedSpeechProvider = localStorage.getItem("nova.speech.provider");
-if (savedSpeechProvider === "chatterbox") {
-  localStorage.setItem("nova.speech.engine", "auto");
-  localStorage.setItem("nova.speech.provider", "elevenlabs");
-}
-if (savedSpeechProvider && $("speechProvider")) $("speechProvider").value = savedSpeechProvider;
+if (savedSpeechProvider && !["elevenlabs", "sonexlabs"].includes(savedSpeechProvider)) localStorage.removeItem("nova.speech.provider");
+const restoredSpeechProvider = localStorage.getItem("nova.speech.provider") || "elevenlabs";
+if ($("speechProvider")) $("speechProvider").value = restoredSpeechProvider;
 const speechEngineSelect = $("speechEngine");
 if (speechEngineSelect) {
   speechEngineSelect.value = localStorage.getItem("nova.speech.engine") || "auto";
