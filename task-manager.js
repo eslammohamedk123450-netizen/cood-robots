@@ -3,7 +3,7 @@ const SPOKEN_NUMBERS = {
   "واحد":"1", "واحدة":"1", "اتنين":"2", "اثنين":"2", "تلاتة":"3", "ثلاثة":"3",
   "اربعة":"4", "أربعة":"4", "خمسة":"5", "ستة":"6", "سبعة":"7",
   "تمانية":"8", "تمنية":"8", "ثمانية":"8", "تسعة":"9", "عشرة":"10",
-  "حداشر":"11", "احداشر":"11", "اتناشر":"12", "اثناشر":"12"
+  "حداشر":"11", "احداشر":"11", "اتناشر":"12", "اثناشر":"12", "عشرين":"20", "تلاتين":"30", "ثلاثين":"30", "اربعين":"40", "أربعين":"40", "خمسة واربعين":"45", "خمسة وأربعين":"45", "خمس واربعين":"45", "خمس وأربعين":"45", "خمسين":"50"
 };
 export function normalizeTaskText(value) {
   return String(value || "").replace(/[٠-٩]/g, digit => String(ARABIC_DIGITS.indexOf(digit)))
@@ -46,9 +46,10 @@ function parseSchedule(text, now = new Date()) {
   }
   const clockText = text.replace(/(^|\s)(واحده|واحد|واحدة|اتنين|اثنين|تلاته|تلاتة|ثلاثه|ثلاثة|اربعه|اربعة|أربعة|خمسه|خمسة|سته|ستة|سبعه|سبعة|تمانيه|تمانية|تمنية|ثمانية|تسعه|تسعة|عشره|عشرة|حداشر|احداشر|اتناشر|اثناشر)(?=$|\s)/g,
     (all, prefix, word) => prefix + (SPOKEN_NUMBERS[word] || word));
-  const match = clockText.match(/(?:الساعه\s*|الساعة\s*)?(\d{1,2})(?::(\d{2}))?\s*(صباحا|صباح|الصبح|مساء|بالليل|ليل)?/);
+  const spokenClock = clockText.match(/(?:الساعه\\s*|الساعة\\s*)?(\\d{1,2})\\s+و\\s+(\\d{1,2})\\s*(?:دقيقه|دقيقة)?\\s*(صباحا|صباح|الصبح|مساء|بالليل|ليل)?/);
+  const match = spokenClock || clockText.match(/(?:الساعه\\s*|الساعة\\s*)?(\\d{1,2})(?::(\\d{2}))?\\s*(صباحا|صباح|الصبح|مساء|بالليل|ليل)?/);
   if (!match) return null;
-  const hour = Number(match[1]), minute = Number(match[2] || 0), dayPart = match[3] || "";
+  const hour = Number(match[1]), minute = Number(spokenClock ? match[2] : (match[2] || 0)), dayPart = (spokenClock ? match[3] : match[3]) || "";
   if (hour > 23 || minute > 59) return null;
   const day = /بعد بكره|بعد بكرة|بعد غد/.test(text) ? "afterTomorrow" : /بكره|بكرة|غدا/.test(text) ? "tomorrow" : null;
   const date = nextClockTime(hour, minute, dayPart, day, now);
