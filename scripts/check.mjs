@@ -282,3 +282,10 @@ assert.match(app, /parseTaskCommand\(clean\)/, "Voice and text turns should rout
 assert.match(app, /window\.SolinaNative/, "Task actions must use the native Android bridge");
 assert.match(html, /id="scheduledTasksList"/, "Settings should expose saved reminders and alarms");
 console.log("Arabic task parser checks passed.");
+
+const androidMain = read("../android/app/src/main/java/com/solina/assistant/MainActivity.java");
+assert.match(app, /solina-native-speech-result/, "The app must consume Android native speech results");
+assert.match(app, /state\.nativeSpeech/, "The app must keep native speech capture active across turns");
+assert.match(androidMain, /SpeechRecognizer\.createSpeechRecognizer/, "The Android app must provide native speech recognition");
+assert.match(androidMain, /EXTRA_LANGUAGE, "ar-EG"/, "Native speech recognition must prefer Egyptian Arabic");
+console.log("Native Android speech recognition checks passed.");
