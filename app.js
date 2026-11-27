@@ -43,7 +43,7 @@ function setStatus(label, mood = "idle") {
   $("characterStatus").textContent = label;
   $("voiceState").textContent = label;
   document.body.dataset.mood = mood;
-  const orb = $("novaAudioOrb"); if (orb) orb.dataset.mood = mood;
+  const orb = $("novaAudioOrb"); if (orb) { orb.dataset.mood = mood; if (mood !== "speaking") orb.dataset.expression = mood === "thinking" ? "thinking" : "neutral"; }
 }
 const NOVA_EMOTIONS = new Set(["neutral","happy","sad","surprised","curious","caring","playful","concerned","thinking"]);
 function setSpeechSegmentTone(emotion) { state.replyEmotion = NOVA_EMOTIONS.has(emotion) ? emotion : "neutral"; const orb = $("novaAudioOrb"); if (orb) orb.dataset.expression = state.replyEmotion; }
