@@ -375,7 +375,7 @@ assert.match(app, /if \(parsed\?\.action === "create"\)[\s\S]*?return \{ handled
 assert.match(app, /return \{ handled: true, intent \};/, "A complete task command must route directly to native execution");
 assert.doesNotMatch(app, /beginTaskConfirmation|stage: "confirm"/, "Task creation must not require a redundant confirmation turn");
 assert.match(app, /clockQuestion/, "A current-time question must not be appended to a pending reminder");
-assert.match(app, /const stored = readNativeTasks\(\)\.find/, "The app must verify the exact saved task before claiming success");
+assert.match(app, /saved = await savePersonalItem\(\{ id, item_type: intent\.type/, "The account must confirm the reminder save before the app reports success");
 assert.match(app, /Number\(stored\.at\) !== task\.at/, "The app must verify the saved minute exactly");
 assert.match(app, /pendingTaskPermissionIntent/, "A reminder must be retained while Android permissions are requested");
 assert.match(app, /pendingTaskDraft/, "Pending task details must remain available between voice turns");
