@@ -15,9 +15,6 @@ const receiver = read("../android/app/src/main/java/com/solina/assistant/TaskRec
 const activity = read("../android/app/src/main/java/com/solina/assistant/AlarmActivity.java");
 const service = read("../android/app/src/main/java/com/solina/assistant/AlarmPlaybackService.java");
 const androidMain = read("../android/app/src/main/java/com/solina/assistant/MainActivity.java");
-const taskStore = read("../android/app/src/main/java/com/solina/assistant/TaskStore.java");
-const taskReceiver = read("../android/app/src/main/java/com/solina/assistant/TaskReceiver.java");
-const alarmActivity = read("../android/app/src/main/java/com/solina/assistant/AlarmActivity.java");
 
 const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map((m) => m[1]);
 const duplicates = ids.filter((id, i) => ids.indexOf(id) !== i);
@@ -398,15 +395,12 @@ assert.match(app, /solina-native-speech-result/, "The app must consume Android n
 assert.match(app, /state\.nativeSpeech/, "The app must keep native speech capture active across turns");
 assert.match(androidMain, /SpeechRecognizer\.createSpeechRecognizer/, "The Android app must provide native speech recognition");
 assert.match(androidMain, /EXTRA_LANGUAGE, "ar-EG"/, "Native speech recognition must prefer Egyptian Arabic");
-const alarmActivity = read("../android/app/src/main/java/com/solina/assistant/AlarmActivity.java");
 const alarmService = read("../android/app/src/main/java/com/solina/assistant/AlarmPlaybackService.java");
 assert.match(alarmService, /setLooping\(true\)/, "Alarm sound must loop until stopped");
 assert.match(alarmActivity, /isStopPhrase/, "Alarm must accept spoken stop commands");
 assert.match(alarmActivity, /انا قمت|قمت/, "Alarm must recognize the user confirming they woke up");
 assert.match(alarmActivity, /صحيت|صاحي/, "Alarm must also stop when the user says «أنا صحيت» or «أنا صاحي»");
 const alarmScheduler = read("../android/app/src/main/java/com/solina/assistant/AlarmScheduler.java");
-const taskReceiver = read("../android/app/src/main/java/com/solina/assistant/TaskReceiver.java");
-const taskStore = read("../android/app/src/main/java/com/solina/assistant/TaskStore.java");
 assert.match(alarmScheduler, /at - DAY/, "Reminders must schedule a one-day advance notification");
 assert.match(alarmScheduler, /at - HOUR/, "Reminders must schedule a one-hour advance notification");
 assert.match(alarmScheduler, /at - TEN_MINUTES/, "Reminders must schedule a ten-minute advance notification");
