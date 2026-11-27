@@ -65,6 +65,9 @@ assert.match(edge, /xi-api-key/, "ElevenLabs credentials must only be sent from 
 assert.match(app, /invokeNova\(speechAction/, "Client must dispatch TTS to the selected cloud provider");
 assert.match(app, /engine === "gemini" \? "tts_gemini" : "tts"/, "Gemini TTS selection must route to its dedicated server action");
 assert.match(app, /SpeechSynthesisUtterance/, "The optional on-device speech engine must remain available");
+assert.match(app, /لا تبدأ بسؤاله عن مشاريعه أو شغله/, "NOVA must not steer casual conversation toward projects");
+assert.match(app, /الملف الشخصي وسجل المشاريع معلومات خلفية فقط/, "Profile memories must not dominate unrelated conversations");
+assert.match(edge, /هذه الذاكرة خلفية اختيارية وليست موضوعًا افتراضيًا/, "Retrieved memory must remain subordinate to the current request");
 assert.match(app, /speechAudioCache/, "Gemini speech reuse cache must stay memory-only");
 assert.match(app, /rememberSpeechAudio/, "Generated Gemini audio must be cached for exact repeats in the current session");
 assert.match(app, /Gemini receives the complete reply in ONE request/, "Gemini TTS must not create a request for every sentence");
