@@ -37,7 +37,7 @@ public class MainActivity extends Activity {
     private TextToSpeech textToSpeech;
     private boolean ttsReady = false;
     private String pendingTtsText = null;
-    private final String appUrl = "https://eslammohamedk123450-netizen.github.io/cood-robots/?solina=account-items-v2";
+    private final String appUrl = "https://eslammohamedk123450-netizen.github.io/cood-robots/?solina=account-items-v3";
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
