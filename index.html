@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=nova-vector-face-v50">
+  <link rel="stylesheet" href="style.css?v=nova-audio-orb-v51">
 </head>
 <body>
   <div class="auth-gate" id="authGate">
@@ -41,7 +41,7 @@
     </header>
 
     <main id="home" class="meeting-screen">
-      <section class="character-area" aria-label="شخصية NOVA">
+      <section class="character-area" aria-label="مؤشر NOVA الصوتي">
         <div class="character-heading">
           <span class="eyebrow">YOUR PERSONAL COMPANION</span>
           <p id="greeting">أهلاً يا إسلام، نورتني.</p>
@@ -51,8 +51,11 @@
           <div class="stage-glow"></div>
           <div class="stage-orbit orbit-one"></div>
           <div class="stage-orbit orbit-two"></div>
-          <!-- Compact expressive robot companion: head and upper body. -->
-          <div class="nova-face-only" id="novaFaceOnly" data-mood="idle" role="img" aria-label="وجه NOVA التفاعلي"><div class="face-motion-glow"></div><div id="novaFaceMount" class="nova-face-mount" aria-label="شاشة وجه NOVA"><div class="nova-face-avatar face-avatar" id="novaFaceAvatar" aria-hidden="true"><div class="face-screen" id="faceScreen"><div class="face-scanline"></div><svg class="face-art" viewBox="0 0 320 200" role="presentation" aria-hidden="true"><defs><linearGradient id="novaEyeGlow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8fdff"/><stop offset=".55" stop-color="#61d8ff"/><stop offset="1" stop-color="#168bff"/></linearGradient><filter id="novaGlow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g class="face-brows"><path class="face-brow left" d="M67 55 Q94 42 122 54"/><path class="face-brow right" d="M198 54 Q226 42 253 55"/></g><g class="face-eyes"><g class="face-eye left"><path class="eye-white" d="M64 83 Q64 61 94 61 Q124 61 124 83 Q124 116 94 116 Q64 116 64 83Z"/><circle class="face-pupil" cx="94" cy="88" r="12"/><circle class="eye-shine" cx="89" cy="82" r="4"/><g class="face-lashes"><path d="M73 59l-5-9M86 56l-1-11M100 56l2-11"/></g></g><g class="face-eye right"><path class="eye-white" d="M196 83 Q196 61 226 61 Q256 61 256 83 Q256 116 226 116 Q196 116 196 83Z"/><circle class="face-pupil" cx="226" cy="88" r="12"/><circle class="eye-shine" cx="221" cy="82" r="4"/><g class="face-lashes"><path d="M205 59l-5-9M218 56l-1-11M232 56l2-11"/></g></g></g><ellipse class="face-cheek left" cx="56" cy="132" rx="18" ry="8"/><ellipse class="face-cheek right" cx="264" cy="132" rx="18" ry="8"/><path class="face-mouth" id="faceMouth" d="M126 145 Q160 159 194 145"/></svg><span class="face-spark spark-one"></span><span class="face-spark spark-two"></span></div></div></div><div class="character-caption">
+          <div class="nova-audio-orb" id="novaAudioOrb" data-mood="idle" role="img" aria-label="مؤشر NOVA الصوتي">
+<div class="orb-aura orb-aura-one"></div><div class="orb-aura orb-aura-two"></div>
+<div class="orb-rings"><span></span><span></span><span></span></div>
+<div class="orb-core"><div class="orb-core-shine"></div><div class="orb-core-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+<div class="orb-particles"><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="character-caption">
             <span class="caption-dot"></span>
             <span id="characterStatus">سولي معاك</span>
           </div>
@@ -207,6 +210,6 @@
 
   <div class="toast" id="toast" role="status"></div>
   <script src="pin.js?v=persistent-owner-session-v23"></script>
-  <script type="module" src="app.js?v=nova-vector-face-v50"></script>
+  <script type="module" src="app.js?v=nova-audio-orb-v51"></script>
 </body>
 </html>
