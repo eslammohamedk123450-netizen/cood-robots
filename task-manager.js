@@ -52,7 +52,7 @@ function parseSchedule(text, now = new Date()) {
     const ms = /ساع/.test(relative[2]) ? amount * 60 * 60 * 1000 : amount * 60 * 1000;
     if (amount > 0 && amount <= 10000) return new Date(now.getTime() + ms);
   }
-  const clockText = text.replace(/خمسة\s+وأ?ربعين|خمس\s+وأ?ربعين/g, "45").replace(/(^|\s)(واحده|واحد|واحدة|اتنين|اثنين|تلاته|تلاتة|ثلاثه|ثلاثة|اربعه|اربعة|أربعة|خمسه|خمسة|خمس|سته|ستة|سبعه|سبعة|تمانيه|تمانية|تمنية|ثمانية|تسعه|تسعة|عشره|عشرة|حداشر|احداشر|اتناشر|اثناشر|عشرين|تلاتين|ثلاثين|اربعين|أربعين|خمسين)(?=$|\s)/g,
+  const clockText = text.replace(/خمسة\s+وأ?ربعين|خمس\s+وأ?ربعين/g, "45").replace(/(^|\s)(واحده|واحد|واحدة|اتنين|اثنين|تلاته|تلاتة|ثلاثه|ثلاثة|ثلاث|اربعه|اربعة|أربعة|خمسه|خمسة|خمس|سته|ستة|سبعه|سبعة|تمانيه|تمانية|تمنية|ثمانية|تسعه|تسعة|عشره|عشرة|حداشر|احداشر|اتناشر|اثناشر|عشرين|تلاتين|ثلاثين|اربعين|أربعين|خمسين)(?=$|\s)/g,
     (all, prefix, word) => prefix + (SPOKEN_NUMBERS[word] || word));
   const spokenClock = clockText.match(/(?:الساعه\s*|الساعة\s*)?(\d{1,2})\s+و\s*(\d{1,2})\s*(?:دقيقه|دقيقة)?\s*(صباحا|صباح|الصبح|مساء|بالليل|ليل)?/);
   const match = spokenClock || clockText.match(/(?:الساعه\s*|الساعة\s*)?(\d{1,2})(?::(\d{2}))?\s*(صباحا|صباح|الصبح|مساء|بالليل|ليل)?/);
@@ -65,6 +65,8 @@ function parseSchedule(text, now = new Date()) {
 }
 function stripCommandWords(text) {
   return text.replace(/(?:يا\s*)?سولينا/g, " ").replace(/ورايا/g, " ")
+    .replace(/^(?:(?:إن|ان)\s+)?(?:أنا|انا)\s+/g, " ")
+    .replace(/\b(?:إن|ان)\s+(?:أنا|انا)\b/g, " ")
     .replace(/(?:من فضلك|لو سمحتي|لو سمحت|ممكن|عايزك|عاوزك|اعملي|اعمل|سجلي|سجل|ضيفي|ضيف|فكريني|فكرني|ذكريني|ذكرني|صحيني|صحييني|اصحيني|اصحى|صحينيلي|صحينى|منبه|المنبه|تذكير|تذكيرني|معاد|موعد|عندي|بكره|بكرة|غدا|بعد بكره|بعد بكرة|بعد غد|بعد|نص|نصف|ربع|ساعه|ساعة|ساعتين|دقيقه|دقيقة|دقائق|النهارده|اليوم|الساعه|الساعة|صباحا|صباح|الصبح|مساء|بالليل|ليل)/g, " ")
     .replace(/(^|\s)(واحده|واحد|واحدة|اتنين|اثنين|تلاته|تلاتة|ثلاثه|ثلاثة|اربعه|اربعة|أربعة|خمسه|خمسة|خمس|سته|ستة|سبعه|سبعة|تمانيه|تمانية|تمنية|ثمانية|تسعه|تسعة|عشره|عشرة|حداشر|احداشر|اتناشر|اثناشر)(?=$|\s)/g, " ")
     .replace(/\d{1,2}(?::\d{2})?/g, " ").replace(/\s+/g, " ").trim();
@@ -97,7 +99,11 @@ export function parseTaskCommand(value, now = new Date()) {
   const timeMatch = text.match(/(?:الساعه|الساعة)\s*(\d{1,2}|واحده|واحد|واحدة|اتنين|اثنين|تلاته|تلاتة|ثلاثه|ثلاثة|اربعه|اربعة|أربعة|خمسه|خمسة|خمس|سته|ستة|سبعه|سبعة|تمانيه|تمانية|تمنية|ثمانية|تسعه|تسعة|عشره|عشرة|حداشر|احداشر|اتناشر|اثناشر)/);
   const hasDayPart = /صباحا|صباح|الصبح|مساء|بالليل|ليل/.test(text);
   if (timeMatch && Number(SPOKEN_NUMBERS[timeMatch[1]] || timeMatch[1]) >= 1 && Number(SPOKEN_NUMBERS[timeMatch[1]] || timeMatch[1]) <= 12 && !hasDayPart) return { action: "needs_period", type: isAlarm ? "alarm" : "reminder" };
-  const title = isAlarm ? "منبه سولينا" : stripCommandWords(text).replace(/(?:شويه|شوية|قليل|كمان)/g, " ").replace(/\s+/g, " ").trim();
+  const title = isAlarm ? "منبه سولينا" : stripCommandWords(text)
+    .replace(/^(?:(?:إن|ان)\s+)?(?:أنا|انا)\s+/g, "")
+    .replace(/^(?:إني|اني)\s+/g, "")
+    .replace(/^(?:إن|ان)\s+/g, "")
+    .replace(/(?:شويه|شوية|قليل|كمان)/g, " ").replace(/\s+/g, " ").trim();
   if (!isAlarm && title.length < 2) return { action: "needs_title", type: "reminder", scheduledAt: scheduledAt.toISOString() };
   return { action: "create", type: isAlarm ? "alarm" : "reminder", title: title.slice(0, 120), scheduledAt: scheduledAt.toISOString() };
 }
