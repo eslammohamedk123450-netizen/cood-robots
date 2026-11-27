@@ -76,6 +76,16 @@ function stripCommandWords(text) {
 export function parseTaskCommand(value, now = new Date()) {
   const text = normalizeTaskText(value);
   if (!text) return null;
+  const noteCommand = text.match(/^(?:(?:يا\\s*)?سولينا\\s*)?(?:سجلي|سجل|احفظي|احفظ|اكتبي|اكتب)\\s+(?:(?:لي|عندي)\\s+)?(?:ملاحظة|ملاحظه|نوتة|نوت)\\s+(.+)$/);
+  if (noteCommand && noteCommand[1].trim().length >= 2) {
+    const note = noteCommand[1].trim().slice(0, 12000);
+    return { action: "create_personal_item", type: "note", title: note.slice(0, 160), content: note };
+  }
+  const taskCommand = text.match(/^(?:(?:يا\\s*)?سولينا\\s*)?(?:ضيفي|ضيف|سجلي|سجل|اعملي|اعمل)\\s+(?:(?:لي|عندي)\\s+)?(?:مهمة|مهمه|تاسك)\\s+(.+)$/);
+  if (taskCommand && taskCommand[1].trim().length >= 2) {
+    const title = taskCommand[1].trim().slice(0, 160);
+    return { action: "create_personal_item", type: "task", title, content: "" };
+  }
   const isFajr = /الفجر|صلاه الفجر/.test(text);
   if (/(?:الصلاحيات|الصلاحية|صلاحيات|صلاحية|الاذن|الإذن).*(?:المنبه|التذكير|الميكروفون|الاشعارات|الإشعارات|سولينا|التطبيق)?/.test(text)
       || /(?:عايز|عاوز|محتاج|ممكن).*(?:اديك|اديلك|أديكي|أديك|اسمحلك|اسمحلكي).*(?:الصلاحية|صلاحية|اذن|إذن)/.test(text)
