@@ -210,6 +210,9 @@ assert.match(app, /تعذر تحميل المفاتيح من الخادم:/, "Pr
 assert.match(html, /id="reloadProvidersButton"/, "Settings must provide a manual API key list refresh control");
 
 assert.match(app, /window\.solinaActivateOwnerSession = \(token\) => activateOwnerSession\(token\)/, "The app must expose a direct validated-session handoff callback");
+assert.match(app, /const alreadyBootstrapped = activatedOwnerSession === token/, "Session activation must restore state.session even when the same token was previously activated");
+assert.match(app, /if \(alreadyBootstrapped\) return/, "Duplicate session handoffs must skip only bootstrap work, not session restoration");
+assert.match(app, /activatedOwnerSession = null/, "A rejected session must reset the activation guard before reauthentication");
 assert.match(app, /window\.__solinaPendingOwnerToken/, "The app must replay a session token if the auth event arrived before module startup");
 assert.match(pin, /window\.solinaActivateOwnerSession\?\.\(token\)/, "PIN bootstrap must call the app directly as well as dispatching the auth event");
 assert.match(pin, /window\.novaEnsureOwnerSession = ensureOwnerSession/, "Protected app actions must be able to restore the owner session on demand");
