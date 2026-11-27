@@ -1,4 +1,4 @@
-const canvas=document.getElementById("solinaWaveCanvas"),ctx=canvas?.getContext("2d");let level=0,energy=.12,mood="idle",frame=0;
+const canvas=document.getElementById("solinaWaveCanvas"),ctx=canvas?.getContext("2d");let level=0,energy=.12,mood="idle",expression="neutral",frame=0;
 const TAU=Math.PI*2;
 function resize(){if(!canvas||!ctx)return;const r=canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);canvas.width=Math.max(1,Math.round(r.width*d));canvas.height=Math.max(1,Math.round(r.height*d));ctx.setTransform(d,0,0,d,0,0)}
 function draw(t){if(!ctx||!canvas)return;const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h){requestAnimationFrame(draw);return}frame=t*.001;const x=w/2,y=h*.46,R=Math.min(w*.29,h*.38,245),pulse=1+Math.sin(frame*1.45)*.018+level*.1+(mood==="listening"?.035:0);ctx.clearRect(0,0,w,h);
@@ -8,4 +8,4 @@ const bars=104;for(let i=0;i<bars;i++){const a=i/bars*TAU,s=.5+.5*Math.sin(a*7+f
 const core=ctx.createRadialGradient(x-R*.28,y-R*.32,R*.05,x,y,R*.78);core.addColorStop(0,"rgba(239,231,255,.94)");core.addColorStop(.12,"rgba(187,164,255,.76)");core.addColorStop(.38,"rgba(112,99,226,.35)");core.addColorStop(.72,"rgba(70,83,180,.13)");core.addColorStop(1,"rgba(90,80,190,0)");ctx.fillStyle=core;ctx.beginPath();ctx.arc(x,y,R*.77*pulse,0,TAU);ctx.fill();
 for(let i=0;i<22;i++){const a=i*2.399+frame*.22,rr=R*(.22+.58*((i*37%23)/23));ctx.beginPath();ctx.arc(x+Math.cos(a)*rr,y+Math.sin(a)*rr,1+(i%3)*.5,0,TAU);ctx.fillStyle="rgba(225,216,255,"+(.22+energy*.5)+")";ctx.fill()}requestAnimationFrame(draw)}
 function setLevel(v,e){level=Math.max(0,Math.min(1,Number(v)||0));energy=Math.max(0,Math.min(1,Number(e)||0))}
-function setMood(v){mood=String(v||"idle")}window.solinaWave={setLevel,setMood};if(canvas&&ctx){new ResizeObserver(resize).observe(canvas);resize();requestAnimationFrame(draw)}
+function setMood(v){mood=String(v||"idle")}function setExpression(v){expression=String(v||"neutral")}window.solinaWave={setLevel,setMood,setExpression};if(canvas&&ctx){new ResizeObserver(resize).observe(canvas);resize();requestAnimationFrame(draw)}
