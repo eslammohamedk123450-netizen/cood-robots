@@ -464,3 +464,48 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opac
 @media(max-width:700px){.character-stage{height:470px!important}.nova-robot{top:0;transform:translateX(-50%) scale(.88);transform-origin:top center}.character-caption{bottom:2px}}
 @media(max-width:390px){.nova-robot{transform:translateX(-50%) scale(.78)}.character-stage{height:430px!important}}
 @media(prefers-reduced-motion:reduce){.nova-robot,.nova-robot *{animation:none!important;transition:none!important}}
+
+
+/* NOVA compact premium companion: expressive head + upper body, never a full-size mannequin. */
+.character-stage{height:350px!important;max-width:520px!important;overflow:visible!important;perspective:900px}
+.stage-glow{width:230px;height:230px;top:30px;left:calc(50% - 115px);opacity:.17}
+.orbit-one{width:280px;height:116px}.orbit-two{width:350px;height:148px}
+.nova-robot{width:270px!important;height:330px!important;top:3px!important;transform:translateX(-50%) scale(.94)!important;transform-origin:top center!important;filter:drop-shadow(0 13px 20px #0009)}
+.robot-shadow{bottom:4px!important;width:170px!important;height:15px!important}
+.robot-head-group{width:206px!important;height:150px!important}
+#novaFaceMount #novaFaceAvatar.face-avatar>.face-screen{width:190px!important;height:126px!important;border-radius:42px!important;border-width:4px!important}
+.robot-ear{top:52px!important;width:18px!important;height:36px!important;border-width:2px!important}
+.robot-neck{top:133px!important;width:52px!important;height:31px!important;border-radius:10px!important}
+.robot-neck i{height:17px!important;width:4px!important}
+.robot-torso{top:157px!important;width:132px!important;height:126px!important;border-radius:34px 34px 24px 24px!important}
+.robot-chest-core{top:24px!important;width:36px!important;height:36px!important}
+.robot-chest-core span{width:13px!important;height:13px!important}
+.robot-chest-line{top:78px!important;left:21px!important;right:21px!important}
+.robot-torso-detail{top:29px!important;height:36px!important;width:9px!important}
+.robot-torso-detail.left{left:13px!important}.robot-torso-detail.right{right:13px!important}
+.robot-waist{bottom:-9px!important;width:84px!important;height:17px!important}
+.robot-arm{top:166px!important;width:58px!important;height:145px!important;transform-origin:29px 19px!important}
+.robot-arm-left{left:32px!important}.robot-arm-right{right:32px!important}
+.robot-shoulder{left:7px!important;width:44px!important;height:44px!important;border-width:3px!important}
+.robot-upper-arm{top:31px!important;left:15px!important;width:27px!important;height:48px!important}
+.robot-elbow{top:72px!important;left:11px!important;width:36px!important;height:36px!important}
+.robot-forearm{top:100px!important;left:14px!important;width:29px!important;height:34px!important}
+.robot-hand{top:126px!important;left:9px!important;width:39px!important;height:28px!important;padding-top:15px!important}
+.robot-hand i{width:5px!important;height:11px!important}
+.robot-hand i:nth-child(2),.robot-hand i:nth-child(3){height:13px!important}
+.robot-leg{display:none!important}
+.nova-robot[data-mood="speaking"] .robot-arm-left{animation:robot-explain-left 1.45s ease-in-out infinite}
+.nova-robot[data-mood="speaking"] .robot-arm-right{animation:robot-explain-right 1.65s ease-in-out infinite}
+.nova-robot[data-mood="listening"] .robot-arm-left{animation:robot-listen-arms 2s ease-in-out infinite alternate}
+.nova-robot[data-mood="listening"] .robot-arm-right{animation:robot-listen-arms 2s ease-in-out infinite alternate-reverse}
+.nova-robot[data-mood="happy"] .robot-arm-left{animation:robot-wave .5s ease-in-out 4}
+.nova-robot[data-mood="happy"] .robot-arm-right{animation:robot-wave .5s ease-in-out 4 reverse}
+.nova-robot[data-mood="sad"] .robot-head-group{animation:robot-sad-lower 2.4s ease-in-out infinite alternate}
+.nova-robot[data-mood="sad"] .robot-arm-left,.nova-robot[data-mood="sad"] .robot-arm-right{animation:robot-sad-arms 2s ease-in-out infinite alternate}
+.nova-robot[data-mood="curious"] .robot-head-group{animation:robot-listen-tilt 1.3s ease-in-out infinite alternate}
+.nova-robot[data-mood="surprised"] .robot-head-group{animation:robot-surprise .45s ease-out 1}
+@keyframes robot-sad-lower{from{translate:0 0;rotate:-2deg}to{translate:0 5px;rotate:2deg}}
+@keyframes robot-sad-arms{from{rotate:0deg}to{rotate:13deg}}
+@keyframes robot-surprise{0%{translate:0 8px;scale:.96}60%{translate:0 -8px;scale:1.04}100%{translate:0 0;scale:1}}
+@media(max-width:700px){.character-stage{height:320px!important}.nova-robot{transform:translateX(-50%) scale(.84)!important}.character-caption{bottom:4px}}
+@media(max-width:390px){.character-stage{height:300px!important}.nova-robot{transform:translateX(-50%) scale(.78)!important}}
