@@ -66,8 +66,7 @@ public class TaskReceiver extends BroadcastReceiver {
         NotificationChannel alarm = new NotificationChannel(ALARM_CHANNEL, "منبهات سولينا", NotificationManager.IMPORTANCE_HIGH);
         alarm.setDescription("تنبيهات الاستيقاظ من سولينا");
         alarm.enableVibration(true);
-        if (sound != null) alarm.setSound(sound, new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+        alarm.setSound(null, null);
         NotificationChannel reminders = new NotificationChannel(REMINDER_CHANNEL, "تذكيرات سولينا", NotificationManager.IMPORTANCE_HIGH);
         reminders.setDescription("التذكيرات المجدولة من سولينا");
         manager.createNotificationChannel(alarm);
