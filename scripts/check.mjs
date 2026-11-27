@@ -68,10 +68,12 @@ assert.match(edge, /api\.elevenlabs\.io\/v1\/text-to-speech/, "ElevenLabs TTS mu
 assert.match(edge, /api\.elevenlabs\.io\/v1\/models/, "ElevenLabs API keys must be verified before saving");
 assert.match(edge, /xi-api-key/, "ElevenLabs credentials must only be sent from the server");
 assert.match(app, /invokeNova\(speechAction/, "Client must dispatch TTS to the selected cloud provider");
-assert.match(app, /const useGeminiTts = engine === "auto" \|\| engine === "gemini"/, "Automatic speech must use female Gemini cloud TTS by default");
-assert.match(app, /const speechAction = useGeminiTts \? "tts_gemini" : "tts"/, "Automatic and explicit Gemini modes must route to Gemini TTS");
-assert.doesNotMatch(app, /Automatic local fallback|await speakWithDevice\(spokenText, speechSegments\);\s*finish\(\);\s*showToast\("الصوت الخارجي/, "Cloud TTS failures must not fall back to missing Android voices");
-assert.match(html, /الوضع التلقائي يستخدم صوت Gemini السحابي النسائي/, "Settings must explain that automatic speech does not require a phone voice");
+assert.match(app, /const useGeminiTts = engine === "gemini"/, "Gemini TTS must be explicitly selectable; auto follows the selected provider");
+assert.match(app, /const speechAction = useGeminiTts \? "tts_gemini" : "tts"/, "Cloud speech must route to the selected TTS backend");
+assert.match(app, /await speakWithDevice\(spokenText, speechSegments\)/, "Cloud TTS failures must fall back to the phone voice");
+assert.match(app, /female\(egyptian\) \|\| egyptian\[0\] \|\| female\(arabic\) \|\| arabic\[0\] \|\| voices\[0\]/, "Device fallback must accept any available voice when female metadata is unavailable");
+assert.doesNotMatch(app, /showToast\("تعذر تشغيل صوت سولينا السحابي:/, "Speech provider failures must not interrupt the chat with an error toast");
+assert.match(html, /المزود الذي تختاره \(ElevenLabs أو Sonex\)/, "Automatic speech must follow the selected provider and describe device fallback");
 
 assert.match(app, /SpeechSynthesisUtterance/, "The optional on-device speech engine must remain available");
 assert.match(app, /لا تبدأ بسؤاله عن مشاريعه أو شغله/, "NOVA must not steer casual conversation toward projects");
