@@ -392,3 +392,6 @@ assert.equal(parseTaskCommand("ذكريني بعد ثلاث دقائق بالظ�
 assert.equal(parseTaskCommand("سيلينا ذكريني بعد خمس دقائق عشان اغسل سناني", new Date("2026-11-28T00:00:00")).title, "اغسل سناني", "Five-minute reminder title must exclude wake word and filler");
 
 console.log("Native Android speech recognition and reminder follow-up checks passed.");
+
+assert.match(app, /مظبوط\\|مضبوط|مضبوط\\|مظبوط/, "Affirmations like «أيوه مظبوط» must confirm the pending reminder");
+assert.equal(parseTaskCommand("فكريني بعد دقيقتين بالظبط عشان اقوم اغسل سناني", new Date("2026-11-28T00:00:00")).title, "اقوم اغسل سناني", "Two-minute reminder title must exclude dual-minute timing and filler words");
