@@ -29,7 +29,8 @@ import java.util.UUID;
 // Device task commands and alarm dismissal are handled natively by the Android app. 
 public class MainActivity extends Activity {
     private WebView webView;
-    private SpeechRecognizer speechRecognizer;\n    private volatile boolean taskPermissionFlowPending = false;
+    private SpeechRecognizer speechRecognizer;
+    private volatile boolean taskPermissionFlowPending = false;
     private final String appUrl = "https://eslammohamedk123450-netizen.github.io/cood-robots/?solina=command-router-v2";
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -64,7 +65,6 @@ public class MainActivity extends Activity {
         setContentView(webView);
         ArrayList<String> needed = new ArrayList<>();
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) needed.add(Manifest.permission.RECORD_AUDIO);
-        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) needed.add(Manifest.permission.POST_NOTIFICATIONS);
         if (!needed.isEmpty()) requestPermissions(needed.toArray(new String[0]), 2101);
         webView.loadUrl(appUrl);
     }
