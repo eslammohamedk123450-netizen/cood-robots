@@ -858,7 +858,21 @@ async function requestAIReply(text, signal, voiceAlternatives = []) {
     return "معلش يا " + state.ownerName + "، " + error.message;
   }
 }
-function normalizeVoiceCommand(value) { return String(value || "").toLocaleLowerCase("ar").replace(/[ًٌٍَُِّْـ]/g, "").replace(/[،.!؟?]/g, " ").replace(/\s+/g, " ").trim(); }
+function normalizeVoiceCommand(value) {
+  const normalized = String(value || "")
+    .toLocaleLowerCase("ar")
+    .replace(/[ًٌٍَُِّْـ]/g, "")
+    .replace(/[،.!؟?؛,:]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  // Egyptian Arabic speech recognition often splits or substitutes the
+  // assistant's name. Canonicalize common phonetic spellings before wake-word
+  // and stop-command checks, while keeping the original transcript untouched.
+  return normalized
+    .replace(/(?:^|\s)(?:سو\s*إلينا|سو\s*الينا|سوإلينا|سو الينا|سولي\s*نا|سولينه|سيلينا|سيليا|سولينا|solina)(?=$|\s)/giu, " سولينا ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 function isStopVoiceCommand(value) {
   const normalized = normalizeVoiceCommand(value);
   // The owner may say the assistant name anywhere in the sentence.
