@@ -1101,9 +1101,19 @@ function beginTaskConfirmation(intent) {
   const when = formatTaskDate(new Date(intent.scheduledAt).getTime());
   return intent.type === "alarm"
     ? "بس أتأكد منك: أضبط منبه الساعة " + when + "؟ أقولك حاضر بعد ما يتسجل فعلًا."
-    : "تمام، هفكّرك بـ" + intent.title + " يوم " + when + ". أحفظ التذكير ده؟";
+    : "تمام، هفكّرك بـ" + intent.title + " يوم " + when + ". هبعتلك تنبيه قبلها بيوم وساعة وعشر دقايق حسب الوقت المتاح، ولما ييجي الموعد هفضل أتابع معاكي كل ساعة لحد ما تقولي «خلصت». وتقدري تأجليه عشر دقايق. أحفظ التذكير ده؟";
 }
 function handleTaskDialogue(clean) {
+  const normalized = String(clean || "").trim();
+  const dueReminders = readNativeTasks()
+    .filter(task => task.type === "reminder" && Number(task.at) <= Date.now())
+    .sort((a, b) => Number(a.at) - Number(b.at));
+  if (dueReminders.length && /^(?:انا\s*)?(?:خلصت|انتهيت|تم|خلصنا)(?:\s+منه)?[.!؟، ]*$/i.test(normalized)) {
+    return { handled: true, intent: { action: "complete_task", taskId: String(dueReminders[0].id) } };
+  }
+  if (dueReminders.length && /^(?:أجليها|اجليها|أجّلها|اجلها|فكريني\s+كمان|ذكريني\s+كمان|بعد\s+عشر\s+دقايق|بعد\s+10\s+دقايق|بعد\s+عشر\s+دقائق)/i.test(normalized)) {
+    return { handled: true, intent: { action: "snooze_task", taskId: String(dueReminders[0].id), minutes: 10 } };
+  }
   const pending = state.pendingTaskDraft;
   const yes = /^(?:أيوه|ايوه|اه|أه|تمام|موافق|موافقة|احفظيه|سجليه|أكد|اكدي|نعم|yes)$/i.test(clean.trim());
   const no = /^(?:لا|لأ|مش دلوقتي|الغيه|الغي|إلغاء|cancel)$/i.test(clean.trim());
@@ -1145,6 +1155,24 @@ function handleTaskDialogue(clean) {
 }
 async function executeTaskIntent(intent) {
   const bridge = nativeTaskBridge();
+  if (intent.action === "complete_task") {
+    if (!bridge || typeof bridge.completeTask !== "function") return "مش قادرة أوصل لإدارة التذكيرات على الهاتف دلوقتي.";
+    try {
+      const result = JSON.parse(bridge.completeTask(intent.taskId));
+      if (!result.ok) return "ماقدرتش أسجل إن الموعد خلص. جربي من إشعار سولينا.";
+      renderScheduledTasks();
+      return "عاش! سجلت إنك خلصتي " + (readNativeTasks().find(task => String(task.id) === intent.taskId)?.title || "الموعد") + "، ووقفت المتابعة بتاعته.";
+    } catch (_) { return "حصل خطأ وأنا بسجل إنك خلصتي الموعد."; }
+  }
+  if (intent.action === "snooze_task") {
+    if (!bridge || typeof bridge.snoozeTask !== "function") return "مش قادرة أأجل التذكير من غير اتصال بتطبيق الهاتف.";
+    try {
+      const result = JSON.parse(bridge.snoozeTask(intent.taskId, intent.minutes || 10));
+      if (!result.ok) return "ماقدرتش أأجل التذكير.";
+      renderScheduledTasks();
+      return "تمام، هفكّرك كمان عشر دقايق.";
+    } catch (_) { return "حصل خطأ وأنا بأجل التذكير."; }
+  }
   if (intent.action === "unsupported_device") return "فهمت إنك عايزني أنفّذ أمر على الهاتف، لكن التحكم ده لسه مش مفعّل عندي. مش هحوّل الأمر لرد من الذكاء الاصطناعي أو أدّعي إني نفّذته.";
   if (intent.action === "open_settings") {
     if (!bridge || typeof bridge.openSettings !== "function") return "فتح إعدادات الهاتف متاح من تطبيق سولينا APK فقط.";
