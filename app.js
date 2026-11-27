@@ -1262,7 +1262,7 @@ function handleTaskDialogue(clean) {
   }
   const pending = state.pendingTaskDraft;
   const confirmationText = normalizeTaskText(clean).replace(/^(?:يا\s*)?سولينا\s*/,"").replace(/^(?:طيب|تمام|خلاص|ماشي)\s*/,"").trim();
-  const yes = /^(?:أيوه|ايوه|اه|أه|تمام|موافق|موافقة|احفظيه|احفظي|احفظ|سجليه|سجل|أكد|اكدي|نعم|yes)(?:\s+(?:بالظبط|بالضبط|اكيد|أكيد|الموعد|التذكير|ده|دي|ه|ها))*$/i.test(confirmationText);
+  const yes = /^(?:(?:أيوه|ايوه|أيوة|اه|أه|تمام|مظبوط|مضبوط|صحيح|صح|موافق|موافقة|احفظيه|احفظي|احفظ|سجليه|سجل|أكد|اكدي|نعم|yes)(?:\s+(?:بالظبط|بالضبط|اكيد|أكيد|مظبوط|مضبوط|صحيح|صح|تمام|كده|الموعد|التذكير|ده|دي|ه|ها))*)$/i.test(confirmationText);
   const no = /^(?:لا|لأ|مش دلوقتي|الغيه|الغي|إلغاء|cancel)(?:\s+(?:الموعد|التذكير|ده|دي))?$/i.test(confirmationText);
   if (pending?.stage === "confirm") {
     if (yes) {
