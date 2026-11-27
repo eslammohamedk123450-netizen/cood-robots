@@ -3,7 +3,7 @@ const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soleen", emotion: "idle", listening: false, speaking: false,
   recognition: null, restartRecognition: false, processing: false, nativeSpeech: false, voiceSessionActive: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
-  messages: [], voiceAlternatives: [], messagesByPersona: { soleen: [] }, conversationIds: { soleen: null }, historyQueues: { soleen: Promise.resolve() }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: ""
+  messages: [], voiceAlternatives: [], pendingTaskDraft: null, messagesByPersona: { soleen: [] }, conversationIds: { soleen: null }, historyQueues: { soleen: Promise.resolve() }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: ""
 };
 const VOICE_TURN_PAUSE_MS = 480;
 const personas = { soleen: { name: "سولينا", description: "مساعدتك الصوتية 💗", color: "#b9a5ff", accent: "#7959d6", intro: "سولينا معاكي" } };
@@ -1090,6 +1090,59 @@ function renderScheduledTasks() {
     container.append(item);
   }
 }
+function taskPromptFor(intent) {
+  if (intent.action === "needs_time") return "تمام، الموعد ده إمتى؟ قولي الساعة والدقايق لو فيه.";
+  if (intent.action === "needs_period") return "الساعة دي تقصديها الصبح ولا بالليل؟";
+  if (intent.action === "needs_title") return "حاضر، اسم المعاد أو المناسبة إيه عشان أسجله صح؟";
+  return "";
+}
+function beginTaskConfirmation(intent) {
+  state.pendingTaskDraft = { stage: "confirm", intent };
+  const when = formatTaskDate(new Date(intent.scheduledAt).getTime());
+  return intent.type === "alarm"
+    ? "بس أتأكد منك: أضبط منبه الساعة " + when + "؟ أقولك حاضر بعد ما يتسجل فعلًا."
+    : "تمام، هفكّرك بـ" + intent.title + " يوم " + when + ". أحفظ التذكير ده؟";
+}
+function handleTaskDialogue(clean) {
+  const pending = state.pendingTaskDraft;
+  const yes = /^(?:أيوه|ايوه|اه|أه|تمام|موافق|موافقة|احفظيه|سجليه|أكد|اكدي|نعم|yes)$/i.test(clean.trim());
+  const no = /^(?:لا|لأ|مش دلوقتي|الغيه|الغي|إلغاء|cancel)$/i.test(clean.trim());
+  if (pending && pending.stage === "confirm") {
+    if (yes) {
+      state.pendingTaskDraft = null;
+      return { handled: true, intent: pending.intent };
+    }
+    if (no) {
+      state.pendingTaskDraft = null;
+      return { handled: true, reply: "تمام، مش هحفظ الموعد. لو حبيتي نحدده من جديد قوليلي." };
+    }
+    return { handled: true, reply: "محتاجة منك تأكيد بسيط: أحفظ الموعد ده، ولا ألغيه؟" };
+  }
+  if (pending) {
+    if (no) {
+      state.pendingTaskDraft = null;
+      return { handled: true, reply: "تمام، لغيت إعداد الموعد قبل ما أحفظه." };
+    }
+    pending.raw += " " + clean;
+    const parsed = parseTaskCommand(pending.raw);
+    if (!parsed || ["needs_time", "needs_period", "needs_title"].includes(parsed.action)) {
+      pending.stage = parsed?.action || pending.stage;
+      return { handled: true, reply: taskPromptFor(parsed || { action: pending.stage }) };
+    }
+    if (parsed.action === "create") {
+      return { handled: true, reply: beginTaskConfirmation(parsed) };
+    }
+    return { handled: true, reply: "كمّلي معايا تفاصيل الموعد، وأنا هراجعه معاكي قبل الحفظ." };
+  }
+  const intent = parseTaskCommand(clean);
+  if (!intent) return { handled: false };
+  if (intent.action === "needs_time" || intent.action === "needs_period" || intent.action === "needs_title") {
+    state.pendingTaskDraft = { stage: intent.action, raw: clean };
+    return { handled: true, reply: taskPromptFor(intent) };
+  }
+  if (intent.action === "create") return { handled: true, reply: beginTaskConfirmation(intent) };
+  return { handled: true, intent };
+}
 async function executeTaskIntent(intent) {
   const bridge = nativeTaskBridge();
   if (intent.action === "unsupported_device") return "فهمت إنك عايزني أنفّذ أمر على الهاتف، لكن التحكم ده لسه مش مفعّل عندي. مش هحوّل الأمر لرد من الذكاء الاصطناعي أو أدّعي إني نفّذته.";
@@ -1110,8 +1163,7 @@ async function executeTaskIntent(intent) {
     } catch (_) { return "ماقدرتش أفتح التطبيق ده على الهاتف."; }
   }
   if (intent.action === "needs_fajr_time") return "أقدر أصحيك للفجر، بس محتاجة أعرف المدينة أو ميعاد الفجر اللي تحب أعتمده. مش هخمن وقت الصلاة.";
-  if (intent.action === "needs_time") return "تمام، عايزني أظبطه على الساعة كام بالظبط؟ قولّي الساعة والدقايق.";
-  if (intent.action === "needs_title") return "حاضر، أفكّرك بإيه في المعاد ده؟";
+  if (intent.action === "needs_time" || intent.action === "needs_period" || intent.action === "needs_title") return taskPromptFor(intent);
   if (!bridge) return "أوامر المنبهات والتذكيرات الفعلية متاحة في تطبيق سولينا APK، مش في صفحة الويب؛ عشان أضمن إنها تشتغل بعد قفل التطبيق.";
   if (intent.action === "list") {
     const tasks = readNativeTasks().sort((a, b) => Number(a.at) - Number(b.at));
@@ -1187,9 +1239,9 @@ async function handleRecognizedText(text, voiceTurn = false, voiceAlternatives =
     // wait for a database round trip before NOVA starts thinking.
     void persistConversationMessage("user", clean).catch((historyError) => console.warn("NOVA user message save failed:", historyError));
     addConversationLine(clean, "owner");
-    const taskIntent = parseTaskCommand(clean);
-    if (taskIntent) {
-      const taskReply = await executeTaskIntent(taskIntent);
+    const taskFlow = handleTaskDialogue(clean);
+    if (taskFlow.handled) {
+      const taskReply = taskFlow.intent ? await executeTaskIntent(taskFlow.intent) : taskFlow.reply;
       if (controller.signal.aborted || requestId !== state.requestSequence || (voiceTurn && !state.listening)) return;
       addConversationLine(taskReply, "nova");
       $("liveTranscript").textContent = taskReply;
