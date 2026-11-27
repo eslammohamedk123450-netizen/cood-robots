@@ -4,7 +4,7 @@ const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soleen", emotion: "idle", listening: false, speaking: false,
   recognition: null, restartRecognition: false, processing: false, nativeSpeech: false, voiceSessionActive: false, voiceDraft: "", voicePauseTimer: null, passwordRecovery: false, recoveryEmail: "", ownerName: "إسلام",
-  messages: [], voiceAlternatives: [], pendingTaskDraft: null, messagesByPersona: { soleen: [] }, conversationIds: { soleen: null }, historyQueues: { soleen: Promise.resolve() }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: ""
+  messages: [], voiceAlternatives: [], pendingTaskDraft: null, pendingTaskPermissionIntent: null, messagesByPersona: { soleen: [] }, conversationIds: { soleen: null }, historyQueues: { soleen: Promise.resolve() }, requestController: null, requestSequence: 0, interruptRecognition: null, session: null, providers: [], models: [], audio: null, profile: ""
 };
 const VOICE_TURN_PAUSE_MS = 480;
 const personas = { soleen: { name: "سولينا", description: "مساعدتك الصوتية 💗", color: "#b9a5ff", accent: "#7959d6", intro: "سولينا معاكي" } };
@@ -1182,7 +1182,7 @@ function handleTaskDialogue(clean) {
       return { handled: true, reply: taskPromptFor(parsed || { action: pending.stage }) };
     }
     if (parsed.action === "create") {
-      return { handled: true, reply: beginTaskConfirmation(parsed) };
+      return { handled: true, intent: parsed };
     }
     return { handled: true, reply: "كمّلي معايا تفاصيل الموعد، وأنا هراجعه معاكي قبل الحفظ." };
   }
@@ -1192,7 +1192,7 @@ function handleTaskDialogue(clean) {
     state.pendingTaskDraft = { stage: intent.action, raw: clean };
     return { handled: true, reply: taskPromptFor(intent) };
   }
-  if (intent.action === "create") return { handled: true, reply: beginTaskConfirmation(intent) };
+  if (intent.action === "create") return { handled: true, intent };
   return { handled: true, intent };
 }
 async function executeTaskIntent(intent) {
@@ -1256,16 +1256,18 @@ async function executeTaskIntent(intent) {
     let info = {};
     try { info = JSON.parse(bridge.platformInfo()); } catch (_) {}
     if (!info.notifications) {
+      state.pendingTaskPermissionIntent = intent;
       bridge.requestNotificationPermission();
-      return "محتاجة تسمح لسولينا بالإشعارات من نافذة أندرويد اللي ظهرت، وبعدها كرر الأمر عشان أسجل الموعد.";
+      return "تمام، فهمت الموعد. طلبت إذن الإشعارات من أندرويد، وأول ما تسمح هسجل نفس التذكير تلقائيًا من غير ما تعيد الطلب.";
     }
     if (intent.type === "alarm" && !info.fullScreenIntent) {
       bridge.requestFullScreenIntentPermission();
       return "فعّل صلاحية عرض المنبه على كامل الشاشة لسولينا، وبعدها كرر الأمر عشان أسجل المنبه."; 
     }
     if (!info.exactAlarms) {
+      state.pendingTaskPermissionIntent = intent;
       bridge.requestExactAlarmPermission();
-      return "فتحتلك إعداد السماح بالمنبهات الدقيقة. فعّل السماح لسولينا، وارجع كرر الأمر عشان أسجل الموعد.";
+      return "فهمت الموعد. فتحت إعداد السماح بالتنبيهات الدقيقة؛ فعّل السماح وارجع لسولينا، وهكمل تسجيل نفس التذكير تلقائيًا.";
     }
     const task = {
       id: (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : "solina-" + Date.now() + "-" + Math.random().toString(36).slice(2)),
@@ -1278,12 +1280,14 @@ async function executeTaskIntent(intent) {
     catch (_) { return "حصل خطأ وأنا بحاول أحفظ الموعد على الهاتف."; }
     if (!result.ok) {
       if (result.error === "exact_alarm_permission_required") {
+        state.pendingTaskPermissionIntent = intent;
         bridge.requestExactAlarmPermission();
-        return "فعّل صلاحية المنبهات الدقيقة لسولينا، وبعدها كرر الأمر.";
+        return "محتاجين إذن التنبيهات الدقيقة. فعّله وارجع، وهكمل نفس الطلب تلقائيًا.";
       }
       if (result.error === "notification_permission_required") {
+        state.pendingTaskPermissionIntent = intent;
         bridge.requestNotificationPermission();
-        return "اسمح بإشعارات سولينا، وبعدها كرر الأمر.";
+        return "اسمح بإشعارات سولينا، وهكمل حفظ نفس التذكير تلقائيًا.";
       }
       return "مقدرتش أحفظ الموعد على الهاتف: " + (result.error || "خطأ غير معروف");
     }
@@ -1295,6 +1299,29 @@ async function executeTaskIntent(intent) {
   }
   return null;
 }
+window.addEventListener("solina-task-permissions-updated", async () => {
+  const intent = state.pendingTaskPermissionIntent;
+  if (!intent) return;
+  const bridge = nativeTaskBridge();
+  if (!bridge) return;
+  let info = {};
+  try { info = JSON.parse(bridge.platformInfo()); } catch (_) {}
+  const ready = info.notifications && info.exactAlarms && (intent.type !== "alarm" || info.fullScreenIntent);
+  if (!ready) {
+    const message = "لسه فيه صلاحية ناقصة. الطلب محفوظ عندي؛ فعّل الإذن المطلوب من إعدادات أندرويد وارجع، ومش هتحتاج تعيد كلامك.";
+    addConversationLine(message, "nova");
+    $("liveTranscript").textContent = message;
+    await speak(message);
+    return;
+  }
+  state.pendingTaskPermissionIntent = null;
+  const message = await executeTaskIntent(intent);
+  addConversationLine(message, "nova");
+  $("liveTranscript").textContent = message;
+  void persistConversationMessage("assistant", message).catch(error => console.warn("SOLINA permission task save failed:", error));
+  await speak(message);
+  renderScheduledTasks();
+});
 async function handleRecognizedText(text, voiceTurn = false, voiceAlternatives = []) {
   const clean = text.trim();
   if (!clean || state.processing || (voiceTurn && !state.listening)) return;
