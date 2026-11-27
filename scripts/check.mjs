@@ -308,12 +308,12 @@ assert.equal(parseTaskCommand("فكريني بمعاد بكرة الساعة ع�
 const namedAppointment = parseTaskCommand("فكريني بمعاد بكرة الساعة عشرة صباحا كشف دكتور", fixedNow);
 assert.equal(namedAppointment?.action, "create", "Named appointment should be ready for confirmation");
 assert.match(namedAppointment?.title || "", /كشف دكتور/, "Appointment title should be retained");
-assert.equal(parseTaskCommand("فكريني بعد نص ساعة أذاكر", fixedNow)?.action, "create", "Relative reminder durations should be recognized");
+assert.equal(parseTaskCommand("فكريني بعد نص ساعة أذاكر", fixedNow)?.action, "create", "Relative reminder durations should be recognized");\nassert.equal(new Date(parseTaskCommand("فكريني بعد شوية أذاكر", fixedNow).scheduledAt).getTime(), fixedNow.getTime() + 300000, "After a little while should default to five minutes");
 assert.equal(parseTaskCommand("الغى كل التذكيرات", fixedNow)?.all, true, "Bulk task cancellation should be recognized");
 assert.equal(normalizeTaskText("الساعة ٩:٣٠"), "الساعة 9:30", "Arabic numerals and clock separators should normalize safely");
 assert.match(app, /parseTaskCommand\(clean\)/, "Voice and text turns should route task commands locally");
 assert.match(app, /function handleTaskDialogue\(clean\)/, "Task setup must support multi-turn conversational slot filling");
-assert.match(app, /beginTaskConfirmation\(intent\)/, "Task details must be confirmed before scheduling");
+assert.match(app, /beginTaskConfirmation\(intent\)/, "Task details must be confirmed before scheduling");\nassert.match(app, /أفكّرك بـ/, "Reminder confirmation should hide internal reminder schedules");
 assert.match(app, /pendingTaskDraft/, "Pending task details must remain available between voice turns");
 assert.match(app, /window\.SolinaNative/, "Task actions must use the native Android bridge");
 assert.match(html, /id="scheduledTasksList"/, "Settings should expose saved reminders and alarms");
@@ -343,7 +343,7 @@ assert.match(taskReceiver, /بعد 10 دقايق/, "Reminder notifications must 
 assert.match(taskStore, /setNextFollowUp/, "The next follow-up time must be persisted");
 assert.match(androidMain, /completeTask\(String id\)/, "Solina must be able to complete reminders from voice chat");
 assert.match(androidMain, /snoozeTask\(String id, int minutes\)/, "Solina must be able to snooze reminders from voice chat");
-assert.match(app, /هفضل أتابع معاكي كل ساعة/, "Solina must explain hourly follow-up before saving a reminder");
+assert.match(app, /قولي بس «احفظي» أو «إلغاء»/, "Confirmation retry should be concise");
 assert.match(app, /complete_task/, "The spoken «خلصت» command must complete the active reminder");
 assert.match(app, /snooze_task/, "The spoken snooze command must defer the active reminder");
 console.log("Native Android speech recognition and reminder follow-up checks passed.");
