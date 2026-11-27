@@ -33,6 +33,13 @@ public class TaskReceiver extends BroadcastReceiver {
         boolean isAlarm = "alarm".equals(task.optString("type"));
         String title = isAlarm ? "سولينا — ميعاد الاستيقاظ" : "سولينا — تذكير";
         String body = task.optString("title");
+        if (isAlarm) {
+            Intent audio = new Intent(context, AlarmPlaybackService.class).setAction(AlarmPlaybackService.ACTION_START);
+            if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(audio); else context.startService(audio);
+            Intent alarmScreen = new Intent(context, AlarmActivity.class).putExtra("task_id", id)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            try { context.startActivity(alarmScreen); } catch (Exception ignored) { }
+        }
         Intent open = new Intent(context, isAlarm ? AlarmActivity.class : MainActivity.class)
                 .putExtra("task_id", id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent openPending = PendingIntent.getActivity(context, id.hashCode() + 1, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
