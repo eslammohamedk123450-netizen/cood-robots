@@ -819,6 +819,7 @@ async function playStopAcknowledgement() {
     for (let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
     const url = URL.createObjectURL(new Blob([bytes], {type:cached.mime}));
     const audio = new Audio(url); audio.preload = "auto";
+    state.audio = { pause: () => { audio.pause(); URL.revokeObjectURL(url); } };
     await new Promise((resolve, reject) => {
       audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
       audio.onerror = () => { URL.revokeObjectURL(url); reject(new Error("تعذر تشغيل صوت الإيقاف المحفوظ.")); };
@@ -828,7 +829,7 @@ async function playStopAcknowledgement() {
     console.warn("NOVA stop acknowledgement failed:", error);
     try { await speakWithDevice(phrase, state.persona, []); } catch (_) {}
   } finally {
-    state.speaking = false; state.processing = false; resetSpeechMouth();
+    state.speaking = false; state.processing = false; state.audio = null; resetSpeechMouth();
     if (state.listening && state.recognition) window.setTimeout(() => { if (state.listening && !state.processing) { try { state.recognition.start(); } catch (_) {} } }, 300);
   }
 }
@@ -853,7 +854,7 @@ function startInterruptRecognition() {
   };
   recognition.onerror = () => {};
   recognition.onend = () => { if (state.interruptRecognition === recognition) state.interruptRecognition = null; if (state.listening && (state.processing || state.speaking)) window.setTimeout(startInterruptRecognition, 250); };
-  try { recognition.start(); } catch (_) { state.interruptRecognition = null; }
+  try { recognition.start(); } catch (_) { state.interruptRecognition = null; if (state.listening && (state.processing || state.speaking)) window.setTimeout(startInterruptRecognition, 350); }
 }
 function handleLocalVoiceCommand(value) {
   const normalized = normalizeVoiceCommand(value); const wake = /^(?:(?:يا|ي)\s*)?(?:نوفا|نوفة|nova|سولي|سولينا|سولين)(?=$|\s)\s*/i;
