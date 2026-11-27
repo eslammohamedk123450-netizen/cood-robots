@@ -788,7 +788,7 @@ async function saveSpeechSettings() {
   }
 }
 async function requestAIReply(text, signal) {
-  if (!state.session) return "أنا جاهز معاك يا إسلام ❤️ واجهة NOVA مفتوحة حاليًا في الوضع المحلي. تشغيل ردود الذكاء الاصطناعي وحفظ البيانات السحابي هيتفعل لما نربط الخدمات لاحقًا.";
+  if (!state.session) throw new Error("جلسة سولينا غير متصلة. سجّل دخول المالك لإعادة تفعيل الذكاء الاصطناعي والخدمات السحابية.");
   if (!state.messages.length || state.messages[0].role !== "system") {
     state.messages.unshift({
       role: "system",
@@ -1188,18 +1188,57 @@ $("providerType").addEventListener("change", applyProviderDefaults);
 $("providerBaseUrl").addEventListener("input", () => { $("providerBaseUrl").dataset.userEdited = "true"; });
 $("settingsDialog").addEventListener("click", (event) => { if (event.target === $("settingsDialog")) closeSettings(); });
 
-window.addEventListener("nova:authenticated", (event) => {
-  state.session = event.detail?.token || null;
+let activatedOwnerSession = null;
+function activateOwnerSession(token) {
+  if (!token || activatedOwnerSession === token) return;
+  activatedOwnerSession = token;
+  state.session = token;
   state.messages = [];
-  $("connectionLabel").textContent = "متصل بخادم NOVA";
-  setFeedback("authFeedback", "تم التحقق من كود المالك والاتصال بالخادم.");
+  $("connectionLabel").textContent = "متصل بخادم سولينا";
+  $("authGate").hidden = true;
+  setFeedback("authFeedback", "تم التحقق من جلسة المالك والاتصال بالخدمات السحابية.");
   void loadProviders();
   void loadOwnerMemory();
   void loadSpeechSettings();
   void loadConversationHistory(true);
-});
+}
+window.addEventListener("nova:authenticated", (event) => activateOwnerSession(event.detail?.token || null));
+
+// Recover the saved owner session here as well as in pin.js. This independent
+// bootstrap prevents the UI from silently entering its old local/demo reply
+// path if the authentication event is delayed or missed during page startup.
+async function restoreOwnerSession() {
+  const saved = localStorage.getItem("nova.owner.session.v2");
+  if (!saved) {
+    $("authGate").hidden = false;
+    setStatus("سجّلي دخولك لتفعيل خدمات سولينا", "idle");
+    return;
+  }
+  try {
+    const response = await fetch("https://razvryvazmqvvqkzetuo.supabase.co/functions/v1/nova-ai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": "sb_publishable_t5xrzZNN6Uj9zhhBLUYQVg_mj7qPjQL"
+      },
+      body: JSON.stringify({ action: "check_session", token: saved })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.valid) {
+      localStorage.removeItem("nova.owner.session.v2");
+      $("authGate").hidden = false;
+      setStatus("انتهت جلسة الدخول. سجّل دخولك لتفعيل الخدمات", "idle");
+      return;
+    }
+    activateOwnerSession(saved);
+  } catch (error) {
+    console.warn("Solina cloud session restore failed:", error);
+    setStatus("تعذر الوصول للخادم حاليًا. تحقق من اتصال الإنترنت", "concerned");
+  }
+}
 applyProviderDefaults();
-// Legacy 3D mannequin renderer removed; only the OLED face remains.
+// Solina is the only assistant persona.
 setPersona("soleen");
-setStatus("سولي معاك", "idle");
+setStatus("جاري الاتصال بخدمات سولينا...", "thinking");
+void restoreOwnerSession();
 
