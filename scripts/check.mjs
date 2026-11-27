@@ -162,7 +162,7 @@ assert.match(edge, /oldRowsResult\.error/, "Parallel history retrieval errors mu
 assert.match(edge, /const \[\{ data: memoryRow, error: memoryReadError \}, \{ data: models, error \}, oldRowsResult\] = await Promise\.all\(/, "Independent memory, model, and history reads must run concurrently");
 assert.match(edge, /const secretEntries = await Promise\.all\(/, "Provider secrets must be fetched concurrently instead of serially");
 assert.match(html, /solina-voice-orb-v2/, "Solina client bundle must use a fresh cache version");
-assert.match(css, /NOVA responsive voice-first polish/, "Responsive voice-first visual polish must be present");
+assert.match(css, /solina-orb-stage/, "Responsive Solina voice-first layout must be present");
 
 assert.match(app, /Keep the dedicated interrupt listener alive during playback/, "Voice interruption listener must remain active while NOVA speaks");
 assert.doesNotMatch(app, /if \(state\.listening\) startInterruptRecognition\(\);\s*stopInterruptRecognition\(\)/, "Speech playback must not immediately disable the interrupt listener");
@@ -184,3 +184,5 @@ assert.match(app, /novaAvatar\?\.setExpression\(state\.replyEmotion\)/, "The sup
 assert.match(css, /solina-orb-stage/, "Large central audio visualizer must be present");
 assert.match(css, /solina-breathe/, "Solina audio orb must pulse");
 assert.match(app, /window\.solinaWave\?\.setLevel\(amount, energy\)/, "Audio orb must follow real playback amplitude");
+
+assert.match(app, /سولينا\(\?=\$\|\\s\)/, "Only the Solina wake word should activate voice turns");
