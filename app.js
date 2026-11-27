@@ -574,6 +574,29 @@ async function invokeNova(action, payload = {}, options = {}) {
   if (data?.error) throw new Error(data.error);
   return data;
 }
+async function reportSolinaClientError(error, stage = "unknown") {
+  const safe = (value, max) => String(value ?? "").slice(0, max);
+  const payload = {
+    error_name: safe(error?.name || "Error", 120),
+    error_message: safe(error?.message || error || "Unknown client error", 1200),
+    error_stack: safe(error?.stack || "", 6000),
+    stage: safe(stage || state.debugStage || "unknown", 100),
+    app_version: "solina-client-diagnostics-v1",
+    page_url: safe(location.origin + location.pathname, 500),
+    user_agent: safe(navigator.userAgent, 500)
+  };
+  try {
+    await invokeNova("client_error", payload);
+    console.info("SOLINA_DIAGNOSTIC_LOGGED", { stage: payload.stage, error: payload.error_message });
+  } catch (loggingError) {
+    console.error("SOLINA_DIAGNOSTIC_UPLOAD_FAILED", loggingError);
+    try {
+      const pending = JSON.parse(localStorage.getItem("solina.pendingClientErrors") || "[]");
+      pending.push({ ...payload, captured_at: new Date().toISOString() });
+      localStorage.setItem("solina.pendingClientErrors", JSON.stringify(pending.slice(-5)));
+    } catch (_) {}
+  }
+}
 function applyProviderDefaults() {
   const preset = providerDefaults[$("providerType").value] || providerDefaults.custom;
   $("providerBaseUrl").value = preset.url;
@@ -1334,15 +1357,18 @@ async function handleRecognizedText(text, voiceTurn = false, voiceAlternatives =
   const requestId = ++state.requestSequence;
   const controller = new AbortController(); state.requestController = controller;
   state.processing = true;
+  state.debugStage = "turn_started";
   state.replySegments = [];
   state.replyEmotion = "neutral";
   try {
+    state.debugStage = "voice_capture_handoff";
     if (voiceTurn) { try { state.recognition?.stop(); } catch (_) {} startInterruptRecognition(); }
     $("liveTranscript").textContent = "أنت قلت: “" + clean + "”";
     // Start durable history saving in the background; don't make the user
     // wait for a database round trip before NOVA starts thinking.
     void persistConversationMessage("user", clean).catch((historyError) => console.warn("NOVA user message save failed:", historyError));
     addConversationLine(clean, "owner");
+    state.debugStage = "task_dialogue_parse";
     const taskFlow = handleTaskDialogue(clean);
     if (taskFlow.handled) {
       const taskReply = taskFlow.intent ? await executeTaskIntent(taskFlow.intent) : taskFlow.reply;
@@ -1350,6 +1376,7 @@ async function handleRecognizedText(text, voiceTurn = false, voiceAlternatives =
       addConversationLine(taskReply, "nova");
       $("liveTranscript").textContent = taskReply;
       const taskHistorySave = persistConversationMessage("assistant", taskReply).catch((historyError) => console.warn("NOVA task response save failed:", historyError));
+      state.debugStage = "task_reply_speech";
       await speak(taskReply, [], controller.signal);
       await taskHistorySave;
       renderScheduledTasks();
@@ -1357,19 +1384,24 @@ async function handleRecognizedText(text, voiceTurn = false, voiceAlternatives =
     }
     setStatus("بفكر في كلامك...", "thinking");
     animateCharacter("thinking");
+    state.debugStage = "ai_request";
     const reply = await requestAIReply(clean, controller.signal, voiceAlternatives);
     if (controller.signal.aborted || requestId !== state.requestSequence || (voiceTurn && !state.listening)) return;
+    state.debugStage = "reply_tone_analysis";
     setSpeechSegmentTone(state.replyEmotion || inferReplyTone(reply));
     addConversationLine(reply, "nova"); $("liveTranscript").textContent = reply;
     const assistantHistorySave = persistConversationMessage("assistant", reply)
       .catch((historyError) => console.warn("NOVA assistant message save failed:", historyError));
     // Start speech immediately. History writes are serialized in the background.
+    state.debugStage = "reply_speech";
     await speak(reply, state.replySegments || [], controller.signal);
     await assistantHistorySave;
     void loadConversationHistory(false);
   } catch (error) {
     if (error?.name !== "AbortError") {
-      console.error("NOVA turn failed:", error);
+      const failedStage = state.debugStage || "unknown";
+      console.error("NOVA turn failed:", { stage: failedStage, error });
+      void reportSolinaClientError(error, failedStage);
       const message = "معلش يا " + state.ownerName + "، حصلت مشكلة ومنعتني من الرد: " + (error?.message || "تعذر الاتصال بالخادم.");
       $("liveTranscript").textContent = message;
       setStatus("في مشكلة في الاتصال", "error");
@@ -1378,6 +1410,7 @@ async function handleRecognizedText(text, voiceTurn = false, voiceAlternatives =
     }
   }
   finally {
+    state.debugStage = "idle";
     if (state.requestController === controller) state.requestController = null;
     if (requestId === state.requestSequence) state.processing = false;
     if (state.listening && state.nativeSpeech && !state.processing && !state.speaking) {
