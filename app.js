@@ -1141,8 +1141,8 @@ function beginTaskConfirmation(intent) {
   state.pendingTaskDraft = { stage: "confirm", intent };
   const when = formatTaskDate(new Date(intent.scheduledAt).getTime());
   return intent.type === "alarm"
-    ? "بس أتأكد منك: أضبط منبه الساعة " + when + "؟ أقولك حاضر بعد ما يتسجل فعلًا."
-    : "تمام، هفكّرك بـ" + intent.title + " يوم " + when + ". هبعتلك تنبيه قبلها بيوم وساعة وعشر دقايق حسب الوقت المتاح، ولما ييجي الموعد هفضل أتابع معاكي كل ساعة لحد ما تقولي «خلصت». وتقدري تأجليه عشر دقايق. أحفظ التذكير ده؟";
+    ? "أظبط المنبه " + when + "؟
+    : "تمام، أفكّرك بـ" + (intent.title || "الموعد") + " " + when + "؟";
 }
 function handleTaskDialogue(clean) {
   const normalized = String(clean || "").trim();
@@ -1156,8 +1156,9 @@ function handleTaskDialogue(clean) {
     return { handled: true, intent: { action: "snooze_task", taskId: String(dueReminders[0].id), minutes: 10 } };
   }
   const pending = state.pendingTaskDraft;
-  const yes = /^(?:أيوه|ايوه|اه|أه|تمام|موافق|موافقة|احفظيه|سجليه|أكد|اكدي|نعم|yes)$/i.test(clean.trim());
-  const no = /^(?:لا|لأ|مش دلوقتي|الغيه|الغي|إلغاء|cancel)$/i.test(clean.trim());
+  const confirmationText = normalizeTaskText(clean).replace(/^(?:يا\\s*)?سولينا\\s*/,"").replace(/^(?:طيب|تمام|خلاص|ماشي)\\s*/,"").trim();
+  const yes = /^(?:أيوه|ايوه|اه|أه|تمام|موافق|موافقة|احفظيه|احفظي|احفظ|سجليه|سجل|أكد|اكدي|نعم|yes)(?:\\s+(?:الموعد|التذكير|ده|دي|ه|ها))?$/.i.test(confirmationText);
+  const no = /^(?:لا|لأ|مش دلوقتي|الغيه|الغي|إلغاء|cancel)(?:\\s+(?:الموعد|التذكير|ده|دي))?$/.i.test(confirmationText);
   if (pending && pending.stage === "confirm") {
     if (yes) {
       state.pendingTaskDraft = null;
@@ -1167,7 +1168,7 @@ function handleTaskDialogue(clean) {
       state.pendingTaskDraft = null;
       return { handled: true, reply: "تمام، مش هحفظ الموعد. لو حبيتي نحدده من جديد قوليلي." };
     }
-    return { handled: true, reply: "محتاجة منك تأكيد بسيط: أحفظ الموعد ده، ولا ألغيه؟" };
+    return { handled: true, reply: "قولي بس «احفظي» أو «إلغاء»." };
   }
   if (pending) {
     if (no) {
