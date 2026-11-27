@@ -7,7 +7,7 @@ const SPOKEN_NUMBERS = {
 };
 export function normalizeTaskText(value) {
   return String(value || "").replace(/[٠-٩]/g, digit => String(ARABIC_DIGITS.indexOf(digit)))
-    .replace(/[ًٌٍَُِّْـ]/g, "").replace(/[أإآ]/g, "ا").replace(/[ىي]/g, "ي")
+    .replace(/[ًٌٍَُِّْـ]/g, "")
     .replace(/[،.!؟?؛,]/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("ar")
     .replace(/(^|\s)(?:سو\s*لينا|سولي\s*نا|سوليينا|سولينه|سولينا|سيلينه|سيلينا|سلينا|سيليا|solina)(?=$|\s)/giu, "$1سولينا")
     .replace(/\s+/g, " ").trim();
