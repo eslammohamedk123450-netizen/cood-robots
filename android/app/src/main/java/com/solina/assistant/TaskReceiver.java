@@ -54,7 +54,7 @@ public class TaskReceiver extends BroadcastReceiver {
             return;
         }
 
-        boolean due = "due".equals(stage) || "followup".equals(stage);
+        boolean due = stage == null || "due".equals(stage) || "followup".equals(stage);
         if (due) {
             long next = System.currentTimeMillis() + FOLLOW_UP_INTERVAL;
             TaskStore.setNextFollowUp(context, id, next);
