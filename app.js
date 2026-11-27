@@ -38,6 +38,8 @@ function setStatus(label, mood = "idle") {
   document.body.dataset.mood = mood;
   const robot = $("novaRobot");
   if (robot) robot.dataset.mood = mood;
+  const avatar = $("novaFaceOnly");
+  if (avatar) avatar.dataset.mood = mood;
 }
 const NOVA_EMOTIONS = new Set(["neutral","happy","sad","surprised","curious","caring","playful","concerned","thinking"]);
 function setFaceEmotion(emotion) {
@@ -47,6 +49,8 @@ function setFaceEmotion(emotion) {
   const robot = $("novaRobot");
   if (face) face.dataset.emotion = safe;
   if (robot) robot.dataset.emotion = safe;
+  const avatar = $("novaFaceOnly");
+  if (avatar) avatar.dataset.emotion = safe;
 }
 function inferFaceEmotion(reply) {
   const value = String(reply || "").toLowerCase();
