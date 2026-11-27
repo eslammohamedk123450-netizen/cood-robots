@@ -8,7 +8,7 @@ function enforceScreenFaceAvatar() {
     fallback = document.createElement("div");
     fallback.id = "novaFaceAvatar";
   }
-  fallback.className = "character-fallback face-avatar";
+  fallback.className = "nova-face-avatar face-avatar";
   fallback.innerHTML = '<div class="face-screen" id="faceScreen" data-emotion="neutral"><div class="face-scanline"></div><div class="face-eyes"><span class="face-eye left"></span><span class="face-eye right"></span></div><div class="face-mouth" id="faceMouth"><i></i></div><span class="face-spark spark-one"></span><span class="face-spark spark-two"></span></div>';
   fallback.setAttribute("aria-hidden", "true");
   fallback.style.display = "grid";
