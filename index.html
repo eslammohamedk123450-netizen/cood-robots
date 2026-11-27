@@ -86,16 +86,16 @@
       </section>
       <section class="settings-section">
         <h3>محرك إخراج الصوت</h3>
-        <p class="security-note">الوضع التلقائي يستخدم مزود الصوت الذي تختاره (ElevenLabs أو Sonex). وإذا فشل المزود لأي سبب، تحاول سولينا تلقائيًا استخدام صوت الهاتف أو Google TTS، دون إيقاف الرد. ويمكنك اختيار Gemini أو صوت الهاتف يدويًا.</p>
+        <p class="security-note">اختَر خدمة واحدة فقط: Gemini، أو مزود السحابة الذي تحدده (ElevenLabs / Sonex)، أو صوت الهاتف. لن تنتقل سولينا إلى خدمة سحابية أخرى. إذا فشلت الخدمة المختارة فقط، تستخدم صوت الهاتف المجاني كحل احتياطي. ويمكنك إيقاف الصوت تمامًا واستخدام الردود المكتوبة فقط.</p>
         <label class="field-label">مصدر الصوت
           <select id="speechEngine" dir="rtl">
-            <option value="auto">تلقائي — المزود المحدد ثم صوت الهاتف احتياطيًا</option>
-            <option value="gemini">Gemini AI Studio TTS</option>
-            <option value="server">ElevenLabs / Sonex Cloud</option>
-            <option value="device">صوت الهاتف / Google TTS</option>
+            <option value="server">الخدمة السحابية المحددة أدناه فقط</option>
+            <option value="gemini">Google Gemini TTS فقط</option>
+            <option value="device">صوت الهاتف / Google TTS فقط</option>
+            <option value="mute">بدون صوت — رد مكتوب فقط</option>
           </select>
         </label>
-        <p class="settings-feedback" id="speechEngineFeedback" role="status">سولينا تختار أفضل صوت متاح على الهاتف، وتقبل أي صوت متاح حتى لو لم تتوفر معلومات النوع.</p>
+        <p class="settings-feedback" id="speechEngineFeedback" role="status">الصوت الاحتياطي الوحيد للخدمات السحابية هو صوت الهاتف المجاني.</p>
       </section>
       <section class="settings-section">
         <h3>محرك الصوت السحابي</h3>
