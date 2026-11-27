@@ -15,6 +15,9 @@ const receiver = read("../android/app/src/main/java/com/solina/assistant/TaskRec
 const activity = read("../android/app/src/main/java/com/solina/assistant/AlarmActivity.java");
 const service = read("../android/app/src/main/java/com/solina/assistant/AlarmPlaybackService.java");
 const androidMain = read("../android/app/src/main/java/com/solina/assistant/MainActivity.java");
+const taskStore = read("../android/app/src/main/java/com/solina/assistant/TaskStore.java");
+const taskReceiver = read("../android/app/src/main/java/com/solina/assistant/TaskReceiver.java");
+const alarmActivity = read("../android/app/src/main/java/com/solina/assistant/AlarmActivity.java");
 
 const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map((m) => m[1]);
 const duplicates = ids.filter((id, i) => ids.indexOf(id) !== i);
