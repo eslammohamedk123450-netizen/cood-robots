@@ -143,3 +143,9 @@ assert.match(app, /function sanitizeInternalReply\(/, "Client must sanitize inte
 assert.match(app, /sanitizeInternalReply/, "Client reply sanitizer must be used");
 assert.match(edge, /function sanitizeInternalReplyText\(/, "Server must sanitize internal memory metadata");
 assert.match(edge, /sanitizeInternalReplyText/, "Server reply sanitizer must be used");
+
+assert.match(html, /class="face-art"/, "Facial features must be drawn as inline SVG vectors");
+assert.match(html, /class="face-lashes"/, "Each eye must have individually drawn vector lashes");
+assert.match(html, /class="face-brow left"/, "Eyebrows must be separate vector paths");
+assert.match(app, /mouth\.setAttribute\("d"/, "Mouth shape must be driven by measured audio amplitude");
+assert.match(css, /nova-vector-blink 3\.15s/, "Vector eyelids must blink about every three seconds");
