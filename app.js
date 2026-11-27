@@ -17,8 +17,8 @@ function setStatus(label, mood = "idle") {
   const orb = $("novaAudioOrb"); if (orb) orb.dataset.mood = mood;
 }
 const NOVA_EMOTIONS = new Set(["neutral","happy","sad","surprised","curious","caring","playful","concerned","thinking"]);
-function setFaceEmotion(emotion) { state.replyEmotion = NOVA_EMOTIONS.has(emotion) ? emotion : "neutral"; }
-function inferFaceEmotion(reply) {
+function setSpeechSegmentTone(emotion) { state.replyEmotion = NOVA_EMOTIONS.has(emotion) ? emotion : "neutral"; }
+function inferReplyTone(reply) {
   const value = String(reply || "").toLowerCase();
   const patterns = [
     ["sad", /(حزين|زعلان|مضايق|مؤلم|خسارة|فقدان|وحشت|آسف|متأسف|صعب عليك|قلبي معاك)/],
@@ -47,13 +47,13 @@ function sanitizeInternalReply(rawReply) {
   return text.replace(/\s{2,}/g, " ").trim();
 }
 
-function extractReplyEmotion(rawReply) {
+function extractSpeechSegments(rawReply) {
   const raw = sanitizeInternalReply(rawReply);
   const markerPattern = /\[NOVA_EMOTION:(neutral|happy|sad|surprised|curious|caring|playful|concerned|thinking)\]/ig;
   const markers = [...raw.matchAll(markerPattern)];
   const cleanText = raw.replace(markerPattern, "").replace(/\s+/g, " ").trim();
   if (!markers.length) {
-    const emotion = inferFaceEmotion(cleanText);
+    const emotion = inferReplyTone(cleanText);
     return { text: cleanText, emotion, segments: [{ text: cleanText, emotion }] };
   }
   if (markers.length === 1 && !raw.slice(markers[0].index + markers[0][0].length).trim()) {
@@ -74,16 +74,16 @@ function extractReplyEmotion(rawReply) {
   const usable = segments.length ? segments : [{ text: cleanText, emotion: currentEmotion }];
   return { text: cleanText, emotion: usable[0].emotion, segments: usable };
 }
-function updateFaceSpeechProgress(segments, progress) {
+function updateSpeechSegmentProgress(segments, progress) {
   if (!Array.isArray(segments) || !segments.length) return;
   const total = segments.reduce((sum, segment) => sum + Math.max(1, segment.text.length), 0);
   let position = Math.max(0, Math.min(0.999, progress)) * total;
   for (const segment of segments) {
     const weight = Math.max(1, segment.text.length);
-    if (position < weight) { setFaceEmotion(segment.emotion); return; }
+    if (position < weight) { setSpeechSegmentTone(segment.emotion); return; }
     position -= weight;
   }
-  setFaceEmotion(segments[segments.length - 1].emotion);
+  setSpeechSegmentTone(segments[segments.length - 1].emotion);
 }
 function setSpeechMouthLevel(level, brightness = 0) {
   const orb = $("novaAudioOrb"); if (!orb) return;
@@ -107,7 +107,7 @@ function connectSpeechAnalyser(source) {
     return null;
   }
 }
-function animateFaceFromAudio(analyser, isActive, progress) {
+function animateOrbFromAudio(analyser, isActive, progress) {
   const samples = new Uint8Array(analyser.fftSize);
   const frequencies = new Uint8Array(analyser.frequencyBinCount);
   const animate = () => {
@@ -133,9 +133,9 @@ function animateFaceFromAudio(analyser, isActive, progress) {
   };
   requestAnimationFrame(animate);
 }
-function trackAudioElementFace(audio, segments) {
+function trackAudioElementOrb(audio, segments) {
   audio.addEventListener("timeupdate", () => {
-    if (state.speaking && Number.isFinite(audio.duration) && audio.duration > 0) updateFaceSpeechProgress(segments, audio.currentTime / audio.duration);
+    if (state.speaking && Number.isFinite(audio.duration) && audio.duration > 0) updateSpeechSegmentProgress(segments, audio.currentTime / audio.duration);
   });
   let analyser = null;
   try {
@@ -156,8 +156,8 @@ function trackAudioElementFace(audio, segments) {
     if (started || !state.speaking || state.audio?.element !== audio) return;
     started = true;
     setStatus(personas[state.persona].name + " بيتكلم...", "speaking");
-    if (analyser) animateFaceFromAudio(analyser, () => state.audio?.element === audio, () => {
-      if (Number.isFinite(audio.duration) && audio.duration > 0) updateFaceSpeechProgress(segments, audio.currentTime / audio.duration);
+    if (analyser) animateOrbFromAudio(analyser, () => state.audio?.element === audio, () => {
+      if (Number.isFinite(audio.duration) && audio.duration > 0) updateSpeechSegmentProgress(segments, audio.currentTime / audio.duration);
     });
   });
 }
@@ -279,7 +279,7 @@ function speakWithDevice(text, persona, segments = []) {
       const progress = Math.min(0.995, elapsed / estimatedDuration);
       // Keep the visual timing aligned when a browser does provide word boundaries.
       const visualProgress = Math.max(progress * 0.72, lastBoundaryProgress);
-      updateFaceSpeechProgress(segments, visualProgress);
+      updateSpeechSegmentProgress(segments, visualProgress);
       const charIndex = Math.min(text.length - 1, Math.floor(progress * text.length));
       const currentChar = text[charIndex] || "";
       const isPause = /[،,.!?؟؛]/.test(currentChar);
@@ -307,7 +307,7 @@ function speakWithDevice(text, persona, segments = []) {
         lastBoundaryProgress = Math.max(lastBoundaryProgress, event.charIndex / text.length);
         // Some Android engines send only a few boundaries; use them to correct
         // the estimated clock without making the mouth jump or freeze.
-        updateFaceSpeechProgress(segments, lastBoundaryProgress);
+        updateSpeechSegmentProgress(segments, lastBoundaryProgress);
       }
     };
     utterance.onend = () => { stopVisuals(); resolve(); };
@@ -335,11 +335,11 @@ async function speak(text, segments = [], signal) {
     state.speaking = false;
     state.audio = null;
     resetSpeechMouth();
-    setFaceEmotion("neutral");
+    setSpeechSegmentTone("neutral");
     setStatus(state.listening ? "سامعك، كمل كلامك" : "مستنيك تبدأ", state.listening ? "listening" : "idle");
     if (state.listening && state.recognition) window.setTimeout(() => { try { state.recognition.start(); } catch (_) {} }, 350);
   };
-  setFaceEmotion(speechSegments[0]?.emotion || state.replyEmotion || "neutral");
+  setSpeechSegmentTone(speechSegments[0]?.emotion || state.replyEmotion || "neutral");
   setStatus(personas[persona].name + " بيتكلم...", "speaking");
   try {
     if (engine === "device") {
@@ -381,7 +381,7 @@ async function speak(text, segments = [], signal) {
     }, { once: true });
     state.audio = { pause: () => { audio.pause(); finish(); }, element: audio };
     try {
-      trackAudioElementFace(audio, speechSegments);
+      trackAudioElementOrb(audio, speechSegments);
       await audio.play();
       audioPlaybackStarted = true;
     } catch (playError) {
@@ -401,8 +401,8 @@ async function speak(text, segments = [], signal) {
       state.audio = { pause: () => { try { source.stop(); } catch (_) {} finish(); } };
       if (analyser) {
         const startedAt = performance.now();
-        animateFaceFromAudio(analyser, () => state.audio !== null, () => {
-          updateFaceSpeechProgress(speechSegments, Math.min(1, (performance.now() - startedAt) / (buffer.duration * 1000)));
+        animateOrbFromAudio(analyser, () => state.audio !== null, () => {
+          updateSpeechSegmentProgress(speechSegments, Math.min(1, (performance.now() - startedAt) / (buffer.duration * 1000)));
         });
       }
       setStatus(personas[persona].name + " بيتكلم...", "speaking");
@@ -773,8 +773,8 @@ async function requestAIReply(text, signal) {
       await loadOwnerMemory();
       if ($("memoryFeedback")) $("memoryFeedback").textContent = "NOVA حفظ معلومة جديدة من كلامك تلقائيًا، وتقدر تراجعها أو تعدلها من الإعدادات."; 
     }
-    const parsedReply = extractReplyEmotion(rawReply);
-    setFaceEmotion(parsedReply.emotion);
+    const parsedReply = extractSpeechSegments(rawReply);
+    setSpeechSegmentTone(parsedReply.emotion);
     state.replySegments = parsedReply.segments;
     state.messages.push({ role: "assistant", content: parsedReply.text });
     state.messagesByPersona[state.persona] = state.messages.slice();
@@ -833,7 +833,7 @@ async function handleRecognizedText(text, voiceTurn = false) {
     animateCharacter("thinking");
     const reply = await requestAIReply(clean, controller.signal);
     if (controller.signal.aborted || requestId !== state.requestSequence || (voiceTurn && !state.listening)) return;
-    setFaceEmotion(state.replyEmotion || inferFaceEmotion(reply));
+    setSpeechSegmentTone(state.replyEmotion || inferReplyTone(reply));
     addConversationLine(reply, "nova"); $("liveTranscript").textContent = reply;
     await persistConversationTurn(clean, reply);
     await speak(reply, state.replySegments || [], controller.signal);
