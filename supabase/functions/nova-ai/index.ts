@@ -440,6 +440,10 @@ Deno.serve(async (req: Request) => {
       history_save: 60,
       history_append: 120,
       history_search: 30,
+      personal_items_list: 60,
+      personal_item_save: 60,
+      personal_item_update: 60,
+      personal_item_delete: 30,
       live_info: 20,
     };
     const requestLimit = actionLimits[action];
@@ -528,6 +532,72 @@ Deno.serve(async (req: Request) => {
       const { error: messageError } = await admin.from("nova_messages").insert([{ conversation_id: conversationId, user_id: userId, role: "user", content: userText },{ conversation_id: conversationId, user_id: userId, role: "assistant", content: assistantText }]); if (messageError) throw messageError;
       const { error: updateError } = await admin.from("nova_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId).eq("user_id", userId); if (updateError) throw updateError;
       return json({ saved: true, conversation_id: conversationId }, 200, origin);
+    }
+
+    if (action === "personal_items_list") {
+      const { data, error } = await admin.from("nova_personal_items")
+        .select("id,item_type,title,content,scheduled_at,status,metadata,created_at,updated_at")
+        .eq("user_id", userId).order("created_at", { ascending: false }).limit(300);
+      if (error) throw error;
+      return json({ items: data ?? [] }, 200, origin);
+    }
+
+    if (action === "personal_item_save") {
+      const item = body?.item && typeof body.item === "object" ? body.item : {};
+      const itemType = ["note", "task", "reminder", "alarm"].includes(item.item_type) ? item.item_type : "";
+      const title = typeof item.title === "string" ? item.title.trim().slice(0, 160) : "";
+      const content = typeof item.content === "string" ? item.content.trim().slice(0, 12000) : "";
+      const id = typeof item.id === "string" && /^[0-9a-f-]{36}$/i.test(item.id) ? item.id : undefined;
+      const scheduledAt = typeof item.scheduled_at === "string" ? new Date(item.scheduled_at) : null;
+      if (!itemType || !title) return json({ error: "نوع العنصر أو عنوانه غير صالح." }, 400, origin);
+      if ((itemType === "reminder" || itemType === "alarm") &&
+          (!scheduledAt || !Number.isFinite(scheduledAt.getTime()) || scheduledAt.getTime() <= Date.now())) {
+        return json({ error: "موعد التذكير لازم يكون في المستقبل." }, 400, origin);
+      }
+      const row: Record<string, unknown> = {
+        user_id: userId, item_type: itemType, title, content,
+        scheduled_at: scheduledAt ? scheduledAt.toISOString() : null,
+        status: "active",
+        metadata: item.metadata && typeof item.metadata === "object" && !Array.isArray(item.metadata) ? item.metadata : {},
+        updated_at: new Date().toISOString(),
+      };
+      if (id) row.id = id;
+      const { data, error } = await admin.from("nova_personal_items")
+        .upsert(row, { onConflict: "id" })
+        .select("id,item_type,title,content,scheduled_at,status,metadata,created_at,updated_at").single();
+      if (error) throw error;
+      return json({ saved: true, item: data }, 200, origin);
+    }
+
+    if (action === "personal_item_update") {
+      const id = typeof body?.id === "string" ? body.id : "";
+      const status = ["active", "completed", "cancelled"].includes(body?.status) ? body.status : "";
+      if (!/^[0-9a-f-]{36}$/i.test(id) || !status) return json({ error: "بيانات التحديث غير صالحة." }, 400, origin);
+      const patch: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
+      if (typeof body?.scheduled_at === "string") {
+        const scheduledAt = new Date(body.scheduled_at);
+        if (!Number.isFinite(scheduledAt.getTime()) || scheduledAt.getTime() <= Date.now()) {
+          return json({ error: "موعد التأجيل لازم يكون في المستقبل." }, 400, origin);
+        }
+        patch.scheduled_at = scheduledAt.toISOString();
+        patch.status = "active";
+      }
+      const { data, error } = await admin.from("nova_personal_items").update(patch)
+        .eq("id", id).eq("user_id", userId)
+        .select("id,item_type,title,content,scheduled_at,status,metadata,created_at,updated_at").maybeSingle();
+      if (error) throw error;
+      if (!data) return json({ error: "العنصر غير موجود في حسابك." }, 404, origin);
+      return json({ updated: true, item: data }, 200, origin);
+    }
+
+    if (action === "personal_item_delete") {
+      const id = typeof body?.id === "string" ? body.id : "";
+      if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ error: "معرّف العنصر غير صالح." }, 400, origin);
+      const { data, error } = await admin.from("nova_personal_items").delete()
+        .eq("id", id).eq("user_id", userId).select("id").maybeSingle();
+      if (error) throw error;
+      if (!data) return json({ error: "العنصر غير موجود في حسابك." }, 404, origin);
+      return json({ deleted: true, id }, 200, origin);
     }
 
     if (action === "profile_get") {
