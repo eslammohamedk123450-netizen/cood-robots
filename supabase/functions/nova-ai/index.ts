@@ -440,6 +440,7 @@ Deno.serve(async (req: Request) => {
       history_save: 60,
       history_append: 120,
       history_search: 30,
+      live_info: 20,
     };
     const requestLimit = actionLimits[action];
     if (!requestLimit) return json({ error: "Unknown action" }, 400, origin);
@@ -752,6 +753,61 @@ Deno.serve(async (req: Request) => {
         ? await requestElevenLabsSpeech(apiKey, text, voiceId)
         : await requestSonexSpeech(apiKey, text, voiceId);
       return json({ audio: audio.data, mime_type: audio.mimeType, voice: audio.voice, engine: settings.region }, 200, origin);
+    }
+
+    if (action === "live_info") {
+      const kind = cleanString(body?.kind, 20);
+      if (kind === "search") {
+        const query = cleanString(body?.query, 240);
+        if (!query) return json({ error: "اكتب موضوع البحث." }, 400, origin);
+        const url = "https://html.duckduckgo.com/html/?" + new URLSearchParams({ q: query, kl: "eg-ar" }).toString();
+        const response = await fetch(url, {
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; SOLINA/1.0; +https://github.com/)" },
+          signal: AbortSignal.timeout(12000),
+          redirect: "follow",
+        });
+        if (!response.ok) throw new Error("محرك البحث غير متاح حاليًا.");
+        const html = (await response.text()).slice(0, 1_200_000);
+        const results: Array<{ title: string; url: string; snippet: string }> = [];
+        const blocks = html.match(/<div class="result[^"]*"[s\S]*?<\/div>\s*<\/div>/gi) ?? [];
+        for (const item of blocks) {
+          const linkMatch = item.match(/<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
+          if (!linkMatch) continue;
+          let target = linkMatch[1].replace(/&amp;/g, "&");
+          try {
+            const parsed = new URL(target, "https://duckduckgo.com");
+            const redirected = parsed.searchParams.get("uddg");
+            if (redirected) target = redirected;
+          } catch (_) { continue; }
+          if (!/^https?:\/\//i.test(target)) continue;
+          const clean = (value: string) => value.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/\s+/g, " ").trim();
+          const snippetMatch = item.match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a?>/i);
+          results.push({ title: clean(linkMatch[2]), url: target.slice(0, 1000), snippet: clean(snippetMatch?.[1] ?? "").slice(0, 600) });
+          if (results.length >= 6) break;
+        }
+        return json({ kind, query, results, source: "DuckDuckGo", checked_at: new Date().toISOString() }, 200, origin);
+      }
+      if (kind === "prayer") {
+        const city = cleanString(body?.city, 100) || "المحلة الكبرى";
+        const country = cleanString(body?.country, 80) || "Egypt";
+        const date = new Date().toISOString().slice(0, 10).split("-").reverse().join("-");
+        const endpoint = "https://api.aladhan.com/v1/timingsByCity/" + date + "?" + new URLSearchParams({
+          city, country, method: "5",
+        }).toString();
+        const response = await fetch(endpoint, { signal: AbortSignal.timeout(12000), redirect: "follow" });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || payload?.code !== 200 || !payload?.data?.timings) throw new Error("تعذر جلب مواقيت الصلاة للمدينة المحددة.");
+        const timings = payload.data.timings;
+        return json({
+          kind, city, country,
+          date: payload.data.date?.readable ?? date,
+          timings: { fajr: timings.Fajr, sunrise: timings.Sunrise, dhuhr: timings.Dhuhr, asr: timings.Asr, maghrib: timings.Maghrib, isha: timings.Isha },
+          source: "AlAdhan",
+          method: payload.data.meta?.method?.name ?? "AlAdhan",
+          checked_at: new Date().toISOString(),
+        }, 200, origin);
+      }
+      return json({ error: "نوع المعلومة غير مدعوم." }, 400, origin);
     }
 
     if (action === "chat") {
