@@ -48,6 +48,6 @@ public final class TaskStore {
 
     private static void save(Context context, JSONArray rows) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        prefs.edit().putString(KEY, rows.toString()).apply();
+        prefs.edit().putString(KEY, rows.toString()).commit();
     }
 }
