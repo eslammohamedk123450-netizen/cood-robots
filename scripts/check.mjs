@@ -135,3 +135,11 @@ assert.match(app, /sanitizeInternalReply/, "Client reply sanitizer must be used"
 assert.match(edge, /function sanitizeInternalReplyText\(/, "Server must sanitize internal memory metadata");
 assert.match(edge, /sanitizeInternalReplyText/, "Server reply sanitizer must be used");
 
+
+assert.match(app, /}, 950\);/, "Voice turn should use a shorter but non-zero end-of-speech pause");
+assert.doesNotMatch(app, /const memoryMatches = await searchConversationMemory\(text, signal\)/, "Memory retrieval must not add a separate browser round trip before chat");
+assert.match(app, /exclude_conversation_id: state\.conversationIds\[state\.persona\]/, "Chat request must exclude the active conversation from older-memory retrieval");
+assert.match(edge, /سياق مسترجع من محادثات سابقة للشخصيتين/, "Chat endpoint must retrieve cross-persona history in the same request");
+assert.match(edge, /oldRowsError/, "Server-side history retrieval errors must be handled explicitly");
+assert.match(html, /nova-quick-conversation-v54/, "Client cache version must be refreshed after UX changes");
+assert.match(css, /NOVA responsive voice-first polish/, "Responsive voice-first visual polish must be present");
