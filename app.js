@@ -1141,7 +1141,7 @@ function beginTaskConfirmation(intent) {
   state.pendingTaskDraft = { stage: "confirm", intent };
   const when = formatTaskDate(new Date(intent.scheduledAt).getTime());
   return intent.type === "alarm"
-    ? "أظبط المنبه " + when + "؟
+    ? "أظبط المنبه " + when + "؟"
     : "تمام، أفكّرك بـ" + (intent.title || "الموعد") + " " + when + "؟";
 }
 function handleTaskDialogue(clean) {
