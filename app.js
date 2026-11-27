@@ -484,7 +484,47 @@ function setFeedback(id, message, isError = false) {
   node.textContent = message;
   node.style.color = isError ? "#ff9d91" : "";
 }
-function openSettings() { $("settingsDialog").showModal(); void Promise.allSettled([loadProviders(), loadOwnerMemory(), loadSpeechSettings()]); }
+const settingsPageTitles = {
+  profile: "الملف الشخصي",
+  memory: "دفتر سولينا",
+  reminders: "كتالوج التذكيرات",
+  voice: "الصوت والتفاعل",
+  ai: "مركز الذكاء الاصطناعي"
+};
+function showSettingsHome() {
+  document.querySelectorAll("[data-settings-page]").forEach(page => { page.hidden = true; });
+  const home = document.querySelector("[data-settings-home]");
+  if (home) home.hidden = false;
+  const back = $("settingsBackButton");
+  if (back) back.hidden = true;
+  const title = $("settingsDialogTitle");
+  if (title) title.textContent = "إعدادات SOLINA";
+  const content = document.querySelector(".settings-content");
+  if (content) content.scrollTop = 0;
+}
+function openSettingsPage(pageId) {
+  if (!settingsPageTitles[pageId]) return;
+  const home = document.querySelector("[data-settings-home]");
+  if (home) home.hidden = true;
+  document.querySelectorAll("[data-settings-page]").forEach(page => {
+    page.hidden = page.dataset.settingsPage !== pageId;
+  });
+  const back = $("settingsBackButton");
+  if (back) back.hidden = false;
+  const title = $("settingsDialogTitle");
+  if (title) title.textContent = settingsPageTitles[pageId];
+  const content = document.querySelector(".settings-content");
+  if (content) content.scrollTop = 0;
+  if (pageId === "reminders") renderScheduledTasks();
+  if (pageId === "ai") void loadProviders();
+  if (pageId === "memory") void loadOwnerMemory();
+  if (pageId === "voice") void Promise.allSettled([loadSpeechSettings()]);
+}
+function openSettings() {
+  showSettingsHome();
+  $("settingsDialog").showModal();
+  void Promise.allSettled([loadProviders(), loadOwnerMemory(), loadSpeechSettings()]);
+}
 function closeSettings() { $("settingsDialog").close(); }
 
 const providerDefaults = {
@@ -1493,6 +1533,10 @@ $("textForm").addEventListener("submit", (event) => { event.preventDefault(); su
 $("clearConversation").addEventListener("click", () => { state.messages = []; state.messagesByPersona[state.persona] = []; state.conversationIds[state.persona] = null; localStorage.removeItem("nova.activeConversation." + state.persona); if ($("conversationHistorySelect")) $("conversationHistorySelect").value = ""; $("conversationLog").innerHTML = '<p class="empty-conversation">محادثة جديدة — ابدأ كلامنا ❤️</p>'; });
 $("conversationHistorySelect")?.addEventListener("change", event => { if (event.target.value) void openSavedConversation(event.target.value); });
 $("settingsButton").addEventListener("click", openSettings);
+$("settingsBackButton")?.addEventListener("click", showSettingsHome);
+document.querySelectorAll("[data-open-settings-page]").forEach(button => {
+  button.addEventListener("click", () => openSettingsPage(button.dataset.openSettingsPage));
+});
 $("refreshScheduledTasks")?.addEventListener("click", renderScheduledTasks);
 renderScheduledTasks();
 
