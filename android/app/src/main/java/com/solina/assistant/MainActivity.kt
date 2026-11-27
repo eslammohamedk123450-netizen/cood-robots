@@ -104,7 +104,7 @@ class MainActivity : Activity() {
         @JavascriptInterface fun requestExactAlarmPermission() {
             activity.runOnUiThread {
                 if (Build.VERSION.SDK_INT >= 31) {
-                    val manager = activity.getSystemService(ALARM_SERVICE) as AlarmManager
+                    val manager = activity.getSystemService(Context.ALARM_SERVICE) as AlarmManager
                     if (!manager.canScheduleExactAlarms()) {
                         val intent = Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
                         intent.data = Uri.parse("package:" + activity.packageName)
@@ -114,10 +114,24 @@ class MainActivity : Activity() {
             }
         }
 
-        @JavascriptInterface fun platformInfo(): String = JSONObject()
-            .put("platform", "android")
-            .put("exactAlarms", Build.VERSION.SDK_INT < 31 || (activity.getSystemService(ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms())
-            .put("notifications", Build.VERSION.SDK_INT < 33 || activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
-            .toString()
+        @JavascriptInterface fun requestFullScreenIntentPermission() {
+            activity.runOnUiThread {
+                if (Build.VERSION.SDK_INT >= 34) {
+                    val manager = activity.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                    if (!manager.canUseFullScreenIntent()) {
+                        val intent = Intent(android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT)
+                        intent.data = Uri.parse("package:" + activity.packageName)
+                        activity.startActivity(intent)
+                    }
+                }
+            }
+        }
+
+        @JavascriptInterface fun platformInfo(): String {
+            val notifications = Build.VERSION.SDK_INT < 33 || activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            val exact = Build.VERSION.SDK_INT < 31 || (activity.getSystemService(Context.ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()
+            val fullScreen = Build.VERSION.SDK_INT < 34 || (activity.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager).canUseFullScreenIntent()
+            return JSONObject().put("platform", "android").put("exactAlarms", exact).put("notifications", notifications).put("fullScreenIntent", fullScreen).toString()
+        }
     }
 }
