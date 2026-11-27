@@ -156,11 +156,12 @@
       </section>
       <section class="settings-section">
         <h3>محرك إخراج الصوت</h3>
-        <p class="security-note">اختار طريقة النطق. صوت Google يعمل من محرك الجهاز، أو Sonex Labs عبر Supabase لتوليد الصوت السحابي.</p>
+        <p class="security-note">اختار طريقة النطق. الوضع التلقائي يستخدم Sonex / Sandbox إن توفر، وإلا ينتقل لصوت الجهاز تلقائيًا. التحميل لا يوقف المحادثة.</p>
         <label class="field-label">مصدر الصوت
           <select id="speechEngine" dir="rtl">
-            <option value="device">Google / صوت الجهاز (تجربة)</option>
-            <option value="server">Sonex Labs عبر Supabase</option>
+            <option value="auto">تلقائي — Cloud ثم صوت الجهاز</option>
+            <option value="server">Sonex / Sandbox Cloud — مع بديل الجهاز</option>
+            <option value="device">صوت الجهاز فقط</option>
           </select>
         </label>
         <p class="settings-feedback" id="speechEngineFeedback" role="status">صوت الجهاز يعتمد على محرك TTS والأصوات المثبّتة في أندرويد.</p>
@@ -214,6 +215,6 @@
 
   <div class="toast" id="toast" role="status"></div>
   <script src="pin.js?v=persistent-owner-session-v23"></script>
-  <script type="module" src="app.js?v=sonex-audio-fix-v27"></script>
+  <script type="module" src="app.js?v=nova-auto-voice-v28"></script>
 </body>
 </html>
