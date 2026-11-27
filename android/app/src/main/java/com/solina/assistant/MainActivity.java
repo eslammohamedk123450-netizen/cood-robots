@@ -62,10 +62,8 @@ public class MainActivity extends Activity {
             }
         });
         setContentView(webView);
-        ArrayList<String> needed = new ArrayList<>();
-        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) needed.add(Manifest.permission.RECORD_AUDIO);
-        if (!needed.isEmpty()) requestPermissions(needed.toArray(new String[0]), 2101);
         webView.loadUrl(appUrl);
+        requestStartupPermissions();
     }
 
     void dispatchSpeechResult(JSONArray transcripts) {
@@ -132,9 +130,32 @@ public class MainActivity extends Activity {
         dispatchTaskPermissionUpdate();
     }
 
+    private void requestStartupPermissions() {
+        if (Build.VERSION.SDK_INT < 23) return;
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, 2101);
+            return;
+        }
+        requestStartupNotificationPermission();
+    }
+
+    private void requestStartupNotificationPermission() {
+        if (Build.VERSION.SDK_INT < 33
+                || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return;
+        android.content.SharedPreferences preferences = getSharedPreferences("solina_permissions", MODE_PRIVATE);
+        if (preferences.getBoolean("startup_notification_prompted", false)) return;
+        preferences.edit().putBoolean("startup_notification_prompted", true).apply();
+        requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 2102);
+    }
+
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 2102) dispatchTaskPermissionUpdate();
+        if (requestCode == 2101) {
+            requestStartupNotificationPermission();
+            dispatchTaskPermissionUpdate();
+        } else if (requestCode == 2102) {
+            dispatchTaskPermissionUpdate();
+        }
     }
 
     private void dispatchTaskPermissionUpdate() {
@@ -298,7 +319,16 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void requestNotificationPermission() {
             activity.runOnUiThread(() -> {
                 if (Build.VERSION.SDK_INT >= 33 && activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                    activity.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 2102);
+                    android.content.SharedPreferences preferences = activity.getSharedPreferences("solina_permissions", MODE_PRIVATE);
+                    boolean askedBefore = preferences.getBoolean("startup_notification_prompted", false);
+                    if (askedBefore && !activity.shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+                        Intent settings = new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+                        settings.putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, activity.getPackageName());
+                        activity.startActivity(settings);
+                    } else {
+                        preferences.edit().putBoolean("startup_notification_prompted", true).apply();
+                        activity.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 2102);
+                    }
                 }
             });
         }
