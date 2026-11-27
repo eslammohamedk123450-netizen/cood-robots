@@ -53,6 +53,34 @@ public final class TaskStore {
         save(context, next);
     }
 
+    public static synchronized void recordPendingSync(Context context, JSONObject event) {
+        JSONArray old = pendingSyncEvents(context);
+        JSONArray next = new JSONArray();
+        String id = event.optString("id");
+        for (int i = 0; i < old.length(); i++) {
+            JSONObject item = old.optJSONObject(i);
+            if (item != null && !item.optString("id").equals(id)) next.put(item);
+        }
+        next.put(event);
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("pending_sync", next.toString()).commit();
+    }
+
+    public static synchronized JSONArray pendingSyncEvents(Context context) {
+        String raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("pending_sync", "[]");
+        try { return new JSONArray(raw == null ? "[]" : raw); }
+        catch (Exception ignored) { return new JSONArray(); }
+    }
+
+    public static synchronized void acknowledgePendingSync(Context context, String id) {
+        JSONArray old = pendingSyncEvents(context);
+        JSONArray next = new JSONArray();
+        for (int i = 0; i < old.length(); i++) {
+            JSONObject item = old.optJSONObject(i);
+            if (item != null && !item.optString("id").equals(id)) next.put(item);
+        }
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("pending_sync", next.toString()).commit();
+    }
+
     private static void save(Context context, JSONArray rows) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         prefs.edit().putString(KEY, rows.toString()).commit();
