@@ -293,6 +293,8 @@ assert.match(edge, /action === "personal_item_delete"/, "The owner API must dele
 assert.match(app, /const asksClock =/, "Clock questions must be answered from the device clock without depending on an AI provider");
 assert.match(app, /Prayer intent takes precedence over generic clock phrases/, "Prayer intent must be evaluated before generic clock intent");
 assert.match(app, /const asksPrayer = \/\(\?:مواقيت/, "Prayer intent must recognize colloquial prayer-time questions");
+assert.match(app, /const asksPrayer = \/\(\?:مواقيت[^\n]*\\s\*/ , "Prayer intent regex must use real whitespace matching");
+assert.match(app, /const asksClock = !asksPrayer && \/[^\n]*\\s\*/ , "Clock intent regex must use real whitespace matching");
 assert.match(app, /const asksClock = !asksPrayer/, "Prayer questions mentioning the word clock must never be mistaken for device clock questions");
 assert.match(app, /const remainingMinutes = Math\.max\(0, Math\.ceil\(/, "Prayer countdowns must be calculated from the device clock rather than guessed by the model");
 assert.match(app, /prayerRemaining = "الوقت المتبقي محسوب برمجيًا/, "The exact prayer countdown must be supplied to the response model");
