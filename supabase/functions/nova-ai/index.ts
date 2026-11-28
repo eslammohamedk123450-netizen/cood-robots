@@ -1200,9 +1200,10 @@ Deno.serve(async (req: Request) => {
           const target: any = eligible.find((item: any) => item.id === semanticDeleteIds[0]);
           if (target) {
             const metadata = { ...(target.metadata || {}), pending_action: "delete_confirmation", pending_action_at: new Date().toISOString() };
-            const { error: pendingWriteError } = await admin.from("nova_personal_items").update({ metadata, updated_at: new Date().toISOString() })
-              .eq("id", target.id).eq("user_id", userId).eq("status", "active");
+            const { data: pendingWrite, error: pendingWriteError } = await admin.from("nova_personal_items").update({ metadata, updated_at: new Date().toISOString() })
+              .eq("id", target.id).eq("user_id", userId).eq("status", "active").select("id").maybeSingle();
             if (pendingWriteError) throw pendingWriteError;
+            if (!pendingWrite) return json({ reply: "العنصر اتغير أو لم يعد نشطًا؛ لم أجهز أي حذف.", deletion_confirmation_required: false }, 200, origin);
             const label = ["reminder","alarm"].includes(target.item_type) ? "إلغاء التذكير" : "أرشفة المعلومة";
             return json({ reply: "فهمت وصفك وأقرب عنصر مطابق هو «" + target.title + "». هل تؤكد " + label + "؟ قل «أيوه» للتأكيد أو «لا» للإلغاء. مش هأنفذ أي تغيير قبل تأكيدك.", deletion_confirmation_required: true, semantic_resolution: true }, 200, origin);
           }
@@ -1227,9 +1228,10 @@ Deno.serve(async (req: Request) => {
         if (matches.length > 1) return json({ reply: "لقيت أكتر من عنصر ممكن تقصده، ومش هختار بالتخمين:\\n" + matches.slice(0, 6).map((item: any, i: number) => (i + 1) + ") " + item.title).join("\\n") + "\\nحدد العنوان أو الموعد بدقة.", deletion_needs_clarification: true }, 200, origin);
         const target = matches[0];
         const metadata = { ...(target.metadata || {}), pending_action: "delete_confirmation", pending_action_at: new Date().toISOString() };
-        const { error: pendingWriteError } = await admin.from("nova_personal_items").update({ metadata, updated_at: new Date().toISOString() })
-          .eq("id", target.id).eq("user_id", userId).eq("status", "active");
+        const { data: pendingWrite, error: pendingWriteError } = await admin.from("nova_personal_items").update({ metadata, updated_at: new Date().toISOString() })
+          .eq("id", target.id).eq("user_id", userId).eq("status", "active").select("id").maybeSingle();
         if (pendingWriteError) throw pendingWriteError;
+        if (!pendingWrite) return json({ reply: "العنصر اتغير أو لم يعد نشطًا؛ لم أجهز أي حذف.", deletion_confirmation_required: false }, 200, origin);
         const label = ["reminder","alarm"].includes(target.item_type) ? "إلغاء التذكير" : "أرشفة المعلومة";
         return json({ reply: "لقيت العنصر المقصود: «" + target.title + "». هل تؤكد " + label + "؟ قل «أيوه» للتأكيد أو «لا» للإلغاء. مش هأنفذ أي تغيير قبل تأكيدك.", deletion_confirmation_required: true }, 200, origin);
       }
