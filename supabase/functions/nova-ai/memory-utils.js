@@ -63,7 +63,7 @@ export function parseExplicitMemorySave(value) {
 export function parseExplicitMemoryCorrection(value) {
   const text = String(value ?? "").trim();
   const targetMatch = text.match(/(?:صححي|صحح|عدلي|عدل|بدلي|استبدلي)\s+(?:لي\s+)?(?:ال)?(?:رقم|المعلومة)\s+(?:(?:الخاص\s+ب|بتاع|بتاعة|المتعلق\s+ب)\s*)?(.+?)\s+(?:وخليه|وخليها|إلى|الى|ب|بال|الصحيح|الصح|الجديد)\s*[:،]?\s*([\s\S]{2,12000})$/iu);
-  if (targetMatch) {
+  if (targetMatch && !/^(?:المحفوظ|القديم|ده|دي|دا)$/u.test(normalizeMemoryText(targetMatch[1]))) {
     const target = targetMatch[1].trim().replace(/^(?:ال)?(?:رقم|المعلومة)\s+/u, "");
     const correctedValue = targetMatch[2].trim().replace(/^["'«»]+|["'«»]+$/g, "").trim();
     if (target && correctedValue.length >= 2) return { target, value: correctedValue };
