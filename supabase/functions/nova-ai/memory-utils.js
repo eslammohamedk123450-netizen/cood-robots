@@ -99,11 +99,11 @@ export function extractMemoryNumberSignature(value) {
 
 export function classifyMemoryKind(value) {
   const text = normalizeMemoryText(value);
-  if (/(?:^|\s)(?:الكلمة|كلمة|الكلمه|كلمه)(?:\s|$)/u.test(text)) return "word";
   const spokenNumbers = (text.match(/(?:^|\s)(?:واحد|واحده|اتنين|اثنين|تلاته|ثلاثه|اربعه|خمسه|ستة|سته|سبعه|تمانيه|تمنيه|ثمانيه|تسعه|عشره|حداشر|احداشر|اتناشر|اثناشر|عشرين|تلاتين|ثلاثين|اربعين|خمسين|ميه|مائه|الف)(?=\s|$)/gu) || []).length;
   if (/(?:مشروع|تطبيق|موقع|شركة|منصة|نظام)/u.test(text)) return "project";
   if (/(?:قرار|اتفقنا|اعتمدنا|هنستخدم|هنعمل|اخترنا)/u.test(text)) return "decision";
   if (/(?:مهمة|لازم|مطلوب|متبقي|هعمل|هتعمل|تابع|خلص)/u.test(text)) return "task";
   if (extractMemoryNumberSignature(text) || /\d{3,}/u.test(text) || spokenNumbers >= 2) return "reference";
+  if (/(?:^|\\s)(?:الكلمة|كلمة|الكلمه|كلمه)(?:\\s|$)/u.test(text)) return "word";
   return "note";
 }
