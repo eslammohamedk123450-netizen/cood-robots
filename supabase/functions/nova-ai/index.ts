@@ -967,7 +967,7 @@ Deno.serve(async (req: Request) => {
       if (!models?.length) return json({ error: "مفيش نماذج مفعّلة. أضف مفتاح API وفعّل نموذجًا واحدًا على الأقل." }, 409, origin);
       const providerIds = [...new Set(models.map((model: any) => model.api_key_id))];
       const { data: providers, error: providerError } = await admin.from("nova_api_keys")
-        .select("id,provider,base_url,secret_id,is_active").eq("user_id", userId).in("id", providerIds);
+        .select("id,label,provider,base_url,secret_id,is_active").eq("user_id", userId).in("id", providerIds);
       if (providerError) throw providerError;
       const providerMap = new Map((providers ?? []).map((provider: any) => [provider.id, provider]));
       // Read each distinct provider secret concurrently; multiple models may share one key.
@@ -980,13 +980,14 @@ Deno.serve(async (req: Request) => {
       for (const model of models) {
         const provider = providerMap.get(model.api_key_id);
         if (!provider) { failures.push(model.model_id + ": provider key record missing"); continue; }
-        if (provider.is_active !== true) { failures.push(model.model_id + ": provider key is saved but disabled in settings; enable this key to use its models"); continue; }
+        const modelLabel = String(provider.label || provider.provider || "provider").slice(0, 80) + " / " + model.model_id;
+        if (provider.is_active !== true) { failures.push(modelLabel + ": provider key is saved but disabled in settings; enable this key to use its models"); continue; }
         const apiKey = secretMap.get(model.api_key_id);
-        if (!apiKey) { failures.push(model.model_id + ": vault unavailable"); continue; }
+        if (!apiKey) { failures.push(modelLabel + ": vault unavailable"); continue; }
         const providerStartedAt = performance.now();
         try {
           const providerType = provider.provider as ProviderType;
-          if (!providerTypes.has(providerType)) { failures.push(model.model_id + ": unsupported provider"); continue; }
+          if (!providerTypes.has(providerType)) { failures.push(modelLabel + ": unsupported provider"); continue; }
           const rawReply = await requestProviderChat(providerType, provider.base_url, apiKey, model.model_id, messages, req.signal);
           console.info("NOVA_PROVIDER_TIMING", JSON.stringify({
             model: model.model_id, provider: providerType,
