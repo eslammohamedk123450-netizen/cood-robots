@@ -619,6 +619,9 @@ assert.equal(parseExplicitMemorySave("لينا خليكي فاكره الرقم 
 assert.equal(classifyMemoryKind(spokenNumberMemory), "reference", "Spoken number sequences must be categorized as reference memories");
 assert.equal(parseExplicitMemorySave("افتكري الرقم اللي قولتهولك"), null, "A recall request must not be misclassified as a new memory save");
 assert.equal(parseExplicitMemorySave("احفظي رقم الحساب 123456789"), "رقم الحساب 123456789", "Direct save commands must capture numeric reference values");
+assert.equal(parseExplicitMemorySave("عدلي ميزانية مشروع النور خليها 6000 جنيه واحفظيه بالقيمة القديمة واحتفظي بالقيمة القديمة"), null, "A save-like verb embedded in a correction must not create a garbage memory");
+assert.match(edge, /const saveReply = memoryKind === "project"/, "Successful saves must return a short human confirmation instead of exposing graph internals");
+assert.match(edge, /correctionHistoryRecall \? correctedMemories : notes/, "Old/new-value recall must semantically rank only corrected memories when relevant");
 assert.equal(classifyMemoryKind("رقم الحساب ١٢٣٤٥٦"), "reference", "Arabic-Indic numeric references must be categorized correctly");
 assert.equal(classifyMemoryKind("الرقم ده 1 2 3 4 5"), "reference", "Digit-by-digit references must be categorized as reference memories");
 assert.equal(extractMemoryNumberSignature("الرقم ده 1 2 3 4 5"), "12345", "Spaced digit-by-digit numbers must yield one stable memory key");
