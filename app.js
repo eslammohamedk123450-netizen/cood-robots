@@ -337,7 +337,7 @@ function speakWithNativeDevice(text, segments = [], playbackId) {
         startedAt = performance.now();
         setStatus(personas[state.persona].name + " بيتكلم...", "speaking");
         rafId = requestAnimationFrame(animate);
-      } else if (detail.event === "done") finish();
+      } else if (detail.event === "done" || detail.event === "cancelled") finish();
       else if (detail.event === "error") finish(new Error(detail.message || "تعذر تشغيل صوت سولينا على الجهاز."));
     };
     window.addEventListener("solina-native-tts", onTtsEvent);
