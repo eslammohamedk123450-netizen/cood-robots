@@ -1532,7 +1532,9 @@ function renderSavedNotes() {
     item.className = "scheduled-task";
     const details = document.createElement("div");
     const title = document.createElement("strong");
-    title.textContent = note.title;
+    const memoryKind = String(note.metadata?.memory_kind || "note");
+    const memoryLabels = { project: "مشروع", decision: "قرار", task: "مهمة مفتوحة", reference: "رقم / معلومة مرجعية", note: "ملاحظة" };
+    title.textContent = (memoryLabels[memoryKind] || "ملاحظة") + " · " + note.title;
     const description = document.createElement("p");
     description.textContent = note.content || "";
     details.append(title, description);
