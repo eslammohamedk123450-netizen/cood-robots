@@ -203,7 +203,7 @@ assert.ok(solinaPromptStart >= 0 && solinaPromptEnd > solinaPromptStart, "A comp
 assert.ok(solinaPromptEnd - solinaPromptStart < 3000, "The client-side system prompt must stay compact to reduce latency and token cost");
 assert.match(app, /الرد على الموضوع الحالي أولًا/, "The current user request must take priority over unrelated memory");
 assert.match(app, /إذا غيّر الموضوع، اتبعي الموضوع الجديد/, "Solina must not force continuity across unrelated topics");
-assert.doesNotMatch(app, /state\\.profile \\|\\|/, "Owner profile must not be duplicated in the client prompt because the backend injects it");
+assert.ok(!app.includes("state.profile ||"), "Owner profile must not be duplicated in the client prompt because the backend injects it");
 
 assert.match(app, /الصدق أساسي/, "The AI persona must explicitly prioritize honesty and uncertainty");
 
