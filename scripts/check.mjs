@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
-import { classifyMemoryKind, extractMemoryTokens, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "../supabase/functions/nova-ai/memory-utils.js";
+import { classifyMemoryKind, extractMemoryTokens, isCorrectionHistoryRecall, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "../supabase/functions/nova-ai/memory-utils.js";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const html = read("../index.html");
@@ -95,6 +95,8 @@ assert.match(app, /allowedEngines = \["gemini", "server", "device", "mute"\]/, "
 assert.match(app, /savedEngine = allowedEngines\.includes\(storedEngine\) \? storedEngine : "server"/, "Default speech engine must be explicit cloud selection, never auto");
 
 assert.match(app, /SpeechSynthesisUtterance/, "The optional on-device speech engine must remain available");
+assert.match(app, /utterance\.rate = 0\.98;[\s\S]{0,80}utterance\.pitch = 1\.08;/, "Browser TTS must configure the declared utterance object");
+assert.doesNotMatch(app, /\butter\.(?:rate|pitch)\s*=/, "Browser TTS must not reference an undefined utter variable");
 assert.match(app, /لا تبدأ بسؤاله عن مشاريعه أو شغله/, "NOVA must not steer casual conversation toward projects");
 assert.match(app, /الملف الشخصي وسجل المشاريع معلومات خلفية فقط/, "Profile memories must not dominate unrelated conversations");
 assert.match(edge, /هذه الذاكرة خلفية اختيارية وليست موضوعًا افتراضيًا/, "Retrieved memory must remain subordinate to the current request");
@@ -575,6 +577,7 @@ assert.equal(parseExplicitMemorySave("افتكري الرقم اللي قولت�
 assert.equal(parseExplicitMemorySave("احفظي رقم الحساب 123456789"), "رقم الحساب 123456789", "Direct save commands must capture numeric reference values");
 assert.equal(classifyMemoryKind("رقم الحساب ١٢٣٤٥٦"), "reference", "Arabic-Indic numeric references must be categorized correctly");
 assert.equal(isExplicitMemoryRecall("فاكرة الرقم؟"), true, "Natural vague recall must activate deterministic memory retrieval");
+assert.equal(isCorrectionHistoryRecall("فاكر الرقم اللي انا قلت لك صححيه"), true, "Recall of a previously corrected number must target correction history");
 assert.equal(isExplicitMemoryRecall("هات الرقم اللي حفظته"), true, "Direct requests to retrieve a saved number must be recognized");
 assert.equal(isExplicitMemoryRecall("تفتكري إيه رأيك في الفيلم؟"), false, "Ordinary conversational questions must not trigger memory recall");
 assert.deepEqual(extractMemoryTokens("الساعة ٨ مساء"), [], "Clock-only questions must not trigger personal-note searches");
@@ -597,4 +600,7 @@ assert.ok(memoryUtils.includes("خلي(?:كي|ك)") && memoryUtils.includes("\\s
 assert.match(edge, /ملاحظات المستخدم الشخصية المحفوظة/, "Saved notes must be injected into the model context when relevant");
 assert.match(edge, /const asksRecall = isExplicitMemoryRecall\(latestUserText\);\s*const saveNotePayload = asksRecall \? null : parseExplicitMemorySave\(latestUserText\);/, "Recall classification must run before saving so embedded save wording cannot create a new note");
 assert.match(edge, /if \(asksRecall\)/, "Personal note retrieval should be deterministic and recall-aware");
+assert.match(edge, /correctionHistoryRecall[\s\S]{0,500}correction_history/, "Recall must search corrected-number history");
+assert.match(edge, /seenRecallValues/, "Vague number recall must deduplicate repeated saved values");
+assert.match(edge, /numberRecall[\s\S]{0,500}memory_kind === "reference"/, "Vague number recall must exclude unrelated notes");
 console.log("SOLINA memory-context integration checks added.");
