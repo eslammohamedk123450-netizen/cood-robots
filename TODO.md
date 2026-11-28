@@ -93,7 +93,7 @@ The approved product direction and complete phased plan are documented in [SOLIN
 - [x] Audit existing conversation archive, owner memory, personal items, reminder/alarm parser, Android scheduling bridge, live search, model routing, and CI.
 - [x] Phase 1 initial pass: compact the client prompt and avoid unnecessary archive-search round trips for ordinary date mentions and saved-note recall.
 - [ ] Phase 1 remaining: expand topic-continuity and topic-switch behavior with additional regression and live conversation tests.
-- [ ] Phase 2: verify exact explicit memory capture and recall across new sessions.
+- [x] Phase 2 implementation: exact Arabic memory capture/recall, spoken-number references, deduplication, no-guess fallback, date/time filtering, safe correction history, and selective retrieval. [Owner-device end-to-end confirmation remains pending.]
 - [ ] Phase 3: harden personal actions and clarify ambiguous date/time details before scheduling.
 - [ ] Phase 4: improve source-backed web research while preserving the existing search path.
 - [ ] Phase 5: implement durable public GitHub workflow monitoring with deduplicated notifications; foreground-only first.
