@@ -1010,7 +1010,7 @@ async function requestAIReply(text, signal, voiceAlternatives = []) {
   }
   // Prayer intent takes precedence over generic clock phrases such as "الفجر يأذن الساعة كام".
   const liveQuery = String(text || "").trim();
-  const asksPrayer = /(?:مواقيت|مواعيد|أوقات|وقت|ميعاد|موعد)\s*(?:الصلاة|الصلاه|صلاة|صلاه|الأذان|الاذان)|(?:صلاة|صلاه|أذان|اذان)\s*(?:الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا)|(?:الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا)\s*(?:امتى|متى|ميعاده|ميعادها|وقته|وقتها|الساعة|الساعه)|(?:صلاة|صلاه)\s*(?:الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا)\s*(?:امتى|متى)|(?:امتى|متى)\s*(?:صلاة|صلاه|أذان|اذان)\s*(?:الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا)|(?:الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا).{0,35}(?:يأذن|ياذن|هيأذن|هياذن|امتى|متى|الساعة|الساعه|فاضل|متبقي)|(?:فاضل|متبقي).{0,25}(?:الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا)/i.test(liveQuery);
+  const asksPrayer = /(?:مواقيت|مواعيد|أوقات|وقت|ميعاد|موعد)\s*(?:الصلاة|الصلاه|صلاة|صلاه|الأذان|الاذان)|(?:صلاة|صلاه|أذان|اذان)\s*(?:الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا)|(?:الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا)\s*(?:امتى|متى|ميعاده|ميعادها|وقته|وقتها|الساعة|الساعه)|(?:صلاة|صلاه)\s*(?:الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا)\s*(?:امتى|متى)|(?:امتى|متى)\s*(?:صلاة|صلاه|أذان|اذان)\s*(?:الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا)|(?:الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا).{0,35}(?:يأذن|ياذن|هيأذن|هياذن|امتى|متى|الساعة|الساعه|فاضل|متبقي|قرب|قربت)|(?:فاضل|متبقي|قرب|قربت).{0,25}(?:الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا)/i.test(liveQuery);
   // Answer only standalone clock questions from the device clock; prayer questions go to AlAdhan.
   const asksClock = !asksPrayer && /(?:الساع(?:ة|ه)|الوقت|التوقيت)\s*(?:دلوقتي|حاليًا|الحالي|كام|إيه|ايه|كم)?|(?:كام|كم)\s+(?:الساعة|الساعه|الوقت)|الساعة\s+(?:دلوقتي|كام)|الوقت\s+(?:دلوقتي|الحالي)/i.test(liveQuery);
   if (asksClock) {
@@ -1030,6 +1030,32 @@ async function requestAIReply(text, signal, voiceAlternatives = []) {
         const cityMatch = liveQuery.match(/(?:في|بمدينة|مدينة)\s+([^،,.؟]+?)(?=\s+(?:النهارده|النهارده|اليوم|بكرة|غدًا|وغدا|مواقيت|مواعيد)|[،,.؟]|$)/i);
         const city = cityMatch?.[1]?.trim() || "المحلة الكبرى";
         liveData = await invokeNova("live_info", { kind: "prayer", city, country: "Egypt" }, { signal });
+        const targetPrayer = /(?:الفجر|فجر)/i.test(liveQuery) ? "fajr"
+          : /الظهر|ظهر/i.test(liveQuery) ? "dhuhr"
+          : /العصر|عصر/i.test(liveQuery) ? "asr"
+          : /المغرب|مغرب/i.test(liveQuery) ? "maghrib"
+          : /العشاء|عشا/i.test(liveQuery) ? "isha" : "";
+        const asksSpecificPrayerTime = /(?:الساعة|الساعه|امتى|متى|ميعاد|موعد|قرب|قربت|فاضل|متبقي)/i.test(liveQuery);
+        const rawPrayerTime = targetPrayer ? String(liveData?.timings?.[targetPrayer] || "").match(/^(\\d{1,2}):(\\d{2})/) : null;
+        if (targetPrayer && asksSpecificPrayerTime && rawPrayerTime) {
+          const now = new Date();
+          const target = new Date(now);
+          target.setHours(Number(rawPrayerTime[1]), Number(rawPrayerTime[2]), 0, 0);
+          const formattedPrayerTime = new Intl.DateTimeFormat("ar-EG", { hour: "numeric", minute: "2-digit", hourCycle: "h12" }).format(target);
+          const prayerName = ({ fajr: "الفجر", dhuhr: "الظهر", asr: "العصر", maghrib: "المغرب", isha: "العشاء" })[targetPrayer];
+          const dayLabel = liveData?.date || "اليوم";
+          let exactPrayerReply;
+          if (target.getTime() <= now.getTime()) {
+            exactPrayerReply = "موعد صلاة " + prayerName + " في " + city + " " + dayLabel + " كان الساعة " + formattedPrayerTime + "، والموعد ده عدى بالفعل.";
+          } else {
+            const minutesLeft = Math.ceil((target.getTime() - now.getTime()) / 60000);
+            exactPrayerReply = "موعد صلاة " + prayerName + " في " + city + " الساعة " + formattedPrayerTime + ". " +
+              (minutesLeft <= 60 ? "فاضل حوالي " + minutesLeft + " دقيقة." : "لسه فاضل حوالي " + Math.floor(minutesLeft / 60) + " ساعة و" + (minutesLeft % 60) + " دقيقة.");
+          }
+          state.messages.push({ role: "assistant", content: exactPrayerReply });
+          state.messagesByPersona[state.persona] = state.messages.slice();
+          return exactPrayerReply;
+        }
       } else {
         const query = liveQuery.replace(/^(?:يا\s*)?سولينا[،,:\s]*/i, "").replace(/^(?:من فضلك\s*)?(?:ابحثي?|دوري?|شوفي)\s*(?:لي\s*)?(?:على\s*)?(?:النت|الإنترنت|الانترنت)?\s*/i, "").trim().slice(0, 220) || liveQuery.slice(0, 220);
         liveData = await invokeNova("live_info", { kind: "search", query }, { signal });
