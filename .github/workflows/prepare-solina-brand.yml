@@ -39,5 +39,6 @@ jobs:
             echo "Brand assets are already up to date."
           else
             git commit -m "Add cropped Solina artwork and app icons"
+            git pull --rebase origin main
             git push
           fi
