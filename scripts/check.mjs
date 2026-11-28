@@ -766,3 +766,7 @@ assert.ok(app.includes("date_offset: 1") && app.includes("const tomorrowRaw") &&
 assert.match(edge, /seenResultUrls/, "Live research must deduplicate repeated source URLs");
 assert.match(edge, /sourceUrl\.username \|\| sourceUrl\.password/, "Search results must reject credential-bearing URLs");
 assert.ok(edge.includes("utm_.+") && edge.includes("fbclid") && edge.includes("gclid"), "Search links must remove common tracking parameters");
+
+assert.match(app, /alternatives: candidates\.slice\(0, 3\)/, "Speech alternatives must remain grouped by recognition segment");
+assert.match(app, /المقطع \" \+ \(index \+ 1\)/, "ASR corrections must compare alternatives within each spoken segment");
+assert.doesNotMatch(app, /voiceAlternatives\.map\(\(item\) => String\(item\.text/, "Separate ASR segments must never be flattened into competing whole-utterance candidates");
