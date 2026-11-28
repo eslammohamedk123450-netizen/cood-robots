@@ -248,7 +248,7 @@ async function requestProviderChat(provider: ProviderType, baseUrl: string, apiK
       "gemini-2.5-pro": "gemini-3.1-pro-preview",
       "gemini-2.5-flash-lite": "gemini-3.5-flash-lite",
     };
-    const requestModel = (id: string) => fetch(baseUrl + "/models/" + encodeURIComponent(id.replace(/^models\\//, "")) + ":generateContent", {
+    const requestModel = (id: string) => fetch(baseUrl + "/models/" + encodeURIComponent((id.startsWith("models/") ? id.slice(7) : id)) + ":generateContent", {
       method: "POST",
       headers: { ...providerHeaders(provider, apiKey), "Content-Type": "application/json" },
       body: JSON.stringify(payload),
