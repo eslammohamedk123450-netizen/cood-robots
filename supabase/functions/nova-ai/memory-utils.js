@@ -59,8 +59,9 @@ export function isExplicitMemoryRecall(value) {
 
 export function parseExplicitMemorySave(value) {
   const text = String(value ?? "").trim();
-  if (!text || isExplicitMemoryRecall(text)) return null;
+  if (!text) return null;
   const normalized = normalizeMemoryText(text);
+  if (isExplicitMemoryRecall(text) && !startsWithExplicitMemorySave(text)) return null;
   const words = normalized.split(" ");
   // A correction may end with "احفظي القيمة القديمة". That is part of the
   // correction request, never a separate memory-save command.
