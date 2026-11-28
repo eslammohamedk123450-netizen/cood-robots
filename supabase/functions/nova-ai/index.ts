@@ -1503,6 +1503,9 @@ Deno.serve(async (req: Request) => {
         const correctedReferences = uniqueReferenceNotes(allReferences.filter((note: any) =>
           Array.isArray(note.metadata?.correction_history) && note.metadata.correction_history.length > 0
         ));
+        const correctedMemories = notes.filter((note: any) =>
+          Array.isArray(note.metadata?.correction_history) && note.metadata.correction_history.length > 0
+        );
         const keywordNotes = notes.filter((note: any) => {
           const value = normalizeMemoryText(String(note.content || note.title || ""));
           return /(?:^|\s)(?:كلمة|الكلمه|كلمه)(?=\s|$)/u.test(value);
@@ -1517,7 +1520,7 @@ Deno.serve(async (req: Request) => {
             })
           : wordNotes;
         let recallPool = correctionHistoryRecall
-          ? correctedReferences
+          ? correctedMemories
           : asksToday || asksYesterday || asksThisWeek ? notes.filter(requestedPeriodFilter)
           : numberRecall ? (correctedReferences.length
             ? correctedReferences
@@ -1566,7 +1569,7 @@ Deno.serve(async (req: Request) => {
           return true;
         }).slice(0, 8);
         if (!notes.length) return json({ reply: "دورت في دفتري الشخصي، لكن مفيش معلومة محفوظة لسه. لو تحب، ابعتلي المعلومة بصيغة «خليكي فاكرة...» وأنا أحفظها.", recalled_notes: 0, memory_found: false }, 200, origin);
-        if (correctionHistoryRecall && !correctedReferences.length) return json({ reply: "فاكرة الرقم الحالي، لكن سجل القيمة القديمة قبل التصحيح مش موجود في بياناته. مش هخمن الرقم القديم.", recalled_notes: 0, memory_found: false }, 200, origin);
+        if (correctionHistoryRecall && !correctedMemories.length) return json({ reply: "فاكرة المعلومة الحالية، لكن سجل القيمة القديمة قبل التصحيح مش موجود عندي. مش هخمن القيمة القديمة.", recalled_notes: 0, memory_found: false }, 200, origin);
         if (!relevantNotes.length) return json({ reply: "مش لاقية في دفتري معلومة محفوظة تطابق الوصف أو التاريخ ده، ومش هخمن رقم من عندي. ممكن تديني كلمة مميزة عنها؟", recalled_notes: 0, memory_found: false }, 200, origin);
         const candidates = relevantNotes.slice(0, 12).map((note: any, index: number) => {
           const when = formatCairoMemoryDate(note.created_at);
@@ -1574,11 +1577,18 @@ Deno.serve(async (req: Request) => {
         });
         const response = relevantNotes.length === 1
           ? correctionHistoryRecall
-            ? (Array.isArray(relevantNotes[0].metadata?.correction_history) && relevantNotes[0].metadata.correction_history.length
-              ? "أيوه، فاكرة الرقم اللي صححتيه. الرقم الحالي بعد التصحيح هو " + String(relevantNotes[0].content || relevantNotes[0].title) + ". والقيمة القديمة اللي اتصححت كانت " + String(relevantNotes[0].metadata.correction_history.slice(-1)[0]?.previous_content || "مسجلة في سجل التصحيح") + "."
-              : "لقيت الرقم المحفوظ، وهو " + String(relevantNotes[0].content || relevantNotes[0].title) + "، لكن سجل التصحيح القديم مش موجود عندي.")
+            ? (() => {
+                const history = Array.isArray(relevantNotes[0].metadata?.correction_history) ? relevantNotes[0].metadata.correction_history : [];
+                const change = history[history.length - 1] || {};
+                if (change.kind === "fact") {
+                  return "أيوه، فاكرة التعديل. " + String(change.subject || "المعلومة") + " — " + String(change.predicate || "الخاصية") +
+                    " كانت «" + String(change.previous_value || "قيمة قديمة مسجلة") + "» وبقت «" + String(change.new_value || "القيمة الحالية") + "».";
+                }
+                return "أيوه، فاكرة التصحيح. القيمة الحالية هي «" + String(relevantNotes[0].content || relevantNotes[0].title) +
+                  "»، والقيمة القديمة كانت «" + String(change.previous_content || "مسجلة في سجل التصحيح") + "».";
+              })()
             : "أيوه، فاكرة. " + String(relevantNotes[0].content || relevantNotes[0].title) + " — " + (classifyMemoryKind(String(relevantNotes[0].content || relevantNotes[0].title || "")) === "reference" ? "حفظته يوم " : "حفظتها يوم ") + formatCairoMemoryDate(relevantNotes[0].created_at)
-          : "لقيت كذا معلومة محفوظة ممكن تقصدها:\n" + candidates.join("\n") + "\nقولي رقم الاختيار لو تقصد معلومة معينة.";
+          : "لقيت كذا معلومة محفوظة ممكن تقصدها:\\n" + candidates.join("\\n") + "\\nقولي رقم الاختيار لو تقصد معلومة معينة.";
         return json({ reply: response, recalled_notes: relevantNotes.length, memory_found: true, exact_number_found: relevantNotes.some((note: any) => Boolean(extractMemoryNumberSignature(String(note.content || note.title || "")))) }, 200, origin);
       }
 
