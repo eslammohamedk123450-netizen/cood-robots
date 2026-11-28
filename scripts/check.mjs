@@ -550,7 +550,7 @@ assert.match(androidMain, /TextToSpeech/, "Android APK must provide native text-
 assert.match(androidMain, /setLanguage\(new Locale\("ar", "EG"\)\)/, "Native speech must prefer Egyptian Arabic");
 assert.match(androidMain, /speakText\(String text, String requestId\)/, "Native Android speech must carry a playback correlation ID");
 assert.match(androidMain, /solina-native-tts/, "Native TTS playback status must be returned to the web app");
-assert.match(app, /speakWithNativeDevice\(text, segments, playbackId\)/, "Android app must pass the active playback generation into native TTS");
+assert.match(app, /speakWithNativeDevice\(text, segments, speechPlaybackId\)/, "Android app must pass the active playback generation into native TTS");
 assert.match(app, /let speechPlaybackId = 0/, "Audio output must have a single latest-playback generation guard");
 assert.match(app, /window\.SolinaNative\?\.stopSpeaking\?\.\(\)/, "Every new speech turn must stop native TTS before starting");
 assert.match(app, /playbackId !== speechPlaybackId/, "Late speech responses and stale cleanup must not restart or silence the newest turn");
