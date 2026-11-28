@@ -511,7 +511,7 @@ async function speak(text, segments = [], signal) {
     if (playbackId !== speechPlaybackId) return;
     state.speaking = false;
     state.audio = null;
-    resetSpeechMouth;
+    resetSpeechMouth();
     if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
     if (error?.name === "AbortError" || signal?.aborted || playbackId !== speechPlaybackId) { resetSpeechMouth(); return; }
     // Last-resort voice: use any installed phone voice (Arabic preferred), without
