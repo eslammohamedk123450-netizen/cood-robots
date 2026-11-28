@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { classifyMemoryKind, extractMemoryNumberSignature, extractMemoryTokens, isCorrectionHistoryRecall, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "../supabase/functions/nova-ai/memory-utils.js";
 import { buildMemoryGraph, parseMemoryModelJson, validateSemanticRecallIds } from "../supabase/functions/nova-ai/memory-graph.js";
+import { classifyConversationTurn } from "../conversation-context.js";
 
 
 const graphFixture = buildMemoryGraph("المشروع ألف ميزانيته 5000 جنيه وموعده الخميس، والمشروع باء ميزانيته 7000 جنيه.", {
@@ -751,7 +752,11 @@ assert.match(edge, /if \(value\.length < 90\) return false/, "Short everyday tur
 assert.match(edge, /if \(multiAgent\)/, "Complex work must retain bounded parallel reasoning and synthesis");
 
 // Context discipline: short references continue the nearby topic; explicit switch phrases isolate a new topic.
-assert.match(app, /function classifyConversationTurn\(text, messages = \[\]\)/, "Conversation turns must be classified before model context is assembled");
+assert.match(app, /classifyConversationTurn\(text, state\.messages\)/, "Conversation turns must be classified before model context is assembled");
+assert.equal(classifyConversationTurn("طيب كملي", [{ role: "user", content: "احكيلي عن الموضوع" }]), "follow_up", "A short Arabic follow-up with a normal space must continue the current topic");
+assert.equal(classifyConversationTurn("رقم 2", [{ role: "user", content: "اختاري موعدًا" }]), "new_topic", "A numbered selection is not automatically a conversational follow-up");
+assert.equal(classifyConversationTurn("موضوع تاني عن السفر", [{ role: "user", content: "احكيلي عن الدراسة" }]), "topic_change", "Explicit topic changes must isolate the new subject");
+assert.equal(classifyConversationTurn("وده معناه إيه؟", [{ role: "user", content: "اشرحلي النتيجة" }]), "follow_up", "Pronoun-based follow-ups must retain nearby context");
 assert.match(app, /turnMode === "topic_change"/, "Explicit topic changes must suppress unrelated earlier context");
 assert.match(app, /turnMode === "follow_up"/, "Short follow-ups must resolve against nearby messages without archive searches");
 assert.match(edge, /if \(explicitResearch\) return true/, "Short explicit research requests may use higher-quality independent analysis");
