@@ -517,27 +517,73 @@ Deno.serve(async (req: Request) => {
       return json({ saved: true, conversation_id: conversationId }, 200, origin);
     }
     if (action === "history_search") {
-      const query = typeof body?.query === "string" ? body.query.trim().slice(0,240) : "";
-      if (query.length < 2) return json({ matches: [] }, 200, origin);
-      const tokens = [...new Set((query.match(/[\p{L}\p{N}]{2,}/gu) || []).filter(word => !/^(من|في|على|الى|إلى|عن|ده|دي|هو|هي|انا|أنا|انت|أنت|كان|قال|قالي|ليه|ايه|إيه|ازاي|إزاي|مع|ولا|او|أو)$/u.test(word)))].slice(0,6);
-      if (!tokens.length) return json({ matches: [] }, 200, origin);
-      const escaped = tokens.map(word => word.replace(/[,%_()]/g, " "));
-      const { data: rows, error: searchError } = await admin.from("nova_messages").select("conversation_id,role,content,created_at").eq("user_id", userId).or(escaped.map(word => `content.ilike.%${word}%`).join(",")).order("created_at", { ascending: false }).limit(20);
+      const query = typeof body?.query === "string" ? body.query.trim().slice(0, 240) : "";
+      const now = new Date();
+      const cairoParts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Africa/Cairo", year: "numeric", month: "2-digit", day: "2-digit",
+      }).formatToParts(now);
+      const part = (name: string) => cairoParts.find((item) => item.type === name)?.value ?? "";
+      let localDate = part("year") + "-" + part("month") + "-" + part("day");
+      const relativeDay = /(?:أول\s+امبارح|اول\s+امبارح|قبل\s+امبارح|قبل\s+أمس)/u.test(query) ? -2
+        : /(?:امبارح|أمس|مبارح)/u.test(query) ? -1
+        : /(?:النهارده|النهاردة|اليوم)/u.test(query) ? 0 : null;
+      const explicitDate = query.match(/(?:^|\s)(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{4}))?(?:\s|$)/);
+      if (relativeDay !== null || explicitDate) {
+        const [year, month, day] = localDate.split("-").map(Number);
+        const base = explicitDate
+          ? new Date(Date.UTC(Number(explicitDate[3] || year), Number(explicitDate[2]) - 1, Number(explicitDate[1])))
+          : new Date(Date.UTC(year, month - 1, day + Number(relativeDay)));
+        localDate = base.toISOString().slice(0, 10);
+      }
+      const utcParts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+      }).formatToParts(now);
+      const localHour = Number(utcParts.find((item) => item.type === "hour")?.value ?? "0");
+      const utcHour = now.getUTCHours();
+      let offsetMinutes = (localHour - utcHour) * 60 - now.getUTCMinutes() + Number(utcParts.find((item) => item.type === "minute")?.value ?? "0");
+      if (offsetMinutes > 840) offsetMinutes -= 1440;
+      if (offsetMinutes < -720) offsetMinutes += 1440;
+      const [y, m, d] = localDate.split("-").map(Number);
+      const startUtc = new Date(Date.UTC(y, m - 1, d) - offsetMinutes * 60000);
+      const endUtc = new Date(startUtc.getTime() + 86400000);
+      const hourMatch = query.match(/(?:الساعة|الساعه|ساعة)\s*(\d{1,2})(?::(\d{2}))?/u);
+      const excluded = /^(?:من|في|على|الى|إلى|عن|ده|دي|هو|هي|انا|أنا|انت|أنت|كان|قال|قالي|ليه|ايه|إيه|ازاي|إزاي|مع|ولا|او|أو|امبارح|أمس|مبارح|النهارده|النهاردة|اليوم|الساعة|الساعه|ساعة|فاكر|فاكرة|تفتكر|افتكر|سألتك|قلتلك|كنا|بنتكلم)$/u;
+      const tokens = [...new Set((query.match(/[\p{L}\p{N}]{2,}/gu) || []).filter((word) => !excluded.test(word)))].slice(0, 6);
+      let request = admin.from("nova_messages")
+        .select("conversation_id,role,content,created_at")
+        .eq("user_id", userId);
+      if (relativeDay !== null || explicitDate) request = request.gte("created_at", startUtc.toISOString()).lt("created_at", endUtc.toISOString());
+      if (tokens.length) {
+        const escaped = tokens.map((word) => word.replace(/[,%_()]/g, " "));
+        request = request.or(escaped.map((word) => `content.ilike.%${word}%`).join(","));
+      } else if (relativeDay === null && !explicitDate) {
+        return json({ matches: [] }, 200, origin);
+      }
+      const { data: rows, error: searchError } = await request.order("created_at", { ascending: false }).limit(80);
       if (searchError) throw searchError;
-      const ids = [...new Set((rows ?? []).map(row => row.conversation_id))];
+      const ids = [...new Set((rows ?? []).map((row) => row.conversation_id))];
       const { data: conversations, error: conversationsError } = ids.length
         ? await admin.from("nova_conversations").select("id,persona,title").eq("user_id", userId).in("id", ids)
         : { data: [], error: null };
       if (conversationsError) throw conversationsError;
-      const byId = new Map((conversations ?? []).map(item => [item.id, item]));
-      const matches = (rows ?? []).filter(row => {
+      const byId = new Map((conversations ?? []).map((item) => [item.id, item]));
+      let matches = (rows ?? []).filter((row) => {
         const convo = byId.get(row.conversation_id);
-        return convo && convo.persona === "soleen" && (!body?.exclude_conversation_id || convo.id !== body.exclude_conversation_id);
-      }).slice(0,12).map(row => {
-        const convo = byId.get(row.conversation_id);
-        return { persona: "soleen", title: convo.title, role: row.role, content: String(row.content).slice(0,1600), created_at: row.created_at };
+        return convo && convo.persona === "soleen";
       });
-      return json({ matches }, 200, origin);
+      if (hourMatch) {
+        const targetHour = Number(hourMatch[1]) % 12;
+        const pm = /مساء|بالليل|ليل/u.test(query);
+        const am = /صباح|الصبح|صباحًا/u.test(query);
+        matches = matches.filter((row) => {
+          const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", hourCycle: "h23" }).format(new Date(row.created_at)));
+          return am ? hour === targetHour : pm ? hour === targetHour + 12 : hour === Number(hourMatch[1]) || hour % 12 === targetHour;
+        });
+      }
+      return json({ matches: matches.slice(0, 20).map((row) => {
+        const convo = byId.get(row.conversation_id);
+        return { conversation_id: row.conversation_id, persona: "soleen", title: convo.title, role: row.role, content: String(row.content).slice(0, 1600), created_at: row.created_at };
+      }) }, 200, origin);
     }
     if (action === "history_save") {
       const persona = body?.persona === "soleen" ? "soleen" : ""; const userText = typeof body?.user_text === "string" ? body.user_text.trim().slice(0,12000) : ""; const assistantText = typeof body?.assistant_text === "string" ? body.assistant_text.trim().slice(0,12000) : "";
