@@ -1,3 +1,5 @@
+import { extractMemoryNumberSignature, normalizeMemoryText } from "./memory-utils.js";
+
 const MAX_FACTS = 48;
 const MAX_ENTITIES = 32;
 const MAX_RELATIONS = 48;
@@ -15,6 +17,38 @@ function normalizeEvidence(value) {
     .replace(/ئ/g, "ي")
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ").trim().toLocaleLowerCase("ar");
+}
+
+function sameMemoryFactValue(left, right) {
+  const a = normalizeMemoryText(String(left ?? ""));
+  const b = normalizeMemoryText(String(right ?? ""));
+  if (a === b) return true;
+  const aNumber = extractMemoryNumberSignature(String(left ?? ""));
+  const bNumber = extractMemoryNumberSignature(String(right ?? ""));
+  return Boolean(aNumber && bNumber && aNumber === bNumber);
+}
+
+/**
+ * Resolve a correction against the fact's identity and previous value.
+ * A bare model-proposed index is never trusted when a note contains multiple facts.
+ */
+export function resolveMemoryFactIndex(facts, selection) {
+  if (!Array.isArray(facts) || !facts.length || !selection || typeof selection !== "object") return -1;
+  const subject = normalizeMemoryText(String(selection.fact_subject ?? ""));
+  const predicate = normalizeMemoryText(String(selection.fact_predicate ?? ""));
+  const oldValue = String(selection.old_value ?? "").trim();
+  const hasSelector = Boolean(subject || predicate || oldValue);
+  if (!hasSelector && facts.length > 1) return -1;
+
+  const matches = facts.map((fact, index) => ({ fact, index })).filter(({ fact }) =>
+    (!subject || normalizeMemoryText(String(fact?.subject ?? "")) === subject) &&
+    (!predicate || normalizeMemoryText(String(fact?.predicate ?? "")) === predicate) &&
+    (!oldValue || sameMemoryFactValue(fact?.value, oldValue))
+  );
+  const requestedIndex = Number(selection.fact_index);
+  if (Number.isInteger(requestedIndex) && requestedIndex >= 0 && requestedIndex < facts.length &&
+      matches.some((match) => match.index === requestedIndex)) return requestedIndex;
+  return matches.length === 1 ? matches[0].index : -1;
 }
 
 function uniqueRows(rows, keyOf, limit) {
