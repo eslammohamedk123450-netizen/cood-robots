@@ -978,10 +978,12 @@ Deno.serve(async (req: Request) => {
         .order("created_at", { ascending: false }).limit(80);
       if (notesReadError) throw notesReadError;
       const notes = savedNotes ?? [];
-      const relevantNotes = notes.filter((note: any) => {
+      const matchedNotes = notes.filter((note: any) => {
         const haystack = (String(note.title || "") + " " + String(note.content || "")).toLocaleLowerCase("ar");
         return memoryWords.length ? memoryWords.some(word => haystack.includes(word.toLocaleLowerCase("ar"))) : true;
       }).slice(0, 8);
+      // Vague recall phrases (e.g. "فاكرة الرقم؟") fall back to the latest saved notes instead of silently missing.
+      const relevantNotes = asksRecall && matchedNotes.length === 0 ? notes.slice(0, 8) : matchedNotes;
       if (asksRecall && relevantNotes.length) {
         const candidates = relevantNotes.slice(0, 6).map((note: any, index: number) => {
           const when = new Date(note.created_at).toLocaleString("ar-EG", { dateStyle: "long", timeStyle: "short" });
