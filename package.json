@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check task-manager.js && node --check app.js && node --check solina-wave.js && node --check pin.js && node scripts/check.mjs",
+    "check": "node --check task-manager.js && node --check conversation-context.js && node --check routing-policy.js && node --check app.js && node --check solina-wave.js && node --check pin.js && node scripts/check.mjs",
     "test": "npm run check"
   }
 }
