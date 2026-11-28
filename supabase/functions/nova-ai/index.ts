@@ -1190,7 +1190,7 @@ Deno.serve(async (req: Request) => {
         console.info("NOVA_PROVIDER_TIMING", JSON.stringify({ model: entry.model.model_id, provider: entry.providerType, duration_ms: Math.round(performance.now() - startedAt), outcome: "success", role: instruction ? "worker" : "direct" }));
         return reply;
       };
-      const multiAgent = requiresMultiAgentWork(latestUserText) && usableModels.length >= 2;
+      const multiAgent = aiPreference?.routing_mode !== "manual" && requiresMultiAgentWork(latestUserText) && usableModels.length >= 2;
       let rawReply = "", selected = usableModels[0], agentMode = "single", agentsUsed = 1;
       if (multiAgent) {
         const [first, second] = usableModels.slice(0, 2);
