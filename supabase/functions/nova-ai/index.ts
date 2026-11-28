@@ -668,7 +668,9 @@ Deno.serve(async (req: Request) => {
       }, { onConflict: "user_id" });
       if (saveError) {
         await admin.rpc("nova_delete_api_secret", { p_secret_id: secretId });
-        throw saveError;
+        const detail = saveError.message ? String(saveError.message).slice(0, 180) : "settings row update failed";
+        console.error("Speech settings upsert failed:", detail);
+        return json({ error: "المفتاح اتخزن مؤقتًا لكن تحديث إعداد الصوت فشل، وتم حذف المفتاح الجديد: " + detail }, 500, origin);
       }
       if (previous?.secret_id && previous.secret_id !== secretId) {
         const { error: cleanupError } = await admin.rpc("nova_delete_api_secret", { p_secret_id: previous.secret_id });
