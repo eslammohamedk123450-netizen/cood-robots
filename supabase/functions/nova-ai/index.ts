@@ -1168,10 +1168,13 @@ Deno.serve(async (req: Request) => {
             !removedSubjects.has(normalizeMemoryText(String(relation.from || ""))) && !removedSubjects.has(normalizeMemoryText(String(relation.to || "")))
           );
           const remainingContent = remainingFacts.map((fact: any) => String(fact.evidence || (String(fact.subject || "") + " " + String(fact.predicate || "") + " " + String(fact.value || ""))).trim()).filter(Boolean).join("؛ ");
+          const remainingSubjects = new Set(remainingFacts.map((fact: any) => normalizeMemoryText(String(fact.subject || ""))));
+          const remainingEntities = (Array.isArray(graph?.entities) ? graph.entities : []).filter((entity: any) => remainingSubjects.has(normalizeMemoryText(String(entity.name || ""))));
+          const remainingSummary = remainingFacts.map((fact: any) => String(fact.subject || "") + " — " + String(fact.predicate || "") + ": " + String(fact.value || "")).join("؛ ");
           const metadata = {
             ...(pending.metadata || {}),
             original_content: pending.metadata?.original_content || pending.content,
-            memory_graph: { ...graph, facts: remainingFacts, relations: remainingRelations, summary: remainingFacts.length ? String(graph?.summary || "") : "لا توجد حقائق نشطة متبقية." },
+            memory_graph: { ...graph, facts: remainingFacts, entities: remainingEntities, relations: remainingRelations, summary: remainingSummary || "لا توجد حقائق نشطة متبقية." },
             archived_facts: archivedFacts,
             pending_action: null, pending_action_at: null, pending_fact_deletions: null,
           };
