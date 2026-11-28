@@ -1278,7 +1278,7 @@ Deno.serve(async (req: Request) => {
         const recallPool = correctionHistoryRecall
           ? correctedReferences
           : asksToday || asksYesterday || asksThisWeek ? notes.filter(requestedPeriodFilter)
-          : numberRecall ? (correctedReferences.length ? correctedReferences : allReferences)
+          : numberRecall ? (matchedNotes.some((note: any) => note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference")\n            ? uniqueReferenceNotes(matchedNotes.filter((note: any) => note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference"))\n            : allReferences)
           : wordRecall ? matchingWordNotes
           : matchedNotes.length ? matchedNotes
           : memoryWords.length ? []
