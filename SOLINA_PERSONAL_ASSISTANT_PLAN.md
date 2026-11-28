@@ -118,7 +118,7 @@ Initial monitoring target: public GitHub repositories and GitHub Actions workflo
 ## 5. Phased implementation order
 
 ### Phase 0 — Product alignment and repository baseline
-Status: plan being recorded.
+Status: complete — scope, architecture, phased milestones, cost/security guardrails, and current implementation inventory are committed.
 - Confirm the personal-assistant scope and explicitly defer coding-agent behavior.
 - Audit existing chat, memory, tasks, reminders, web search, Android bridge, model routing, and CI.
 - Keep one main branch and the existing repository/Supabase project.
@@ -126,7 +126,9 @@ Acceptance: the roadmap and actual current capabilities are documented; no dupli
 
 ### Phase 1 — Conversation quality and context discipline
 Priority: highest.
-- Improve intent classification for ordinary conversation vs follow-up vs historical recall.
+- [x] Shorten the client system prompt and remove duplicated owner-profile injection; backend remains the source for saved profile memory.
+- [x] Restrict archive search to clear historical-continuity phrases; ordinary date mentions and vague saved-note recall no longer trigger a separate archive request.
+- [ ] Improve intent classification for ordinary conversation vs follow-up vs historical recall.
 - Keep short-term turn context coherent across text and voice.
 - Ensure a topic change does not pull in unrelated projects or personal memories.
 - Improve speech transcript correction using available alternatives without changing valid words or names.
