@@ -1113,11 +1113,14 @@ async function requestAIReply(text, signal, voiceAlternatives = []) {
   }
   const result = await invokeNova("chat", { messages: requestMessages, exclude_conversation_id: state.conversationIds[state.persona] }, { signal });
     const rawReply = sanitizeInternalReply(result.reply || result.text || result.content || "");
-    if (result.memory_saved) {
-      await Promise.allSettled([loadOwnerMemory(), loadPersonalItems()]);
+    if (result.saved_note) {
+      await loadPersonalItems();
       if ($("memoryFeedback")) $("memoryFeedback").textContent = result.duplicate
         ? "المعلومة موجودة بالفعل في دفتر سولينا، ولم يتم تكرارها."
-        : "سولينا حفظت معلومة دائمة جديدة من كلامك. تقدر تراجعها من دفتر سولينا.";
+        : "سولينا حفظت المعلومة في دفترها الشخصي. تقدر تراجعها من الإعدادات.";
+    } else if (result.memory_saved) {
+      await loadOwnerMemory();
+      if ($("memoryFeedback")) $("memoryFeedback").textContent = "سولينا حدّثت الذاكرة العامة من المعلومة الجديدة.";
     }
     if (result.memory_corrected) {
       await loadPersonalItems();
