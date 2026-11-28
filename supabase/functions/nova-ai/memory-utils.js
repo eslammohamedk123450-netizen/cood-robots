@@ -94,12 +94,35 @@ export function parseExplicitMemoryCorrection(value) {
   const correctedValue = match?.[1]?.trim().replace(/^["'«»]+|["'«»]+$/g, "").trim();
   return correctedValue && correctedValue.length >= 2 ? { target: "", value: correctedValue } : null;
 }
+const SPOKEN_DIGIT_VALUES = new Map([
+  ["صفر","0"],["زيرو","0"],["واحد","1"],["واحدة","1"],["واحده","1"],
+  ["اتنين","2"],["اثنين","2"],["تنين","2"],["تلاته","3"],["تلاتة","3"],["ثلاثه","3"],["ثلاثة","3"],
+  ["اربعه","4"],["اربعة","4"],["أربعة","4"],["خمسه","5"],["خمسة","5"],
+  ["سته","6"],["ستة","6"],["سبعه","7"],["سبعة","7"],["تمانيه","8"],["تمانية","8"],["تمنيه","8"],["ثمانية","8"],
+  ["تسعه","9"],["تسعة","9"]
+]);
+
+function spokenDigitSequences(text) {
+  const found = [];
+  let current = "";
+  const flush = () => { if (current.length >= 3) found.push(current); current = ""; };
+  for (const raw of text.split(/\\s+/u).filter(Boolean)) {
+    const word = raw === "و" ? "" : raw;
+    let digit = SPOKEN_DIGIT_VALUES.get(word);
+    if (digit === undefined && word.startsWith("و")) digit = SPOKEN_DIGIT_VALUES.get(word.slice(1));
+    if (digit !== undefined) current += digit;
+    else flush();
+  }
+  flush();
+  return found;
+}
+
 export function extractMemoryNumberSignature(value) {
   const text = normalizeMemoryText(value);
-  const spaced = [...text.matchAll(/(?:^|\s)((?:\d\s+){2,}\d)(?=\s|$)/gu)]
-    .map((match) => match[1].replace(/\s+/g, ""));
-  const compact = [...text.matchAll(/(?:^|\s)(\d{3,})(?=\s|$)/gu)].map((match) => match[1]);
-  const candidates = [...spaced, ...compact].filter(Boolean);
+  const spaced = [...text.matchAll(/(?:^|\\s)((?:\\d\\s+){2,}\\d)(?=\\s|$)/gu)]
+    .map((match) => match[1].replace(/\\s+/g, ""));
+  const compact = [...text.matchAll(/(?:^|\\s)(\\d{3,})(?=\\s|$)/gu)].map((match) => match[1]);
+  const candidates = [...spaced, ...compact, ...spokenDigitSequences(text)].filter(Boolean);
   if (!candidates.length) return "";
   candidates.sort((a, b) => b.length - a.length);
   return candidates[0];
