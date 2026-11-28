@@ -578,6 +578,8 @@ assert.match(edge, /memoryGraphMetadata/, "Explicit memory metadata must persist
 assert.match(edge, /memory_graph: memoryGraph/, "Memory category and semantic graph must be persisted with the original note");
 assert.match(edge, /if \(itemType === "note" && typeof metadata\.memory_kind !== "string"\)/, "Manually saved notebook entries must receive the same category organization");
 assert.match(edge, /COMBINED_MEMORY_CORRECTION_REQUIRES_FACT_RESOLUTION/, "A fallback correction must never overwrite a multi-fact note when the exact fact is unresolved");
+assert.match(edge, /ordered\.slice\(0, 2\)/, "Memory interpretation must use the preferred model and at most one fallback");
+assert.match(edge, /AbortSignal\.timeout\(12000\)/, "Memory interpretation attempts must have a bounded latency budget");
 
 assert.ok(edge.includes('timeZone: "Africa/Cairo"'), "Conversation recall must interpret relative dates in the owner's Egypt timezone");
 assert.match(edge, /hourMatch/, "Conversation recall must narrow historical results by a requested hour");
