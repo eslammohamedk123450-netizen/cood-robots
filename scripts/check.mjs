@@ -535,7 +535,7 @@ assert.ok(edge.includes('timeZone: "Africa/Cairo"'), "Conversation recall must i
 assert.match(edge, /hourMatch/, "Conversation recall must narrow historical results by a requested hour");
 assert.match(edge, /requestedNoteDate/, "Saved personal notes must be retrievable by relative Cairo date");
 assert.match(edge, /requestedNoteHour/, "Saved personal notes must be retrievable by requested hour");
-assert.match(edge, /hasClockRecall/, "Clock words and hour digits must not poison note-content keyword matching");
+assert.ok(canonicalClockRecallTest, "Clock-only requests must skip note retrieval and must not match personal numeric references");
 assert.match(edge, /function requiresMultiAgentWork/, "Complex tasks must be routed through adaptive multi-agent orchestration");
 assert.match(edge, /Promise\.allSettled\(\[/, "Independent agents must execute concurrently and tolerate one worker failure");
 assert.match(edge, /function buildSynthesisMessages/, "A synthesis agent must reconcile parallel worker outputs into one answer");
@@ -556,6 +556,7 @@ assert.match(app, /memoryLabels = \{ project: "مشروع", decision: "قرار"
 
 console.log("SOLINA explicit memory save and recall checks passed.");
 
+const canonicalClockRecallTest = extractMemoryTokens("الساعة ٨ مساء").length === 0;
 const spokenNumberMemory = parseExplicitMemorySave("خليكي فاكرة عندك الرقم ده، واحد اثنين ثلاثة أربعة خمسة");
 assert.equal(spokenNumberMemory, "الرقم ده، واحد اثنين ثلاثة أربعة خمسة", "Explicit remember phrases must preserve the complete spoken number payload exactly");
 assert.equal(classifyMemoryKind(spokenNumberMemory), "reference", "Spoken number sequences must be categorized as reference memories");
