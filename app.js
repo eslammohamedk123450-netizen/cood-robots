@@ -1773,7 +1773,7 @@ async function executeTaskIntent(intent) {
       // when today's prayer is still ahead but its requested lead time passed.
       if (at.getTime() <= now.getTime()) {
         const tomorrowData = await invokeNova("live_info", { kind: "prayer", city: intent.city || "المحلة الكبرى", country: "Egypt", date_offset: 1 });
-        const tomorrowRaw = String(tomorrowData?.timings?.[intent.prayer] || "").match(/^(\\d{1,2}):(\\d{2})/);
+        const tomorrowRaw = String(tomorrowData?.timings?.[intent.prayer] || "").match(/^(\d{1,2}):(\d{2})/);
         if (!tomorrowRaw) return "جبت مواقيت النهارده، لكن تعذر التأكد من موعد الصلاة القادم. مش هضبط تذكير بوقت غير مؤكد.";
         at.setDate(at.getDate() + 1);
         at.setHours(Number(tomorrowRaw[1]), Number(tomorrowRaw[2]), 0, 0);
