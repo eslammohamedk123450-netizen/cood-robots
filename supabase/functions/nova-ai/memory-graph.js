@@ -73,7 +73,7 @@ export function buildMemoryGraph(originalText, proposed) {
     facts: uniqueRows(facts, (v) => [v.subject, v.predicate, v.value, v.context].join("|").toLocaleLowerCase(), MAX_FACTS),
     relations: uniqueRows(relations, (v) => [v.from, v.relation, v.to].join("|").toLocaleLowerCase(), MAX_RELATIONS),
     topics,
-    extraction_status: facts.length || entities.length ? "complete" : "empty",
+    extraction_status: proposed && typeof proposed === "object" && !Array.isArray(proposed) ? "complete" : "pending",
   };
 }
 
