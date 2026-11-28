@@ -577,7 +577,7 @@ assert.match(edge, /noteTokens\.length >= 2/, "Ordinary greetings and short turn
 assert.match(edge, /targetMinute !== null && noteMinute !== targetMinute/, "Memory recall must distinguish exact minute timestamps when supplied");
 
 
-assert.ok(edge.includes("خلي(?:كي|ك)") && edge.includes("\\s+"), "Explicit remember phrase matcher must include the Arabic trigger and whitespace token");
+assert.ok(memoryUtils.includes("خلي(?:كي|ك)") && memoryUtils.includes("\\s+"), "Explicit remember phrase matcher must include the Arabic trigger and whitespace token");
 assert.match(edge, /ملاحظات المستخدم الشخصية المحفوظة/, "Saved notes must be injected into the model context when relevant");
-assert.match(edge, /const relevantNotes = asksRecall/, "Personal note retrieval should be selective and recall-aware");
+assert.match(edge, /if \(asksRecall\)/, "Personal note retrieval should be deterministic and recall-aware");
 console.log("SOLINA memory-context integration checks added.");
