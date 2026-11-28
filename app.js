@@ -363,7 +363,7 @@ async function speakWithDevice(text, segments = []) {
   return new Promise((resolve, reject) => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = voice?.lang || "ar-EG";
-    utterance.rate = 0.98;
+    utterance.rate = 1.05;
     utterance.pitch = 1.08;
     if (voice) utterance.voice = voice;
     let rafId = 0, startedAt = 0, lastBoundaryProgress = 0, ended = false;
@@ -426,6 +426,8 @@ async function speak(text, segments = [], signal) {
   if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
   const engine = $("speechEngine")?.value || localStorage.getItem("nova.speech.engine") || "server";
   const speechVendor = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
+  const useGeminiTts = engine === "gemini";
+  const speechQuotaProvider = useGeminiTts ? "gemini" : speechVendor;
   let finished = false;
   const finish = () => {
     if (finished) return;
@@ -451,7 +453,6 @@ async function speak(text, segments = [], signal) {
     }
     const voicePrefix = speechVendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
     const voiceId = localStorage.getItem(voicePrefix + "female") || "";
-    const useGeminiTts = engine === "gemini";
     const speechAction = useGeminiTts ? "tts_gemini" : "tts";
     // Auto follows the provider selected in settings. Any cloud failure falls back to the phone TTS.
     // Gemini receives the complete reply in ONE request, never one request per sentence.
@@ -459,12 +460,12 @@ async function speak(text, segments = [], signal) {
     // Provider, engine and voice are part of the key so changing voice never reuses stale audio.
     const speechCacheKey = JSON.stringify([persona, speechAction, speechVendor, voiceId, spokenText]);
     let result = getSpeechAudioCache(speechCacheKey);
-    if (!result && !useGeminiTts && isSpeechQuotaCoolingDown(speechVendor)) {
+    if (!result && isSpeechQuotaCoolingDown(speechQuotaProvider)) {
       throw Object.assign(new Error("خدمة الصوت السحابية متوقفة مؤقتًا بسبب حد الاستخدام؛ هستخدم صوت الجهاز المجاني."), { code: "SPEECH_QUOTA_COOLDOWN" });
     }
     if (!result) {
       result = await invokeNova(speechAction, { text: spokenText, persona, voice_id: voiceId, provider: speechVendor }, { signal });
-      if (!useGeminiTts) clearSpeechQuotaCooldown(speechVendor);
+      clearSpeechQuotaCooldown(speechQuotaProvider);
     }
     if (playbackId !== speechPlaybackId || signal?.aborted) return;
       if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
@@ -523,7 +524,7 @@ async function speak(text, segments = [], signal) {
       source.start(0);
     }
   } catch (error) {
-    if (error?.code === "SPEECH_QUOTA_EXCEEDED") markSpeechQuotaExceeded(speechVendor);
+    if (error?.code === "SPEECH_QUOTA_EXCEEDED") markSpeechQuotaExceeded(speechQuotaProvider);
     if (playbackId !== speechPlaybackId) return;
     state.speaking = false;
     state.audio = null;
@@ -1199,8 +1200,17 @@ async function getStopAudioCache() {
   const voiceId = localStorage.getItem(voicePrefix + "female") || "";
   const key = "nova.stopAudio.cache.v2." + encodeURIComponent([engine,vendor,voiceId,state.persona].join("|"));
   try { const cached = JSON.parse(localStorage.getItem(key) || "null"); if (cached?.audio && ["audio/mpeg","audio/mp3","audio/wav","audio/x-wav"].includes(cached.mime)) return cached; } catch (_) {}
+  const quotaProvider = engine === "gemini" ? "gemini" : vendor;
+  if (isSpeechQuotaCoolingDown(quotaProvider)) return null;
   const action = engine === "gemini" ? "tts_gemini" : "tts";
-  const result = await invokeNova(action, { text: "حاضر، سكت.", persona: state.persona, voice_id: voiceId, provider: vendor });
+  let result;
+  try {
+    result = await invokeNova(action, { text: "حاضر، سكت.", persona: state.persona, voice_id: voiceId, provider: vendor });
+    clearSpeechQuotaCooldown(quotaProvider);
+  } catch (error) {
+    if (error?.code === "SPEECH_QUOTA_EXCEEDED") markSpeechQuotaExceeded(quotaProvider);
+    throw error;
+  }
   const mime = String(result.mime_type || "").split(";")[0].trim().toLowerCase();
   if (!result.audio || !["audio/mpeg","audio/mp3","audio/wav","audio/x-wav"].includes(mime)) throw new Error("تعذر تجهيز صوت الإيقاف.");
   const cache = { audio: result.audio, mime, saved_at: Date.now() };
