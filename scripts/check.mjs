@@ -33,6 +33,7 @@ const html = read("../index.html");
 const app = read("../app.js");
 const pin = read("../pin.js");
 const edge = read("../supabase/functions/nova-ai/index.ts");
+const routing = read("../supabase/functions/nova-ai/routing-policy.js");
 const memoryUtils = read("../supabase/functions/nova-ai/memory-utils.js");
 const taskManager = read("../task-manager.js");
 const personalItemsMigration = read("../supabase/migrations/20261127233636_nova_account_synced_personal_items.sql");
@@ -751,9 +752,13 @@ assert.match(app, /stage === "choose_due_action"/, "Multiple due items must ask 
 assert.match(app, /dueItems\.length > 1/, "Ambiguous due-task actions must present choices instead of selecting the first record");
 assert.match(app, /pending\.action === "complete"/, "The selected due item must preserve the requested completion or snooze action");
 assert.doesNotMatch(app, /dueReminders\[0\]/, "The app must not silently act on the first due reminder when several exist");
-assert.match(edge, /const explicitResearch =/, "Parallel routing must reserve independent reasoning for explicit research and analysis");
-assert.match(edge, /const substantialTask =/, "Long substantive requests may use independent model analysis");
-assert.match(edge, /if \(value\.length < 90\) return false/, "Short everyday turns must stay on the fast single-model path unless explicit research is requested");
+assert.match(edge, /import \{ requiresMultiAgentWork \} from "\.\/routing-policy\.js"/, "The edge function must import the shared routing policy");
+assert.match(routing, /const EXPLICIT_PERSONAL_ACTION/, "Personal actions must have a deterministic routing guard");
+assert.match(routing, /const EXPLICIT_RESEARCH/, "Explicit research must have a separate routing path");
+assert.equal(requiresMultiAgentWork("فكريني بعد نص ساعة"), false, "Personal reminders must stay on one model");
+assert.equal(requiresMultiAgentWork("فاكرة الرقم اللي حفظته؟"), false, "Memory recall must stay on one model");
+assert.equal(requiresMultiAgentWork("هات مصادر عن الذكاء الاصطناعي"), true, "Explicit research may use independent analysis");
+assert.equal(requiresMultiAgentWork("إيه الأخبار؟"), false, "Short everyday chat must stay on the fast path");
 assert.match(edge, /if \(multiAgent\)/, "Complex work must retain bounded parallel reasoning and synthesis");
 
 // Context discipline: short references continue the nearby topic; explicit switch phrases isolate a new topic.
@@ -766,7 +771,7 @@ assert.equal(classifyConversationTurn("موضوع تاني عن السفر", [{ 
 assert.equal(classifyConversationTurn("وده معناه إيه؟", [{ role: "user", content: "اشرحلي النتيجة" }]), "follow_up", "Pronoun-based follow-ups must retain nearby context");
 assert.match(app, /turnMode === "topic_change"/, "Explicit topic changes must suppress unrelated earlier context");
 assert.match(app, /turnMode === "follow_up"/, "Short follow-ups must resolve against nearby messages without archive searches");
-assert.match(edge, /if \(explicitResearch\) return true/, "Short explicit research requests may use higher-quality independent analysis");
+assert.equal(requiresMultiAgentWork("قارن بين الخيارات مع مصادر متعددة"), true, "Comparison and source requests must use the research route");
 
 assert.match(app, /speechCacheKey = JSON\.stringify\(\[persona, speechAction, speechVendor, voiceId, spokenText\]\)/, "Neural speech cache must be keyed by provider, engine, voice and exact text");
 assert.match(app, /getSpeechAudioCache\(speechCacheKey\)/, "Repeated speech must reuse cached audio within the current page session");
