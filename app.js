@@ -991,7 +991,18 @@ async function saveSpeechSettings() {
     button.textContent = "اختبار المفتاح وحفظه بأمان";
   }
 }
-async function requestAIReply(text, signal, voiceAlternatives = []) {
+async function classifyConversationTurn(text, messages = []) {
+  const current = String(text || "").trim();
+  const normalized = current.toLocaleLowerCase("ar").replace(/[ًٌٍَُِّْـ]/g, "").replace(/[،.!؟?؛,:]/g, " ").replace(/\\s+/g, " ").trim();
+  const explicitSwitch = /(?:موضوع تاني|سؤال تاني|بعيدا عن|سيبك من|خلينا نتكلم عن|نغير الموضوع|على فكره سؤال|بالمناسبه سؤال)/iu.test(normalized);
+  if (explicitSwitch) return "topic_change";
+  const shortFollowUp = current.length <= 100 && /^(?:طب|طيب|وال|وإيه|وايه|ليه|ازاي|إزاي|يعني|هو|هي|ده|دي|دول|كده|وبعدين|تمام بس|طيب وبالنسبه|وبالنسبة|ممكن توضح|مش فاهم|مش فاهمه)(?:\\s|$)/iu.test(normalized);
+  const pronounFollowUp = /(?:وده|ودي|وده ايه|ودي ايه|التاني|التانيه|اللي بعده|نفسه|نفسها|كمان|هناك|فيه|فيها)/iu.test(normalized) && messages.filter(item => item?.role === "user").length > 0;
+  const explicitContinuation = /(?:كمل|كملي|نكمل|زي ما قولت|زي ما قلتي|بالنسبه ل|بالنسبة ل|عن نفس الموضوع|اللي كنا بنتكلم فيه)/iu.test(normalized);
+  if (shortFollowUp || pronounFollowUp || explicitContinuation) return "follow_up";
+  return "new_topic";
+}
+function requestAIReply(text, signal, voiceAlternatives = []) {
   // invokeNova owns session recovery; do not reject a turn based on a stale in-memory
   // session before it has a chance to restore the validated owner token.
   if (!state.messages.length || state.messages[0].role !== "system") {
@@ -1015,6 +1026,14 @@ async function requestAIReply(text, signal, voiceAlternatives = []) {
   state.messagesByPersona[state.persona] = state.messages.slice();
   try {
     const requestMessages = state.messages.slice();
+    const turnMode = classifyConversationTurn(text, requestMessages.slice(-8));
+    const turnGuidance = turnMode === "topic_change"
+      ? "توجيه سياق الدور الحالي: المستخدم أعلن تغيير الموضوع. أجب عن الموضوع الجديد فقط، ولا تستحضر مشروعًا أو معلومة أو ضميرًا من نقاش سابق إلا إذا طلب ربطهما صراحة."
+      : turnMode === "follow_up"
+        ? "توجيه سياق الدور الحالي: الرسالة متابعة قصيرة. اربط الضمائر والإشارات بأقرب مرجع واضح في آخر الرسائل، ولا تبحث في الأرشيف لمجرد أن الجملة قصيرة. إذا كان لها أكثر من مرجع محتمل فاسأل سؤال تحديد واحدًا."
+        : "توجيه سياق الدور الحالي: تعامل مع الرسالة كموضوع مستقل ما لم يكن معناها يعتمد بوضوح على الرسائل القريبة.";
+    requestMessages.splice(1, 0, { role: "system", content: turnGuidance });
+
   // Search the durable transcript only when the user refers to earlier conversations,
   // dates, or a topic they want to resume. Keep ordinary turns fast and cheap.
   const asksPastConversation = /(?:كنا\s+بنتكلم|المرة\s+اللي\s+فاتت|الموضوع\s+اللي\s+فات|آخر\s+(?:محادثة|حاجة)|اخر\s+(?:محادثة|حاجة)|وقفنا\s+(?:فين|عند)|نكمل|كملي|كمل\s+من|نرجع\s+لموضوع|فاكر(?:ة)?\s+(?:كنا|احنا|الموضوع|المرة|وقفنا)|تفتكر(?:ي)?\s+(?:كنا|احنا|الموضوع|المرة|وقفنا)|سألتك\s+(?:قبل|المرة)|قلتلك\s+(?:قبل|المرة))/iu.test(text);
