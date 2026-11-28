@@ -1086,7 +1086,7 @@ Deno.serve(async (req: Request) => {
         return json({ reply: "تمام، ألغيت طلب الحذف ولم ألمس المعلومة." }, 200, origin);
       }
       const reminderIntent = /(?:الغي|الغى|الغِي|الغاء|الغاء|الغِ|الغى|الغ|الغِي|إلغي|إلغاء|ألغى|ألغ|الغى).{0,45}(?:تذكير|منبه|المنبه|التذكير)|(?:الغِ|الغى|إلغي|إلغاء).{0,30}(?:تذكير|منبه)/u.test(normalizedCommand);
-      const deleteIntent = /(?:احذف|احذفي|امسح|امسحي|شيل|شيلي|امحي).{0,70}(?:معلومة|المعلومة|ملاحظة|الملاحظة|نوتة|النوتة|كلمة|كلمه|رقم|الرقم|ذاكرة|الذاكرة)|^(?:احذف|احذفي|امسح|امسحي|شيل|شيلي)\s+/u.test(normalizedCommand);
+      const deleteIntent = /(?:احذف|احذفي|امسح|امسحي|شيل|شيلي|امحي).{0,70}(?:معلومة|المعلومة|المعلومه|ملاحظة|الملاحظة|نوتة|النوتة|كلمة|كلمه|رقم|الرقم|ذاكرة|الذاكرة)|^(?:احذف|احذفي|امسح|امسحي|شيل|شيلي)\s+/u.test(normalizedCommand);
       if (reminderIntent || deleteIntent) {
         const { data: activeItems, error: itemsError } = await admin.from("nova_personal_items")
           .select("id,item_type,title,content,scheduled_at,metadata,updated_at").eq("user_id", userId)
