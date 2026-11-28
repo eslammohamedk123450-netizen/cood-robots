@@ -70,6 +70,8 @@ assert.deepEqual(duplicates, [], "HTML contains duplicate IDs");
 const refs = [...app.matchAll(/\$\(["']([^"']+)["']\)/g)].map((m) => m[1]);
 const missing = [...new Set(refs.filter((id) => !ids.includes(id)))];
 assert.deepEqual(missing, [], "app.js references missing HTML IDs");
+assert.match(html, /app\.js\?v=solina-stability-v4/, "The web bundle must use a fresh cache key after the stability release");
+assert.match(androidMain, /live-clock-prayer-fix-v10/, "Android WebView must request the latest web bundle");
 
 assert.match(html, /Content-Security-Policy/, "CSP meta policy must be present");
 assert.equal(html.includes("\\n"), false, "HTML must not contain literal escaped newline artifacts");
