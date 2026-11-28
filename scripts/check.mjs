@@ -227,7 +227,7 @@ assert.match(edge, /voice\?\.gender.*female/, "Sonex voice lists must be filtere
 assert.match(edge, /isVerifiedFemale/, "Server must reject any selected voice not verified as female");
 assert.doesNotMatch(edge, /\bsoly\b|Puck|ShakirNeural|tts_chatterbox|Chatterbox/, "Server must not retain old persona or unverified TTS service paths");
 assert.match(edge, /oldRowsResult\.error/, "Parallel history retrieval errors must be handled explicitly");
-assert.match(edge, /const \[\{ data: memoryRow, error: memoryReadError \}, \{ data: models, error \}, oldRowsResult\] = await Promise\.all\(/, "Independent memory, model, and history reads must run concurrently");
+assert.match(edge, /const \[\{ data: memoryRow, error: memoryReadError \}, \{ data: models, error \}, \{ data: aiPreference, error: preferenceError \}, oldRowsResult\] = await Promise\.all\(/, "Independent memory, model, preference, and history reads must run concurrently");
 assert.match(edge, /const secretEntries = await Promise\.all\(/, "Provider secrets must be fetched concurrently instead of serially");
 assert.match(html, /style\.css\?v=solina-voice-orb-v\d+/, "Solina stylesheet must use a versioned cache key");
 assert.match(css, /solina-orb-stage/, "Responsive Solina voice-first layout must be present");
