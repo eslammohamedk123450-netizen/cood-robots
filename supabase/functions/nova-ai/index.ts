@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { classifyMemoryKind, extractMemoryNumberSignature, extractMemoryTokens, isCorrectionHistoryRecall, isExplicitMemoryRecall, isWordMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "./memory-utils.js";
 import { buildMemoryGraph, parseMemoryModelJson, resolveMemoryFactIndex, validateSemanticRecallIds } from "./memory-graph.js";
+import { classifyMemoryPeriodRequest, getCairoWeekDateKeys } from "./memory-utils.js";
 import { requiresMultiAgentWork } from "./routing-policy.js";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -1550,28 +1551,19 @@ Deno.serve(async (req: Request) => {
         const { data: savedNotes, error: notesReadError } = await notesBaseQuery().limit(80);
         if (notesReadError) throw notesReadError;
         const notes = savedNotes ?? [];
-        const normalizedRecallText = normalizeMemoryText(latestUserText);
-        const asksToday = /(?:النهارده|النهاردة|اليوم)/u.test(normalizedRecallText);
-        const asksYesterday = /(?:امبارح|مبارح|امس)/u.test(normalizedRecallText);
-        const asksThisWeek = /(?:الاسبوع ده|الاسبوع الحالي|اسبوعنا ده)/u.test(normalizedRecallText);
-        const asksWholeWeek = /(?:الاسبوع كله|كل الاسبوع|كل اللي حفظته|كل المحفوظ|اعرضي?لي? كل|وريني كل|كله)/u.test(normalizedRecallText);
-        if (asksThisWeek && !asksWholeWeek && !asksToday && !asksYesterday && !/(?:السبت|الاحد|الاثنين|الثلاثاء|الاربعاء|الخميس|الجمعة)/u.test(normalizedRecallText)) {
+        const memoryPeriod = classifyMemoryPeriodRequest(latestUserText);
+        const { asksToday, asksYesterday, asksThisWeek, asksWholeWeek, requestedWeekday } = memoryPeriod;
+        if (memoryPeriod.shouldClarifyWeek) {
           return json({ reply: "أكيد. تقصد يوم معين من الأسبوع ده، ولا أعرضلك كل اللي حفظته خلال الأسبوع؟", needs_memory_period_clarification: true }, 200, origin);
         }
         const cairoDateKey = (date: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
-        const todayKey = cairoDateKey(new Date());
-        const yesterdayKey = cairoDateKey(new Date(Date.now() - 24 * 60 * 60 * 1000));
-        const weekStartDate = new Date();
-        const localWeekday = new Intl.DateTimeFormat("en-US", { timeZone: "Africa/Cairo", weekday: "short" }).format(weekStartDate);
-        const daysSinceSaturday = ({ Sat: 0, Sun: 1, Mon: 2, Tue: 3, Wed: 4, Thu: 5, Fri: 6 } as Record<string, number>)[localWeekday] ?? 0;
-        weekStartDate.setDate(weekStartDate.getDate() - daysSinceSaturday);
-        const weekStartKey = cairoDateKey(weekStartDate);
-        const weekEndDate = new Date(weekStartDate); weekEndDate.setDate(weekEndDate.getDate() + 6);
-        const weekEndKey = cairoDateKey(weekEndDate);
+        const { todayKey, yesterdayKey, weekStartKey, weekEndKey, weekdayKeys } = getCairoWeekDateKeys(new Date());
+        const requestedWeekdayKey = requestedWeekday ? weekdayKeys[requestedWeekday] || null : null;
         const requestedPeriodFilter = (note: any) => {
           const key = cairoDateKey(new Date(note.created_at));
           if (asksToday) return key === todayKey;
           if (asksYesterday) return key === yesterdayKey;
+          if (asksThisWeek && requestedWeekdayKey && !asksWholeWeek) return key === requestedWeekdayKey;
           if (asksThisWeek) return key >= weekStartKey && key <= weekEndKey;
           return true;
         };
