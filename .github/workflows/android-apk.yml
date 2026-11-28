@@ -11,7 +11,8 @@ on:
       - "app.js"
       - "task-manager.js"
       - "index.html"
-      - ".github/workflows/android-apk.yml"
+      - "package.json"
+      - "scripts/**"
 
 permissions:
   contents: read
@@ -26,6 +27,12 @@ jobs:
     steps:
       - name: Checkout main
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Run repository regression checks
+        run: npm test
       - name: Set up Java 17
         uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v4
         with:
