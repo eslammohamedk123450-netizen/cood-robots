@@ -216,6 +216,12 @@ assert.ok(edge.includes("correction_evidence: newValueEvidence"), "Corrected val
 assert.ok(edge.includes("semantic_graph: item.metadata?.memory_graph"), "Deletion must compare semantic context when available");
 assert.ok(edge.includes("selectedCorrectionIds.length === 1"), "Fact correction must bind to one owner-scoped memory before updating");
 assert.ok(edge.includes('pending_action: "delete_confirmation"'), "Semantic deletion must remain confirmation-gated");
+assert.ok(edge.includes("newValueIsGrounded"), "Fact correction must verify the proposed value against the user's own wording");
+assert.ok(edge.includes("correction_history: [...previousHistory, historyEntry]"), "Fact-level corrections must preserve old and new values in history");
+assert.ok(edge.includes("const correctedMemories = notes.filter"), "Correction history retrieval must include non-numeric facts as well as references");
+assert.ok(edge.includes("change.previous_value") && edge.includes("change.new_value"), "Old and current values must both be answerable after a correction");
+assert.ok(edge.includes("if (!pendingWrite)"), "Deletion confirmation must not be offered for an item that ceased to be active");
+
 
 assert.ok(edge.includes("validateSemanticRecallIds"), "Semantic retrieval must validate model-selected IDs against owner-scoped saved notes");
 assert.ok(edge.includes("original_text: String(note.content"), "Semantic retrieval must compare the complete original note as evidence");
