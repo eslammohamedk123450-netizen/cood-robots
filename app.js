@@ -1748,6 +1748,7 @@ async function executeTaskIntent(intent) {
   return null;
 }
 function stopSpeechPlaybackOnly() {
+  speechPlaybackId += 1; // Invalidate pending cloud TTS fetches before stopping playback.
   if (state.audio) { try { state.audio.pause(); } catch (_) {} state.audio = null; }
   if (speechAudioElement) {
     try { speechAudioElement.pause(); speechAudioElement.removeAttribute("src"); speechAudioElement.load(); } catch (_) {}
@@ -1856,6 +1857,7 @@ async function handleRecognizedText(text, voiceTurn = false, voiceAlternatives =
 }
 function cancelCurrentTurn(showMessage = true) {
   state.requestSequence += 1;
+  speechPlaybackId += 1; // Prevent a late TTS response from restarting after cancel/stop.
   if (state.requestController) { try { state.requestController.abort(); } catch (_) {} state.requestController = null; }
   stopInterruptRecognition();
   state.processing = false;
