@@ -59,7 +59,7 @@ export function isExplicitMemoryRecall(value) {
 
 export function parseExplicitMemorySave(value) {
   const text = String(value ?? "").trim();
-  if (!text || isExplicitMemoryRecall(text)) return null;
+  // A save verb embedded in a correction (e.g. "عدلي الميزانية ... واحفظي القيمة القديمة")\n  // is not a new save command; never turn the trailing words into a separate memory.\n  if (!text || isExplicitMemoryRecall(text) || /(?:صحح|صححي|عدل|عدلي|بدل|بدلي|غير|غيري|استبدل|استبدلي)\s/u.test(normalizeMemoryText(text))) return null;
   const trigger = /(?:خلي(?:كي|ك)\s+(?:فاكر(?:ة|ه|اه)?|في\s+بالك)(?:\s+عندك)?|احفظ(?:ي)?(?![\\p{L}\\p{N}_])|سجل(?:ي)?(?![\\p{L}\\p{N}_])|افتكر(?:ي)?\s+(?:إن|ان|بأن|عندك))\s*(?:إن|ان|بأن)?\s*(?:ده|دي|دا)?\s*[:،]?\s*/giu;
   const matches = [...text.matchAll(trigger)];
   // Voice recognition may repeat the full save command after a wake word.
