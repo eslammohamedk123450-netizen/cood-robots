@@ -1952,7 +1952,7 @@ function submitText(text) {
   if (!state.voiceSessionActive && !local.addressed) {
     state.voiceDraft = combined;
     $("textInput").value = "";
-    $("liveTranscript").textContent = combined + "\\n\\nمحتفظة بالرسالة مؤقتًا؛ اكتبي أو قولي «سولينا» عشان أرسلها كاملة.";
+    $("liveTranscript").textContent = combined + " — محتفظة بالرسالة مؤقتًا؛ اكتبي أو قولي «سولينا» عشان أرسلها كاملة.";
     setStatus("مستنياكي تقولي سولينا", "listening");
     if (state.voicePauseTimer) window.clearTimeout(state.voicePauseTimer);
     state.voicePauseTimer = window.setTimeout(() => { state.voiceDraft = ""; state.voiceAlternatives = []; state.voicePauseTimer = null; }, 8000);
