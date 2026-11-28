@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { classifyMemoryKind, extractMemoryNumberSignature, extractMemoryTokens, isCorrectionHistoryRecall, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "../supabase/functions/nova-ai/memory-utils.js";
-import { buildMemoryGraph, parseMemoryModelJson, validateSemanticRecallIds } from "../supabase/functions/nova-ai/memory-graph.js";
+import { buildMemoryGraph, parseMemoryModelJson, resolveMemoryFactIndex, validateSemanticRecallIds } from "../supabase/functions/nova-ai/memory-graph.js";
 import { classifyConversationTurn } from "../conversation-context.js";
 import { requiresMultiAgentWork } from "../supabase/functions/nova-ai/routing-policy.js";
 import { SPEECH_QUOTA_COOLDOWN_MS, isSpeechQuotaCoolingDown, markSpeechQuotaExceeded, clearSpeechQuotaCooldown, speechQuotaCooldownKey } from "../speech-quota.js";
@@ -22,6 +22,12 @@ assert.equal(graphFixture.source_text, "المشروع ألف ميزانيته 5
 assert.equal(graphFixture.facts.length, 3, "Semantic indexing must preserve distinct facts from one sentence");
 assert.equal(graphFixture.facts[0].subject, "المشروع ألف", "Each value must remain attached to its correct subject");
 assert.equal(graphFixture.facts[2].subject, "المشروع باء", "Similar properties must not merge facts belonging to different subjects");
+assert.equal(resolveMemoryFactIndex(graphFixture.facts, { fact_index: 0, fact_subject: "المشروع ألف", fact_predicate: "الميزانية", old_value: "5000" }), 0, "A fact correction must match its subject, property and previous value");
+assert.equal(resolveMemoryFactIndex(graphFixture.facts, { fact_index: 0, fact_subject: "المشروع ألف", fact_predicate: "موعد التسليم", old_value: "5000" }), -1, "A mismatched previous value must block a correction");
+assert.equal(resolveMemoryFactIndex(graphFixture.facts, { fact_index: 0 }), -1, "A bare model index must not choose among multiple facts");
+assert.equal(resolveMemoryFactIndex([graphFixture.facts[0]], { fact_index: 0 }), 0, "A single-fact note may be corrected without redundant selectors");
+assert.equal(resolveMemoryFactIndex(graphFixture.facts, { old_value: "٥٠٠٠" }), 0, "Arabic numeral variants must resolve to the same stored numeric value");
+
 assert.equal(graphFixture.facts[2].value, "7000", "Exact values must survive semantic graph validation");
 assert.equal(buildMemoryGraph("المشروع ألف ميزانيته 5000 جنيه.", { facts: [{ subject: "المشروع ألف", predicate: "الميزانية", value: "9000", evidence: "ميزانيته 9000 جنيه" }] }).facts.length, 0, "Model-invented facts without matching source evidence must be rejected");
 assert.equal(buildMemoryGraph("المشروع ألف ميزانيته 5000 جنيه.", { facts: [{ subject: "المشروع ألف", predicate: "الميزانية", value: "9000", evidence: "ميزانيته 5000 جنيه" }] }).facts.length, 0, "A model must not attach a value that is absent from its quoted evidence");
