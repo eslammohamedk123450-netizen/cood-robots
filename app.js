@@ -1037,13 +1037,13 @@ async function requestAIReply(text, signal, voiceAlternatives = []) {
         liveData = await invokeNova("live_info", { kind: "search", query }, { signal });
       }
       let prayerRemaining = "";
-      if (asksPrayer && /فاضل|متبقي|قد\\s*إيه|قد\\s*ايه|كام\\s*(?:دقيقة|ساعة|ساعه)/i.test(liveQuery)) {
+      if (asksPrayer && /فاضل|متبقي|قد\s*إيه|قد\s*ايه|كام\s*(?:دقيقة|ساعة|ساعه)/i.test(liveQuery)) {
         const targetPrayer = /(?:الفجر|فجر)/i.test(liveQuery) ? "fajr"
           : /الظهر|ظهر/i.test(liveQuery) ? "dhuhr"
           : /العصر|عصر/i.test(liveQuery) ? "asr"
           : /المغرب|مغرب/i.test(liveQuery) ? "maghrib"
           : /العشاء|عشا/i.test(liveQuery) ? "isha" : "";
-        const targetTime = targetPrayer ? String(liveData?.timings?.[targetPrayer] || "").match(/^(\\d{1,2}):(\\d{2})/) : null;
+        const targetTime = targetPrayer ? String(liveData?.timings?.[targetPrayer] || "").match(/^(\d{1,2}):(\d{2})/) : null;
         if (targetTime) {
           const now = new Date();
           const target = new Date(now);
