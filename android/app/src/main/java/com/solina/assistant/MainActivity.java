@@ -38,6 +38,7 @@ public class MainActivity extends Activity {
     private boolean ttsReady = false;
     private String pendingTtsText = null;
     private String pendingTtsRequestId = null;
+    private String activeTtsRequestId = null;
     private final String appUrl = "https://eslammohamedk123450-netizen.github.io/cood-robots/?solina=live-clock-prayer-fix-v9";
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -116,20 +117,45 @@ public class MainActivity extends Activity {
         runOnUiThread(() -> { if (webView != null) webView.evaluateJavascript(script, null); });
     }
 
+    private void clearActiveTtsRequest(String requestId) {
+        if (requestId != null && requestId.equals(activeTtsRequestId)) activeTtsRequestId = null;
+    }
+
     private void speakNativeTextNow(String text, String requestId) {
         if (!ttsReady || textToSpeech == null) {
             dispatchTtsEvent("error", "محرك الصوت في أندرويد غير جاهز.", requestId);
             return;
         }
         String utteranceId = "solina-" + requestId;
+        activeTtsRequestId = requestId;
         textToSpeech.setOnUtteranceProgressListener(new UtteranceProgressListener() {
             @Override public void onStart(String id) { dispatchTtsEvent("start", "", requestIdFromUtterance(id)); }
-            @Override public void onDone(String id) { dispatchTtsEvent("done", "", requestIdFromUtterance(id)); }
-            @Override public void onError(String id) { dispatchTtsEvent("error", "محرك أندرويد فشل في إخراج الصوت.", requestIdFromUtterance(id)); }
-            @Override public void onError(String id, int errorCode) { dispatchTtsEvent("error", "فشل إخراج الصوت، رمز الخطأ " + errorCode, requestIdFromUtterance(id)); }
+            @Override public void onDone(String id) {
+                String completedRequestId = requestIdFromUtterance(id);
+                dispatchTtsEvent("done", "", completedRequestId);
+                clearActiveTtsRequest(completedRequestId);
+            }
+            @Override public void onStop(String id, boolean interrupted) {
+                String stoppedRequestId = requestIdFromUtterance(id);
+                dispatchTtsEvent("cancelled", "", stoppedRequestId);
+                clearActiveTtsRequest(stoppedRequestId);
+            }
+            @Override public void onError(String id) {
+                String failedRequestId = requestIdFromUtterance(id);
+                dispatchTtsEvent("error", "محرك أندرويد فشل في إخراج الصوت.", failedRequestId);
+                clearActiveTtsRequest(failedRequestId);
+            }
+            @Override public void onError(String id, int errorCode) {
+                String failedRequestId = requestIdFromUtterance(id);
+                dispatchTtsEvent("error", "فشل إخراج الصوت، رمز الخطأ " + errorCode, failedRequestId);
+                clearActiveTtsRequest(failedRequestId);
+            }
         });
         int result = textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
-        if (result == TextToSpeech.ERROR) dispatchTtsEvent("error", "تعذر بدء النطق على الجهاز.", requestId);
+        if (result == TextToSpeech.ERROR) {
+            clearActiveTtsRequest(requestId);
+            dispatchTtsEvent("error", "تعذر بدء النطق على الجهاز.", requestId);
+        }
     }
 
     void dispatchSpeechResult(JSONArray transcripts) {
@@ -499,9 +525,12 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void stopSpeaking() {
             activity.runOnUiThread(() -> {
+                String requestId = activity.activeTtsRequestId != null ? activity.activeTtsRequestId : activity.pendingTtsRequestId;
                 activity.pendingTtsText = null;
                 activity.pendingTtsRequestId = null;
+                activity.activeTtsRequestId = null;
                 if (activity.textToSpeech != null) activity.textToSpeech.stop();
+                if (requestId != null) activity.dispatchTtsEvent("cancelled", "", requestId);
             });
         }
         @JavascriptInterface public boolean isTtsReady() { return activity.ttsReady; }
