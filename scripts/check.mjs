@@ -621,7 +621,7 @@ assert.equal(parseExplicitMemorySave("افتكري الرقم اللي قولت�
 assert.equal(parseExplicitMemorySave("احفظي رقم الحساب 123456789"), "رقم الحساب 123456789", "Direct save commands must capture numeric reference values");
 assert.equal(parseExplicitMemorySave("عدلي ميزانية مشروع النور خليها 6000 جنيه واحفظيه بالقيمة القديمة واحتفظي بالقيمة القديمة"), null, "A save-like verb embedded in a correction must not create a garbage memory");
 assert.match(edge, /const saveReply = memoryKind === "project"/, "Successful saves must return a short human confirmation instead of exposing graph internals");
-assert.match(edge, /correctionHistoryRecall \? correctedMemories : notes/, "Old/new-value recall must semantically rank only corrected memories when relevant");
+assert.match(edge, /correctionHistoryRecall \? correctedMemoriesForQuery : notes/, "Old/new-value recall must semantically rank only subject-matched corrected memories");
 assert.match(edge, /MEMORY_FACT_DELETE_INSTRUCTION/, "Partial deletion must resolve exact facts inside a combined memory");
 assert.match(edge, /pending_fact_deletions/, "Partial deletion must persist the exact selected facts for confirmation");
 assert.match(edge, /personal_fact_archived/, "Confirming a partial deletion must archive only the selected facts");
