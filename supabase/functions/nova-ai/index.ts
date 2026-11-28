@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { classifyMemoryKind, extractMemoryNumberSignature, extractMemoryTokens, isCorrectionHistoryRecall, isExplicitMemoryRecall, isWordMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "./memory-utils.js";
 import { buildMemoryGraph, parseMemoryModelJson, validateSemanticRecallIds } from "./memory-graph.js";
+import { requiresMultiAgentWork } from "./routing-policy.js";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -406,18 +407,6 @@ const MEMORY_CORRECTION_INSTRUCTION = [
 ].join(" ");
 
 
-function requiresMultiAgentWork(text: string): boolean {
-  const value = String(text || "").trim();
-  if (!value) return false;
-  // Keep personal actions and direct recall on deterministic/single-model paths.
-  if (/(?:^|\s)(?:فكريني|فكرني|ذكريني|ذكرني|منبه|تذكير|احفظي|احفظ|خليكي فاكرة|فاكرة الرقم|هات الرقم|الساعة كام|الوقت كام)(?:\s|$)/iu.test(value)) return false;
-  const explicitResearch = /(?:بحث شامل|ابحث عن مصادر|هات مصادر|قارن بين|مقارنة شاملة|حلل بعمق|تحليل مفصل|دراسة جدوى|تقييم شامل|راجع الخيارات|موازنة بين|خطة تنفيذ كاملة|عدة مراحل|عدة أنظمة|أكثر من بديل|مصادر متعددة|research and compare|comprehensive research|deep analysis|trade.?off|multi.step plan)/iu.test(value);
-  if (explicitResearch) return true;
-  if (value.length < 90) return false;
-  const substantialTask = value.length >= 900 && /(?:اشرح|حلل|قارن|صمم|نفذ|راجع|ابن|خطط|دراسة|بحث|مصادر|تحليل|architecture|implement|debug|build|research|compare|analy[sz]e)/iu.test(value);
-  const multiRequirement = /(?:أولاً|ثانيًا|ثالثًا|بالإضافة إلى|وفي نفس الوقت|مع مراعاة|من ناحية.*ومن ناحية|بشرط.*وكمان)/iu.test(value) && value.length >= 260;
-  return explicitResearch || substantialTask || multiRequirement;
-}
 function buildAgentMessages(messages: any[], roleInstruction: string): any[] {
   const baseSystem = messages.filter((item) => item?.role === "system" && typeof item.content === "string").map((item) => item.content).join("\n");
   return [{ role: "system", content: (baseSystem ? baseSystem + "\n\n" : "") + roleInstruction }, ...messages.filter((item) => item?.role !== "system")];
