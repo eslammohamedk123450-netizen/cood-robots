@@ -1188,7 +1188,7 @@ Deno.serve(async (req: Request) => {
               : "لقيت الرقم المحفوظ، وهو " + String(relevantNotes[0].content || relevantNotes[0].title) + "، لكن سجل التصحيح القديم مش موجود عندي.")
             : "أيوه، فاكرة. " + String(relevantNotes[0].content || relevantNotes[0].title) + " — حفظته يوم " + new Date(relevantNotes[0].created_at).toLocaleString("ar-EG", { dateStyle: "long", timeStyle: "short" }) + "."
           : "لقيت كذا معلومة محفوظة ممكن تقصدها:\n" + candidates.join("\n") + "\nقولي رقم الاختيار لو تقصد معلومة معينة.";
-        return json({ reply: response, recalled_notes: relevantNotes.length, memory_found: true, exact_number_found: relevantNotes.some((note: any) => /\d{3,}/.test(String(note.content || ""))) }, 200, origin);
+        return json({ reply: response, recalled_notes: relevantNotes.length, memory_found: true, exact_number_found: relevantNotes.some((note: any) => Boolean(extractMemoryNumberSignature(String(note.content || note.title || "")))) }, 200, origin);
       }
 
       // Only fetch a small set of keyword-matched notes for normal turns; greetings and short chat skip this query entirely.
