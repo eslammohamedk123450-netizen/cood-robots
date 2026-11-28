@@ -465,6 +465,8 @@ assert.match(androidMain, /setLanguage\(new Locale\("ar", "EG"\)\)/, "Native spe
 assert.match(androidMain, /speakText\(String text\)/, "Web app must be able to request native Android speech");
 assert.match(androidMain, /solina-native-tts/, "Native TTS playback status must be returned to the web app");
 assert.match(app, /speakWithNativeDevice\(text, segments\)/, "Android app must use native TTS before browser speech synthesis");
+assert.match(app, /waitForDeviceVoice\(1800\)/, "Web TTS fallback must wait for asynchronous Arabic voice inventory");
+assert.match(app, /voiceschanged/, "Web TTS must handle browsers that load voices asynchronously");
 assert.match(app, /تعذر تشغيل صوت سولينا:/, "Speech failure must be visible instead of silently dropping audio");
 
 assert.equal(normalizeTaskText("سِيْلينا"), "سولينا", "Common Solina name pronunciations must normalize consistently");
