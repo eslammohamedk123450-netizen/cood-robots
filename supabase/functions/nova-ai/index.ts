@@ -966,7 +966,7 @@ Deno.serve(async (req: Request) => {
       const failures: string[] = [];
       for (const model of models) {
         const provider = providerMap.get(model.api_key_id);
-        if (!provider) continue;
+        if (!provider) { failures.push(model.model_id + ": provider key inactive or missing"); continue; }
         const apiKey = secretMap.get(model.api_key_id);
         if (!apiKey) { failures.push(model.model_id + ": vault unavailable"); continue; }
         const providerStartedAt = performance.now();
