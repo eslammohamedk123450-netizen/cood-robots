@@ -1052,11 +1052,17 @@ async function requestAIReply(text, signal, voiceAlternatives = []) {
       });
     }
   }
-  if (voiceAlternatives.length > 1) {
-    const candidates = voiceAlternatives.map((item) => String(item.text || "").trim()).filter(Boolean).slice(0, 6);
-    if (candidates.length > 1) requestMessages.splice(requestMessages.length - 1, 0, {
+  if (voiceAlternatives.length) {
+    // Alternatives belong to individual recognition segments. Never flatten
+    // alternatives from separate segments into competing full-sentence guesses.
+    const segments = voiceAlternatives.map((group, index) => {
+      const options = Array.isArray(group?.alternatives) ? group.alternatives : [group];
+      const candidates = options.map((item) => String(item?.text || "").trim()).filter(Boolean).slice(0, 3);
+      return candidates.length > 1 ? "المقطع " + (index + 1) + ": " + candidates.join(" / ") : "";
+    }).filter(Boolean).slice(0, 6);
+    if (segments.length) requestMessages.splice(requestMessages.length - 1, 0, {
       role: "system",
-      content: "ملاحظة داخلية: آخر رسالة مفرغة آليًا من صوت باللهجة المصرية. قد يحتوي النص الأساسي على خطأ سمعي؛ قارن هذه البدائل واستنتج المقصود من سياق المحادثة. لا تكرر لفظًا غير منطقي حرفيًا، ولا تخمّن إذا لم يتضح المعنى. البدائل: " + candidates.join(" | ")
+      content: "ملاحظة داخلية: آخر رسالة مفرغة آليًا من صوت باللهجة المصرية. البدائل التالية تخص كل مقطع على حدة، وليست جملًا كاملة متنافسة. صحح الخطأ الواضح بالاستناد إلى سياق الجملة، ولا تغيّر اسمًا أو كلمة صحيحة، ولا تخمّن إذا لم يتضح المعنى. " + segments.join("؛ ")
     });
   }
   // Prayer intent takes precedence over generic clock phrases such as "الفجر يأذن الساعة كام".
@@ -1311,7 +1317,7 @@ function queueVoiceFinal(text, alternatives = []) {
   const candidates = alternatives.filter((item) => item && typeof item.text === "string" && item.text.trim())
     .sort((a, b) => (Number(b.confidence) || 0) - (Number(a.confidence) || 0));
   const best = candidates[0]?.text.trim() || part;
-  state.voiceAlternatives.push(...candidates.slice(0, 3));
+  state.voiceAlternatives.push({ text: best, alternatives: candidates.slice(0, 3) });
   state.voiceDraft = (state.voiceDraft + " " + best).trim().slice(-320);
   $("liveTranscript").textContent = state.voiceDraft;
   setStatus("سامعك... كمل براحتك", "listening");
