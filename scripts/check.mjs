@@ -806,7 +806,7 @@ assert.match(app, /turnMode === "topic_change"/, "Explicit topic changes must su
 assert.match(app, /turnMode === "follow_up"/, "Short follow-ups must resolve against nearby messages without archive searches");
 assert.equal(requiresMultiAgentWork("قارن بين الخيارات مع مصادر متعددة"), true, "Comparison and source requests must use the research route");
 
-assert.match(app, /speechCacheKey = JSON\.stringify\(\[persona, speechAction, speechVendor, voiceId, spokenText\]\)/, "Neural speech cache must be keyed by provider, engine, voice and exact text");
+assert.match(app, /speechCacheKey = JSON\.stringify\(\[persona, speechAction, speechQuotaProvider, speechCacheVoiceId, spokenText\]\)/, "Neural speech cache must be keyed by the actual provider, engine, voice and exact text");
 assert.match(app, /getSpeechAudioCache\(speechCacheKey\)/, "Repeated speech must reuse cached audio within the current page session");
 assert.match(app, /rememberSpeechAudio\(speechCacheKey, result\)/, "Successful speech responses must enter the bounded in-memory cache");
 
