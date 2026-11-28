@@ -72,6 +72,7 @@ const missing = [...new Set(refs.filter((id) => !ids.includes(id)))];
 assert.deepEqual(missing, [], "app.js references missing HTML IDs");
 assert.match(html, /app\.js\?v=solina-stability-v4/, "The web bundle must use a fresh cache key after the stability release");
 assert.match(androidMain, /live-clock-prayer-fix-v10/, "Android WebView must request the latest web bundle");
+assert.match(androidMain, /setSpeechRate\(1\.05f\)/, "Native Android speech must use the tuned faster playback rate");
 
 assert.match(html, /Content-Security-Policy/, "CSP meta policy must be present");
 assert.equal(html.includes("\\n"), false, "HTML must not contain literal escaped newline artifacts");
@@ -149,7 +150,7 @@ assert.match(app, /allowedEngines = \["gemini", "server", "device", "mute"\]/, "
 assert.match(app, /savedEngine = allowedEngines\.includes\(storedEngine\) \? storedEngine : "server"/, "Default speech engine must be explicit cloud selection, never auto");
 
 assert.match(app, /SpeechSynthesisUtterance/, "The optional on-device speech engine must remain available");
-assert.match(app, /utterance\.rate = 0\.98;[\s\S]{0,80}utterance\.pitch = 1\.08;/, "Browser TTS must configure the declared utterance object");
+assert.match(app, /utterance\.rate = 1\.05;[\s\S]{0,80}utterance\.pitch = 1\.08;/, "Browser TTS must configure the declared utterance object");
 assert.doesNotMatch(app, /\butter\.(?:rate|pitch)\s*=/, "Browser TTS must not reference an undefined utter variable");
 assert.match(app, /لا تبدأ بسؤاله عن مشاريعه أو شغله/, "NOVA must not steer casual conversation toward projects");
 assert.match(app, /الملف الشخصي وسجل المشاريع معلومات خلفية فقط/, "Profile memories must not dominate unrelated conversations");
@@ -170,6 +171,8 @@ assert.equal(isSpeechQuotaCoolingDown("elevenlabs", fakeSpeechStorage, 1000 + SP
 assert.equal(clearSpeechQuotaCooldown("elevenlabs", fakeSpeechStorage), true, "A provider cooldown must be clearable after a successful request");
 assert.match(speechQuotaCooldownKey("elevenlabs"), /elevenlabs$/, "Cooldown keys must be isolated by provider");
 assert.match(app, /SPEECH_QUOTA_EXCEEDED/, "The client must recognize a provider quota response and fall back to device speech");
+assert.match(app, /speechQuotaProvider = useGeminiTts \? "gemini" : speechVendor/, "Speech quota cooldowns must be isolated by the actually selected TTS provider");
+assert.match(app, /if \(isSpeechQuotaCoolingDown\(quotaProvider\)\) return null/, "Stop acknowledgements must honor provider cooldowns too");
 assert.match(app, /if \(!useGeminiTts\) clearSpeechQuotaCooldown\(speechVendor\)/, "A quota cooldown may only clear after a fresh successful cloud request, not cached playback");
 assert.match(edge, /SPEECH_QUOTA_EXCEEDED/, "The edge function must return a safe quota-specific response");
 assert.match(edge, /SPEECH_VOICE_VERIFICATION_TTL_MS/, "Female voice verification must be cached to avoid a provider API call on every reply");
