@@ -54,6 +54,7 @@ assert.equal(new Set(stopWordEntries).size, stopWordEntries.length, "The memory 
 const personalItemsMigration = read("../supabase/migrations/20261127233636_nova_account_synced_personal_items.sql");
 const css = read("../style.css") + read("../solina-voice.css");
 const workflow = read("../.github/workflows/pages.yml");
+const androidWorkflow = read("../.github/workflows/android-apk.yml");
 const scheduler = read("../android/app/src/main/java/com/solina/assistant/AlarmScheduler.java");
 const receiver = read("../android/app/src/main/java/com/solina/assistant/TaskReceiver.java");
 const activity = read("../android/app/src/main/java/com/solina/assistant/AlarmActivity.java");
