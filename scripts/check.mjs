@@ -780,6 +780,7 @@ assert.match(app, /stage === "choose_due_action"/, "Multiple due items must ask 
 assert.match(app, /dueItems\.length > 1/, "Ambiguous due-task actions must present choices instead of selecting the first record");
 assert.match(app, /pending\.action === "complete"/, "The selected due item must preserve the requested completion or snooze action");
 assert.doesNotMatch(app, /dueReminders\[0\]/, "The app must not silently act on the first due reminder when several exist");
+assert.match(edge, /import \{ requiresMultiAgentWork \} from "\.\/routing-policy\.js"/, "The edge function must import the shared routing policy");
 assert.match(routing, /const EXPLICIT_PERSONAL_ACTION/, "Personal actions must have a deterministic routing guard");
 assert.match(routing, /const EXPLICIT_RESEARCH/, "Explicit research must have a separate routing path");
 assert.equal(requiresMultiAgentWork("فكريني بعد نص ساعة"), false, "Personal reminders must stay on one model");
