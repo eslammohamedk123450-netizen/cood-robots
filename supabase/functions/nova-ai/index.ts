@@ -410,7 +410,7 @@ function requiresMultiAgentWork(text: string): boolean {
   const value = String(text || "").trim();
   if (!value) return false;
   // Keep personal actions and direct recall on deterministic/single-model paths.
-  if (/(?:^|\\s)(?:فكريني|فكرني|ذكريني|ذكرني|منبه|تذكير|احفظي|احفظ|خليكي فاكرة|فاكرة الرقم|هات الرقم|الساعة كام|الوقت كام)(?:\\s|$)/iu.test(value)) return false;
+  if (/(?:^|\s)(?:فكريني|فكرني|ذكريني|ذكرني|منبه|تذكير|احفظي|احفظ|خليكي فاكرة|فاكرة الرقم|هات الرقم|الساعة كام|الوقت كام)(?:\s|$)/iu.test(value)) return false;
   const explicitResearch = /(?:بحث شامل|ابحث عن مصادر|هات مصادر|قارن بين|مقارنة شاملة|حلل بعمق|تحليل مفصل|دراسة جدوى|تقييم شامل|راجع الخيارات|موازنة بين|خطة تنفيذ كاملة|عدة مراحل|عدة أنظمة|أكثر من بديل|مصادر متعددة|research and compare|comprehensive research|deep analysis|trade.?off|multi.step plan)/iu.test(value);
   if (explicitResearch) return true;
   if (value.length < 90) return false;
