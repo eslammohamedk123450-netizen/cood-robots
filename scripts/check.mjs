@@ -565,6 +565,11 @@ assert.deepEqual(parseExplicitMemoryCorrection("صححي الرقم المحفو
 assert.equal(parseExplicitMemoryCorrection("الرقم ده غلط"), null, "Incomplete corrections must not modify saved memory");
 const spokenNumberMemory = parseExplicitMemorySave("خليكي فاكرة عندك الرقم ده، واحد اثنين ثلاثة أربعة خمسة");
 assert.equal(spokenNumberMemory, "الرقم ده، واحد اثنين ثلاثة أربعة خمسة", "Explicit remember phrases must preserve the complete spoken number payload exactly");
+assert.equal(isExplicitMemoryRecall("خليكي فاكرة الرقم ده 1 2 3"), false, "A direct save command must not be treated as a recall question");
+assert.equal(isExplicitMemoryRecall("سولينا فاكره الرقم اللي انا قلت لك خليكي حافظاه او خليكي فاكراه"), true, "Egyptian colloquial recall with embedded quoted save wording must be recognized");
+assert.equal(parseExplicitMemorySave("سولينا فاكره الرقم اللي انا قلت لك خليكي حافظاه او خليكي فاكراه"), null, "A recall question that mentions a save phrase must never create another note");
+assert.equal(parseExplicitMemorySave("سولينا خليكي فاكره الرقم ده 1 2 3"), "الرقم ده 1 2 3", "Egyptian colloquial save pronunciation must be recognized");
+assert.equal(parseExplicitMemorySave("لينا خليكي فاكره الرقم ده 1 2 3 4 5 سولينا خليكي فاكره الرقم ده 1 2 3 4 5"), "الرقم ده 1 2 3 4 5", "Repeated voice save commands must keep only the final clean payload");
 assert.equal(classifyMemoryKind(spokenNumberMemory), "reference", "Spoken number sequences must be categorized as reference memories");
 assert.equal(parseExplicitMemorySave("افتكري الرقم اللي قولتهولك"), null, "A recall request must not be misclassified as a new memory save");
 assert.equal(parseExplicitMemorySave("احفظي رقم الحساب 123456789"), "رقم الحساب 123456789", "Direct save commands must capture numeric reference values");
@@ -589,5 +594,6 @@ assert.match(edge, /targetMinute !== null && noteMinute !== targetMinute/, "Memo
 
 assert.ok(memoryUtils.includes("خلي(?:كي|ك)") && memoryUtils.includes("\\s+"), "Explicit remember phrase matcher must include the Arabic trigger and whitespace token");
 assert.match(edge, /ملاحظات المستخدم الشخصية المحفوظة/, "Saved notes must be injected into the model context when relevant");
+assert.match(edge, /const asksRecall = isExplicitMemoryRecall\(latestUserText\);\s*const saveNotePayload = asksRecall \? null : parseExplicitMemorySave\(latestUserText\);/, "Recall classification must run before saving so embedded save wording cannot create a new note");
 assert.match(edge, /if \(asksRecall\)/, "Personal note retrieval should be deterministic and recall-aware");
 console.log("SOLINA memory-context integration checks added.");
