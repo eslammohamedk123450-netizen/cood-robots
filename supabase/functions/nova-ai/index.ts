@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { classifyMemoryKind, extractMemoryTokens, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "./memory-utils.js";
+import { classifyMemoryKind, extractMemoryTokens, isCorrectionHistoryRecall, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "./memory-utils.js";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -1125,7 +1125,23 @@ Deno.serve(async (req: Request) => {
           }
           return memoryWords.length ? memoryWords.some((word) => haystack.includes(normalizeMemoryText(word))) : true;
         }).slice(0, 8);
-        const relevantNotes = matchedNotes.length ? matchedNotes : (memoryWords.length ? [] : notes.slice(0, 8));
+        const correctionHistoryRecall = isCorrectionHistoryRecall(latestUserText);
+        const numberRecall = /(?:رقم|الرقم)/u.test(normalizeMemoryText(latestUserText));
+        const recallPool = correctionHistoryRecall
+          ? notes.filter((note: any) => Array.isArray(note.metadata?.correction_history) && note.metadata.correction_history.length > 0)
+          : matchedNotes.length ? matchedNotes
+          : memoryWords.length ? []
+          : numberRecall ? notes.filter((note: any) => note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference")
+          : notes.slice(0, 8);
+        const seenRecallValues = new Set<string>();
+        const relevantNotes = recallPool.filter((note: any) => {
+          const content = String(note.content || note.title || "");
+          const digits = (content.match(/\d+/g) || []).join("");
+          const signature = digits ? "digits:" + digits : "text:" + normalizeMemoryText(content);
+          if (seenRecallValues.has(signature)) return false;
+          seenRecallValues.add(signature);
+          return true;
+        }).slice(0, 8);
         if (!notes.length) return json({ reply: "دورت في دفتري الشخصي، لكن مفيش معلومة محفوظة لسه. لو تحب، ابعتلي المعلومة بصيغة «خليكي فاكرة...» وأنا أحفظها.", recalled_notes: 0, memory_found: false }, 200, origin);
         if (!relevantNotes.length) return json({ reply: "مش لاقية في دفتري معلومة محفوظة تطابق الوصف أو التاريخ ده، ومش هخمن رقم من عندي. ممكن تديني كلمة مميزة عنها؟", recalled_notes: 0, memory_found: false }, 200, origin);
         const candidates = relevantNotes.slice(0, 6).map((note: any, index: number) => {
@@ -1133,7 +1149,9 @@ Deno.serve(async (req: Request) => {
           return (index + 1) + ") " + String(note.content || note.title) + " — حفظته يوم " + when;
         });
         const response = relevantNotes.length === 1
-          ? "أيوه، فاكرة. " + String(relevantNotes[0].content || relevantNotes[0].title) + " — حفظته يوم " + new Date(relevantNotes[0].created_at).toLocaleString("ar-EG", { dateStyle: "long", timeStyle: "short" }) + "."
+          ? correctionHistoryRecall
+            ? "أيوه، فاكرة الرقم اللي صححتيه. الرقم الحالي بعد التصحيح هو " + String(relevantNotes[0].content || relevantNotes[0].title) + ". والقيمة القديمة اللي اتصححت كانت " + String(relevantNotes[0].metadata?.correction_history?.slice(-1)[0]?.previous_content || "مسجلة في سجل التصحيح") + "."
+            : "أيوه، فاكرة. " + String(relevantNotes[0].content || relevantNotes[0].title) + " — حفظته يوم " + new Date(relevantNotes[0].created_at).toLocaleString("ar-EG", { dateStyle: "long", timeStyle: "short" }) + "."
           : "لقيت كذا معلومة محفوظة ممكن تقصدها:\n" + candidates.join("\n") + "\nقولي رقم الاختيار لو تقصد معلومة معينة.";
         return json({ reply: response, recalled_notes: relevantNotes.length, memory_found: true, exact_number_found: relevantNotes.some((note: any) => /\d{3,}/.test(String(note.content || ""))) }, 200, origin);
       }
