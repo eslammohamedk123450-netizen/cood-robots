@@ -1267,7 +1267,7 @@ Deno.serve(async (req: Request) => {
           return /(?:^|\s)(?:كلمة|الكلمه|كلمه)(?=\s|$)/u.test(value);
         });
         const wordNotes = notes.filter((note: any) =>
-          note.metadata?.memory_kind === "word" || classifyMemoryKind(String(note.content || note.title || "")) === "word"
+          note.metadata?.memory_kind === "word" || /(?:^|\\s)(?:الكلمة|كلمة|الكلمه|كلمه)(?:\\s|$)/u.test(normalizeMemoryText(String(note.content || note.title || "")))
         );
         const matchingWordNotes = memoryWords.length
           ? wordNotes.filter((note: any) => {
