@@ -1036,7 +1036,7 @@ async function requestAIReply(text, signal, voiceAlternatives = []) {
           : /المغرب|مغرب/i.test(liveQuery) ? "maghrib"
           : /العشاء|عشا/i.test(liveQuery) ? "isha" : "";
         const asksSpecificPrayerTime = /(?:الساعة|الساعه|امتى|متى|ميعاد|موعد|قرب|قربت|فاضل|متبقي)/i.test(liveQuery);
-        const rawPrayerTime = targetPrayer ? String(liveData?.timings?.[targetPrayer] || "").match(/^(\\d{1,2}):(\\d{2})/) : null;
+        const rawPrayerTime = targetPrayer ? String(liveData?.timings?.[targetPrayer] || "").match(/^(\d{1,2}):(\d{2})/) : null;
         if (targetPrayer && asksSpecificPrayerTime && rawPrayerTime) {
           const now = new Date();
           const target = new Date(now);
