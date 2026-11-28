@@ -59,11 +59,15 @@ export function isExplicitMemoryRecall(value) {
 
 export function parseExplicitMemorySave(value) {
   const text = String(value ?? "").trim();
-  // A save verb embedded in a correction (e.g. "عدلي الميزانية ... واحفظي القيمة القديمة")\n  // is not a new save command; never turn the trailing words into a separate memory.\n  if (!text || isExplicitMemoryRecall(text) || /(?:صحح|صححي|عدل|عدلي|بدل|بدلي|غير|غيري|استبدل|استبدلي)\s/u.test(normalizeMemoryText(text))) return null;
-  const trigger = /(?:خلي(?:كي|ك)\s+(?:فاكر(?:ة|ه|اه)?|في\s+بالك)(?:\s+عندك)?|احفظ(?:ي)?(?![\\p{L}\\p{N}_])|سجل(?:ي)?(?![\\p{L}\\p{N}_])|افتكر(?:ي)?\s+(?:إن|ان|بأن|عندك))\s*(?:إن|ان|بأن)?\s*(?:ده|دي|دا)?\s*[:،]?\s*/giu;
+  if (!text || isExplicitMemoryRecall(text)) return null;
+  const normalized = normalizeMemoryText(text);
+  const words = normalized.split(" ");
+  // A correction may end with "احفظي القيمة القديمة". That is part of the
+  // correction request, never a separate memory-save command.
+  const correctionWords = new Set(["صحح", "صححي", "عدل", "عدلي", "بدل", "بدلي", "غير", "غيري", "استبدل", "استبدلي"]);
+  if (words.some((word) => correctionWords.has(word))) return null;
+  const trigger = /(?<![\\p{L}\\p{N}_])(?:خلي(?:كي|ك)\\s+(?:فاكر(?:ة|ه|اه)?|في\\s+بالك)(?:\\s+عندك)?|احفظ(?:ي)?(?![\\p{L}\\p{N}_])|سجل(?:ي)?(?![\\p{L}\\p{N}_])|افتكر(?:ي)?\\s+(?:إن|ان|بأن|عندك))\\s*(?:إن|ان|بأن)?\\s*(?:ده|دي|دا)?\\s*[:،]?\\s*/giu;
   const matches = [...text.matchAll(trigger)];
-  // Voice recognition may repeat the full save command after a wake word.
-  // Use the last command marker so the payload does not absorb the repeated phrase.
   const match = matches[matches.length - 1];
   const payload = match ? text.slice((match.index ?? 0) + match[0].length).trim().replace(/^["'«»]+|["'«»]+$/g, "").trim() : null;
   return payload && payload.length >= 2 ? payload : null;
