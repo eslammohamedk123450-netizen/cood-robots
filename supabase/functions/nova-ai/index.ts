@@ -1131,7 +1131,15 @@ Deno.serve(async (req: Request) => {
           ? notes.filter((note: any) => Array.isArray(note.metadata?.correction_history) && note.metadata.correction_history.length > 0)
           : matchedNotes.length ? matchedNotes
           : memoryWords.length ? []
-          : numberRecall ? notes.filter((note: any) => note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference")
+          : numberRecall ? (() => {
+              const correctedReferences = notes.filter((note: any) =>
+                (note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference") &&
+                Array.isArray(note.metadata?.correction_history) && note.metadata.correction_history.length > 0
+              );
+              return correctedReferences.length ? correctedReferences : notes.filter((note: any) =>
+                note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference"
+              );
+            })()
           : notes.slice(0, 8);
         const seenRecallValues = new Set<string>();
         const relevantNotes = recallPool.filter((note: any) => {
