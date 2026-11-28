@@ -1944,10 +1944,28 @@ function prepareSpeechPlayback() {
   }
 }
 function submitText(text) {
-  const clean = text.trim(); if (!clean) return;
+  const clean = String(text || "").trim(); if (!clean) return;
+  // Typed input follows the same wake-word rule as voice: retain a short draft
+  // privately and only send it after the name is recognized anywhere in it.
+  const combined = (state.voiceDraft + " " + clean).trim().slice(-320);
+  const local = handleLocalVoiceCommand(combined);
+  if (!state.voiceSessionActive && !local.addressed) {
+    state.voiceDraft = combined;
+    $("textInput").value = "";
+    $("liveTranscript").textContent = combined + "\\n\\nمحتفظة بالرسالة مؤقتًا؛ اكتبي أو قولي «سولينا» عشان أرسلها كاملة.";
+    setStatus("مستنياكي تقولي سولينا", "listening");
+    if (state.voicePauseTimer) window.clearTimeout(state.voicePauseTimer);
+    state.voicePauseTimer = window.setTimeout(() => { state.voiceDraft = ""; state.voiceAlternatives = []; state.voicePauseTimer = null; }, 8000);
+    return;
+  }
+  if (state.voicePauseTimer) { window.clearTimeout(state.voicePauseTimer); state.voicePauseTimer = null; }
+  state.voiceDraft = "";
+  state.voiceAlternatives = [];
+  const addressedText = local.addressed ? local.text : combined;
+  if (!addressedText) { $("textInput").value = ""; return; }
   // Unlock mobile-browser audio during the user's tap, before the AI network request.
   prepareSpeechPlayback();
-  $("textInput").value = ""; void handleRecognizedText(clean);
+  $("textInput").value = ""; void handleRecognizedText(addressedText);
 }
 
 $("micButton").addEventListener("click", () => { prepareSpeechPlayback(); state.listening ? stopListening() : startListening(); });
