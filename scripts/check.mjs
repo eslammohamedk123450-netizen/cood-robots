@@ -168,7 +168,6 @@ for (const [name, source] of [["index.html", html], ["app.js", app], ["style.css
   for (const pattern of secretPatterns) assert.doesNotMatch(source, pattern, name + " may contain a committed secret");
 }
 
-const { parseTaskCommand } = await import("../task-manager.js");
 const prayerReminder = parseTaskCommand("اعملي تذكير بعد صلاة العصر", new Date("2026-11-28T10:00:00+02:00"));
 assert.equal(prayerReminder?.action, "create_prayer_reminder", "Prayer reminder requests must not ask the owner for a clock time");
 assert.equal(prayerReminder?.prayer, "asr", "Asr prayer intent must be identified deterministically");
