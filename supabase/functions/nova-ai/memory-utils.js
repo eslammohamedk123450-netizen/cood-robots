@@ -66,7 +66,7 @@ export function parseExplicitMemorySave(value) {
   // correction request, never a separate memory-save command.
   const correctionWords = new Set(["صحح", "صححي", "عدل", "عدلي", "بدل", "بدلي", "غير", "غيري", "استبدل", "استبدلي"]);
   if (words.some((word) => correctionWords.has(word))) return null;
-  const trigger = /(?<![\\p{L}\\p{N}_])(?:خلي(?:كي|ك)\\s+(?:فاكر(?:ة|ه|اه)?|في\\s+بالك)(?:\\s+عندك)?|احفظ(?:ي)?(?![\\p{L}\\p{N}_])|سجل(?:ي)?(?![\\p{L}\\p{N}_])|افتكر(?:ي)?\\s+(?:إن|ان|بأن|عندك))\\s*(?:إن|ان|بأن)?\\s*(?:ده|دي|دا)?\\s*[:،]?\\s*/giu;
+  const trigger = /(?<![\p{L}\p{N}_])(?:خلي(?:كي|ك)\s+(?:فاكر(?:ة|ه|اه)?|في\s+بالك)(?:\s+عندك)?|احفظ(?:ي)?(?![\p{L}\p{N}_])|سجل(?:ي)?(?![\p{L}\p{N}_])|افتكر(?:ي)?\s+(?:إن|ان|بأن|عندك))\s*(?:إن|ان|بأن)?\s*(?:ده|دي|دا)?\s*[:،]?\s*/giu;
   const matches = [...text.matchAll(trigger)];
   const match = matches[matches.length - 1];
   const payload = match ? text.slice((match.index ?? 0) + match[0].length).trim().replace(/^["'«»]+|["'«»]+$/g, "").trim() : null;
