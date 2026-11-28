@@ -78,3 +78,8 @@ Legend: [x] implemented or deployed; [ ] not yet implemented or not yet verified
 - Never delegate work to another agent on another branch/copy.
 - Do not claim a test, build, deployment, or live integration succeeded unless it was actually verified.
 - Do not destructively delete existing Supabase resources without an itemized dependency review and explicit owner approval.
+
+- [x] Add adaptive multi-agent orchestration: simple chat stays single-model; complex tasks use two concurrent independent workers and a synthesis pass with safe fallback.
+- [ ] Add a permissioned tool registry so the agent can plan and call search, memory, task, calendar and device capabilities instead of relying only on frontend pre-processing.
+- [ ] Add user-configurable model roles, concurrency/cost limits and per-task execution traces.
+- [ ] Add end-to-end owner-session tests using two real enabled providers, including one-provider failure and synthesis fallback.
