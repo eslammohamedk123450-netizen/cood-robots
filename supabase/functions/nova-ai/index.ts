@@ -93,6 +93,12 @@ function cleanString(v: unknown, max = 120): string {
 }
 type ProviderType = "gemini" | "openrouter" | "openai" | "anthropic" | "custom";
 const providerTypes = new Set<string>(["gemini", "openrouter", "openai", "anthropic", "custom", "openai-compatible"]);
+function providerErrorDetail(payload: any): string {
+  const error = payload?.error ?? payload;
+  const message = typeof error === "string" ? error
+    : [error?.message, error?.type, error?.code].filter((part) => typeof part === "string" && part.length).join(" | ");
+  return String(message || "Provider returned an unsuccessful or empty response").replace(/[\r\n\t]+/g, " ").slice(0, 500);
+}
 function providerHeaders(provider: ProviderType, apiKey: string): Record<string,string> {
   if (provider === "gemini") return { "x-goog-api-key": apiKey, Accept: "application/json" };
   if (provider === "anthropic") return { "x-api-key": apiKey, "anthropic-version": "2023-06-01", Accept: "application/json" };
@@ -245,7 +251,7 @@ async function requestProviderChat(provider: ProviderType, baseUrl: string, apiK
       redirect: "error",
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error("HTTP " + response.status);
+    if (!response.ok || result?.error) throw new Error("HTTP " + response.status + ": " + providerErrorDetail(result));
     const reply = result?.candidates?.[0]?.content?.parts?.map((part: any) => part.text || "").join("").trim();
     if (!reply) throw new Error("empty response");
     return reply;
@@ -264,7 +270,7 @@ async function requestProviderChat(provider: ProviderType, baseUrl: string, apiK
       redirect: "error",
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error("HTTP " + response.status);
+    if (!response.ok || result?.error) throw new Error("HTTP " + response.status + ": " + providerErrorDetail(result));
     const reply = Array.isArray(result?.content) ? result.content.map((part: any) => part.text || "").join("").trim() : "";
     if (!reply) throw new Error("empty response");
     return reply;
@@ -277,7 +283,7 @@ async function requestProviderChat(provider: ProviderType, baseUrl: string, apiK
     redirect: "error",
   });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error("HTTP " + response.status);
+  if (!response.ok || result?.error) throw new Error("HTTP " + response.status + ": " + providerErrorDetail(result));
   const reply = result?.choices?.[0]?.message?.content;
   if (typeof reply !== "string" || !reply.trim()) throw new Error("empty response");
   return reply.trim();
