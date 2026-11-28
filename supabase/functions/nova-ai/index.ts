@@ -346,7 +346,8 @@ async function runMemoryInterpreter(admin: any, userId: string, instruction: str
     return [item.id, !error && typeof data === "string" && data ? data : null] as const;
   }));
   const secretMap = new Map(secretEntries);
-  for (const model of ordered) {
+  // Keep memory interpretation fast and bounded: preferred model first, one fallback at most.
+  for (const model of ordered.slice(0, 2)) {
     const provider: any = providerMap.get(model.api_key_id);
     const apiKey = secretMap.get(model.api_key_id);
     if (!provider || provider.is_active !== true || !apiKey || !providerTypes.has(provider.provider)) continue;
@@ -354,7 +355,7 @@ async function runMemoryInterpreter(admin: any, userId: string, instruction: str
       const response = await requestProviderChat(provider.provider as ProviderType, provider.base_url, apiKey, model.model_id, [
         { role: "system", content: instruction },
         { role: "user", content: JSON.stringify({ untrusted_user_data: payload }) },
-      ], signal);
+      ], signal ? AbortSignal.any([signal, AbortSignal.timeout(12000)]) : AbortSignal.timeout(12000));
       const parsed = parseMemoryModelJson(response);
       if (parsed) return { ...parsed, model_id: model.model_id };
     } catch (error) {
