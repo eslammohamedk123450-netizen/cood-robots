@@ -408,12 +408,12 @@ const MEMORY_CORRECTION_INSTRUCTION = [
 
 function requiresMultiAgentWork(text: string): boolean {
   const value = String(text || "").trim();
-  if (!value || value.length < 90) return false;
-  // Keep personal actions, recall, greetings and direct factual questions on the
-  // deterministic/single-model path. Parallel reasoning is reserved for work
-  // where independent analysis and synthesis can materially improve accuracy.
+  if (!value) return false;
+  // Keep personal actions and direct recall on deterministic/single-model paths.
   if (/(?:^|\\s)(?:فكريني|فكرني|ذكريني|ذكرني|منبه|تذكير|احفظي|احفظ|خليكي فاكرة|فاكرة الرقم|هات الرقم|الساعة كام|الوقت كام)(?:\\s|$)/iu.test(value)) return false;
   const explicitResearch = /(?:بحث شامل|ابحث عن مصادر|هات مصادر|قارن بين|مقارنة شاملة|حلل بعمق|تحليل مفصل|دراسة جدوى|تقييم شامل|راجع الخيارات|موازنة بين|خطة تنفيذ كاملة|عدة مراحل|عدة أنظمة|أكثر من بديل|مصادر متعددة|research and compare|comprehensive research|deep analysis|trade.?off|multi.step plan)/iu.test(value);
+  if (explicitResearch) return true;
+  if (value.length < 90) return false;
   const substantialTask = value.length >= 900 && /(?:اشرح|حلل|قارن|صمم|نفذ|راجع|ابن|خطط|دراسة|بحث|مصادر|تحليل|architecture|implement|debug|build|research|compare|analy[sz]e)/iu.test(value);
   const multiRequirement = /(?:أولاً|ثانيًا|ثالثًا|بالإضافة إلى|وفي نفس الوقت|مع مراعاة|من ناحية.*ومن ناحية|بشرط.*وكمان)/iu.test(value) && value.length >= 260;
   return explicitResearch || substantialTask || multiRequirement;
