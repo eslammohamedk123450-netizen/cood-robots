@@ -616,11 +616,20 @@ Deno.serve(async (req: Request) => {
           (!scheduledAt || !Number.isFinite(scheduledAt.getTime()) || scheduledAt.getTime() <= Date.now())) {
         return json({ error: "موعد التذكير لازم يكون في المستقبل." }, 400, origin);
       }
+      const metadata = item.metadata && typeof item.metadata === "object" && !Array.isArray(item.metadata) ? { ...item.metadata } : {};
+      if (itemType === "note" && typeof metadata.memory_kind !== "string") {
+        const noteText = title + " " + content;
+        metadata.memory_kind = /(?:مشروع|تطبيق|موقع|شركة|منصة|نظام)/u.test(noteText) ? "project"
+          : /(?:قرار|اتفقنا|اعتمدنا|هنستخدم|هنعمل|اخترنا)/u.test(noteText) ? "decision"
+          : /(?:مهمة|لازم|مطلوب|متبقي|هعمل|هتعمل|تابع|خلص)/u.test(noteText) ? "task"
+          : /\d{3,}/u.test(noteText) ? "reference"
+          : "note";
+      }
       const row: Record<string, unknown> = {
         user_id: userId, item_type: itemType, title, content,
         scheduled_at: scheduledAt ? scheduledAt.toISOString() : null,
         status: "active",
-        metadata: item.metadata && typeof item.metadata === "object" && !Array.isArray(item.metadata) ? item.metadata : {},
+        metadata,
         updated_at: new Date().toISOString(),
       };
       if (id) row.id = id;
