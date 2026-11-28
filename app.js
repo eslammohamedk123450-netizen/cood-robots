@@ -458,7 +458,8 @@ async function speak(text, segments = [], signal) {
     // Gemini receives the complete reply in ONE request, never one request per sentence.
     // Cache identical neural speech for every configured cloud provider in this page session.
     // Provider, engine and voice are part of the key so changing voice never reuses stale audio.
-    const speechCacheKey = JSON.stringify([persona, speechAction, speechVendor, voiceId, spokenText]);
+    const speechCacheVoiceId = useGeminiTts ? "" : voiceId;
+    const speechCacheKey = JSON.stringify([persona, speechAction, speechQuotaProvider, speechCacheVoiceId, spokenText]);
     let result = getSpeechAudioCache(speechCacheKey);
     if (!result && isSpeechQuotaCoolingDown(speechQuotaProvider)) {
       throw Object.assign(new Error("خدمة الصوت السحابية متوقفة مؤقتًا بسبب حد الاستخدام؛ هستخدم صوت الجهاز المجاني."), { code: "SPEECH_QUOTA_COOLDOWN" });
@@ -1198,9 +1199,10 @@ async function getStopAudioCache() {
   const vendor = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
   const voicePrefix = vendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
   const voiceId = localStorage.getItem(voicePrefix + "female") || "";
-  const key = "nova.stopAudio.cache.v2." + encodeURIComponent([engine,vendor,voiceId,state.persona].join("|"));
-  try { const cached = JSON.parse(localStorage.getItem(key) || "null"); if (cached?.audio && ["audio/mpeg","audio/mp3","audio/wav","audio/x-wav"].includes(cached.mime)) return cached; } catch (_) {}
   const quotaProvider = engine === "gemini" ? "gemini" : vendor;
+  const cacheVoiceId = engine === "gemini" ? "" : voiceId;
+  const key = "nova.stopAudio.cache.v2." + encodeURIComponent([engine,quotaProvider,cacheVoiceId,state.persona].join("|"));
+  try { const cached = JSON.parse(localStorage.getItem(key) || "null"); if (cached?.audio && ["audio/mpeg","audio/mp3","audio/wav","audio/x-wav"].includes(cached.mime)) return cached; } catch (_) {}
   if (isSpeechQuotaCoolingDown(quotaProvider)) return null;
   const action = engine === "gemini" ? "tts_gemini" : "tts";
   let result;
