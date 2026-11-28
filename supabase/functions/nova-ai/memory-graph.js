@@ -53,13 +53,17 @@ export function buildMemoryGraph(originalText, proposed) {
     qualifiers: Array.isArray(item?.qualifiers) ? item.qualifiers.map((v) => clean(v, 120)).filter(Boolean).slice(0, 8) : [],
     evidence: clean(item?.evidence, 500),
     confidence: Number.isFinite(Number(item?.confidence)) ? Math.max(0, Math.min(1, Number(item.confidence))) : 0.5,
-  })).filter((item) => item.subject && item.predicate && item.value && item.evidence && normalizedSource.includes(normalizeEvidence(item.evidence)));
+  })).filter((item) => item.subject && item.predicate && item.value && item.evidence &&
+    normalizedSource.includes(normalizeEvidence(item.evidence)) &&
+    normalizeEvidence(item.evidence).includes(normalizeEvidence(item.value)));
   const relations = (Array.isArray(data.relations) ? data.relations : []).map((item) => ({
     from: clean(item?.from, 180),
     relation: clean(item?.relation, 120),
     to: clean(item?.to, 180),
     context: clean(item?.context, 240),
-  })).filter((item) => item.from && item.relation && item.to);
+    evidence: clean(item?.evidence, 500),
+  })).filter((item) => item.from && item.relation && item.to && item.evidence &&
+    normalizedSource.includes(normalizeEvidence(item.evidence)));
   const topics = uniqueRows((Array.isArray(data.topics) ? data.topics : []).map((v) => clean(v, 100)).filter(Boolean), (v) => v, 16);
   return {
     version: 1,
