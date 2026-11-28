@@ -198,7 +198,7 @@ assert.match(app, /ابدأ محادثة جديدة مع /, "Persona switch must
 
 assert.match(app, /إفيهات مصرية ذكية ومواقف يومية/, "The AI persona must use natural Egyptian humor");
 const solinaPromptStart = app.indexOf('      content: "أنتِ سولينا، رفيقة إسلام الرقمية الوحيدة.');
-const solinaPromptEnd = app.indexOf("\\n    });", solinaPromptStart);
+const solinaPromptEnd = app.indexOf("\n    });", solinaPromptStart);
 assert.ok(solinaPromptStart >= 0 && solinaPromptEnd > solinaPromptStart, "A compact Solina system prompt must be present");
 assert.ok(solinaPromptEnd - solinaPromptStart < 3000, "The client-side system prompt must stay compact to reduce latency and token cost");
 assert.match(app, /الرد على الموضوع الحالي أولًا/, "The current user request must take priority over unrelated memory");
