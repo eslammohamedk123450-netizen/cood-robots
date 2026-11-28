@@ -381,7 +381,7 @@ async function speakWithDevice(text, segments = []) {
     };
     utterance.onstart = () => {
       startedAt = performance.now();
-      setStatus(personas[persona]?.name || "سولينا", "speaking");
+      setStatus("سولينا بتتكلم...", "speaking");
       rafId = requestAnimationFrame(tick);
     };
     utterance.onboundary = (event) => {
