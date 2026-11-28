@@ -213,7 +213,7 @@ assert.ok(edge.includes("MEMORY_RECALL_INSTRUCTION"), "Memory retrieval must use
 assert.ok(edge.includes("MEMORY_DELETE_INSTRUCTION"), "Deletion targets must be resolved by meaning before confirmation");
 assert.ok(edge.includes("MEMORY_CORRECTION_INSTRUCTION"), "Corrections must identify a fact and property semantically");
 assert.ok(edge.includes("correction_evidence: newValueEvidence"), "Corrected values must retain the user's exact evidence");
-assert.ok(edge.includes("semantic_graph: item?.metadata?.memory_graph"), "Deletion must compare semantic context when available");
+assert.ok(edge.includes("semantic_graph: item.metadata?.memory_graph"), "Deletion must compare semantic context when available");
 assert.ok(edge.includes("selectedCorrectionIds.length === 1"), "Fact correction must bind to one owner-scoped memory before updating");
 assert.ok(edge.includes('pending_action: "delete_confirmation"'), "Semantic deletion must remain confirmation-gated");
 
