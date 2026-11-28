@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
-import { classifyMemoryKind, extractMemoryNumberSignature, extractMemoryTokens, isCorrectionHistoryRecall, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "../supabase/functions/nova-ai/memory-utils.js";
+import { classifyMemoryKind, extractMemoryNumberSignature, extractMemoryTokens, isCorrectionHistoryRecall, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave, classifyMemoryPeriodRequest, getCairoWeekDateKeys } from "../supabase/functions/nova-ai/memory-utils.js";
 import { buildMemoryGraph, parseMemoryModelJson, resolveMemoryFactIndex, validateSemanticRecallIds } from "../supabase/functions/nova-ai/memory-graph.js";
 import { classifyConversationTurn } from "../conversation-context.js";
 import { requiresMultiAgentWork } from "../supabase/functions/nova-ai/routing-policy.js";
@@ -34,6 +34,23 @@ assert.equal(resolveMemoryFactIndex([graphFixture.facts[0]], { fact_index: 0 }),
 assert.equal(resolveMemoryFactIndex(graphFixture.facts, { old_value: "٥٠٠٠" }), 0, "Arabic numeral variants must resolve to the same stored numeric value");
 
 assert.equal(graphFixture.facts[2].value, "7000", "Exact values must survive semantic graph validation");
+const weekClarification = classifyMemoryPeriodRequest("فاكرة اللي حفظته الأسبوع ده");
+assert.equal(weekClarification.shouldClarifyWeek, true, "A vague this-week recall must ask whether to select a day or the whole week");
+const wholeWeek = classifyMemoryPeriodRequest("فاكرة كل اللي حفظته الأسبوع ده");
+assert.equal(wholeWeek.asksWholeWeek, true, "An explicit whole-week request must not ask an unnecessary clarification");
+assert.equal(wholeWeek.shouldClarifyWeek, false, "An explicit whole-week request must proceed directly");
+const thursdayRecall = classifyMemoryPeriodRequest("فاكرة اللي حفظته يوم الخميس الأسبوع ده");
+assert.equal(thursdayRecall.requestedWeekday, "الخميس", "A named weekday within this week must be resolved");
+assert.equal(thursdayRecall.shouldClarifyWeek, false, "A named weekday must not trigger the whole-week clarification");
+assert.equal(classifyMemoryPeriodRequest("فاكرة اللي حفظته النهارده").asksToday, true, "Today recall must be detected");
+assert.equal(classifyMemoryPeriodRequest("فاكرة اللي حفظته امبارح").asksYesterday, true, "Yesterday recall must be detected");
+const cairoWeekFixture = getCairoWeekDateKeys(new Date("2026-11-27T22:30:00.000Z"));
+assert.equal(cairoWeekFixture.todayKey, "2026-11-28", "Relative memory dates must use the Cairo calendar day");
+assert.equal(cairoWeekFixture.yesterdayKey, "2026-11-27", "Yesterday must use a Cairo calendar-day rollover, not a fixed 24-hour subtraction");
+assert.equal(cairoWeekFixture.weekStartKey, "2026-11-28", "The Egyptian week must start on Saturday in Cairo time");
+assert.equal(cairoWeekFixture.weekEndKey, "2026-12-04", "The Egyptian week must end on Friday in Cairo time");
+assert.equal(cairoWeekFixture.weekdayKeys["الخميس"], "2026-12-03", "Named weekdays must resolve to their exact date inside the Cairo week");
+
 assert.equal(buildMemoryGraph("المشروع ألف ميزانيته 5000 جنيه.", { facts: [{ subject: "المشروع ألف", predicate: "الميزانية", value: "9000", evidence: "ميزانيته 9000 جنيه" }] }).facts.length, 0, "Model-invented facts without matching source evidence must be rejected");
 assert.equal(buildMemoryGraph("المشروع ألف ميزانيته 5000 جنيه.", { facts: [{ subject: "المشروع ألف", predicate: "الميزانية", value: "9000", evidence: "ميزانيته 5000 جنيه" }] }).facts.length, 0, "A model must not attach a value that is absent from its quoted evidence");
 assert.deepEqual(validateSemanticRecallIds({ selected_ids: ["note-b", "not-real", "note-a", "note-b"] }, ["note-a", "note-b"]), ["note-b", "note-a"], "Semantic retrieval must reject unknown IDs and deduplicate valid candidates");
@@ -48,6 +65,7 @@ const edge = read("../supabase/functions/nova-ai/index.ts");
 const routing = read("../supabase/functions/nova-ai/routing-policy.js");
 const memoryUtils = read("../supabase/functions/nova-ai/memory-utils.js");
 const taskManager = read("../task-manager.js");
+const memoryGraph = read("../supabase/functions/nova-ai/memory-graph.js");
 const stopWordsBlock = memoryUtils.match(/const STOP_WORDS = new Set\(\[([\s\S]*?)\]\);/)?.[1] || "";
 const stopWordEntries = [...stopWordsBlock.matchAll(/"([^"]*)"/g)].map((entry) => entry[1]);
 assert.equal(new Set(stopWordEntries).size, stopWordEntries.length, "The memory stop-word catalog must not contain redundant duplicate entries");
@@ -59,7 +77,7 @@ const checkScript = read("../scripts/check.mjs");
 const referencedFixtures = [...checkScript.matchAll(/read\("([^"]+)"\)/g)].map((match) => match[1]);
 assert.equal(new Set(referencedFixtures).size, referencedFixtures.length, "Repository regression checks must not load the same fixture file multiple times");
 const declaredFunctionNames = (source) => [...source.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)].map((match) => match[1]);
-for (const [name, source] of [["app.js", app], ["nova-ai", edge], ["memory-utils", memoryUtils], ["memory-graph", read("../supabase/functions/nova-ai/memory-graph.js")]]) {
+for (const [name, source] of [["app.js", app], ["nova-ai", edge], ["memory-utils", memoryUtils], ["memory-graph", memoryGraph]]) {
   const functionNames = declaredFunctionNames(source);
   assert.equal(new Set(functionNames).size, functionNames.length, name + " must not retain duplicate function declarations");
 }
