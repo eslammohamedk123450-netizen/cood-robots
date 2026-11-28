@@ -61,18 +61,34 @@ export function parseExplicitMemorySave(value) {
 }
 
 export function parseExplicitMemoryCorrection(value) {
-  const text = String(value ?? "").trim();
-  const targetMatch = text.match(/(?:صححي|صحح|عدلي|عدل|بدلي|استبدلي)\s+(?:لي\s+)?(?:ال)?(?:رقم|المعلومة)\s+(?:(?:الخاص\s+ب|بتاع|بتاعة|المتعلق\s+ب)\s*)?(.+?)\s+(?:وخليه|وخليها|إلى|الى|ب|بال|الصحيح|الصح|الجديد)\s*[:،]?\s*([\s\S]{2,12000})$/iu);
-  if (targetMatch && !/^(?:المحفوظ|القديم|ده|دي|دا)$/u.test(normalizeMemoryText(targetMatch[1]))) {
-    const target = targetMatch[1].trim().replace(/^(?:ال)?(?:رقم|المعلومة)\s+/u, "");
+  let text = String(value ?? "").trim();
+  text = text
+    .replace(/^(?:(?:يا\\s+)?(?:سولينا|لينا|سيلينا|سلينا)\\s+)+/u, "")
+    .replace(/^(?:(?:انا|أنا)\\s+)?(?:عايزك|عاوزك|ممكن)\\s+/u, "")
+    .replace(/^ت(?=(?:صححي|صحح|عدلي|عدل|بدلي|استبدلي)\\s)/u, "")
+    .replace(/\\s+(?:يا\\s+)?(?:سولينا|لينا|سيلينا|سلينا)[.!؟،\\s]*$/u, "")
+    .trim();
+  const targetMatch = text.match(/(?:صححي|صحح|عدلي|عدل|بدلي|استبدلي)\\s+(?:لي\\s+)?(?:ال)?(?:رقم|المعلومة)\\s+(?:(?:الخاص\\s+ب|بتاع|بتاعة|المتعلق\\s+ب)\\s*)?(.+?)\\s+(?:وخليه|وخليها|إلى|الى|ب|بال|الصحيح|الصح|الجديد)\\s*[:،]?\\s*([\\s\\S]{2,12000})$/iu);
+  if (targetMatch && !/^(?:المحفوظ|القديم|ده|دي|دا|اللي\\s+(?:انت\\s+)?حفظتيه)$/u.test(normalizeMemoryText(targetMatch[1]))) {
+    const target = targetMatch[1].trim().replace(/^(?:ال)?(?:رقم|المعلومة)\\s+/u, "");
     const correctedValue = targetMatch[2].trim().replace(/^["'«»]+|["'«»]+$/g, "").trim();
     if (target && correctedValue.length >= 2) return { target, value: correctedValue };
   }
-  const genericMatch = text.match(/(?:صححي|صحح|عدلي|عدل|بدلي|استبدلي)\s+(?:لي\s+)?(?:ال)?(?:رقم|المعلومة)(?:\s+(?:المحفوظ|القديم|ده|دي))?\s*(?:[:،]\s*|(?:غلط|خطا|مش\s+صحيح|غير\s+صحيح)[\s،:؛]*(?:وال)?(?:الصحيح|الصح|الجديد)\s*[:،]?\s*|(?:والصحيح|والصح|والجديد|وخليه|وخليها|الصحيح|الصح|الجديد|خليه|خليها|إلى|الى|ب)\s*[:،]?\s*)([\s\S]{2,12000})$/iu);
-  const wrongOldMatch = text.match(/(?:الرقم|المعلومة)\s+(?:المحفوظ|القديم)\s+(?:غلط|خطا|مش\s+صحيح|غير\s+صحيح)[\s،:؛]*(?:وال)?(?:الصحيح|الصح|الجديد)\s*[:،]?\s*([\s\S]{2,12000})$/iu);
+  const genericMatch = text.match(/(?:صححي|صحح|عدلي|عدل|بدلي|استبدلي)\\s+(?:لي\\s+)?(?:ال)?(?:رقم|المعلومة)(?:\\s+(?:المحفوظ|القديم|ده|دي|دا|اللي\\s+(?:انت\\s+)?حفظتيه))?\\s*(?:[:،]\\s*|(?:غلط|خطا|مش\\s+صحيح|غير\\s+صحيح)[\\s،:؛]*(?:وال)?(?:الصحيح|الصح|الجديد)\\s*[:،]?\\s*|(?:والصحيح|والصح|والجديد|وخليه|وخليها|الصحيح|الصح|الجديد|خليه|خليها|إلى|الى|ب)\\s*[:،]?\\s*)([\\s\\S]{2,12000})$/iu);
+  const wrongOldMatch = text.match(/(?:الرقم|المعلومة)\\s+(?:المحفوظ|القديم)\\s+(?:غلط|خطا|مش\\s+صحيح|غير\\s+صحيح)[\\s،:؛]*(?:وال)?(?:الصحيح|الصح|الجديد)\\s*[:،]?\\s*([\\s\\S]{2,12000})$/iu);
   const match = genericMatch || wrongOldMatch;
   const correctedValue = match?.[1]?.trim().replace(/^["'«»]+|["'«»]+$/g, "").trim();
   return correctedValue && correctedValue.length >= 2 ? { target: "", value: correctedValue } : null;
+}
+export function extractMemoryNumberSignature(value) {
+  const text = normalizeMemoryText(value);
+  const spaced = [...text.matchAll(/(?:^|\s)((?:\d\s+){2,}\d)(?=\s|$)/gu)]
+    .map((match) => match[1].replace(/\s+/g, ""));
+  const compact = [...text.matchAll(/(?:^|\s)(\d{3,})(?=\s|$)/gu)].map((match) => match[1]);
+  const candidates = [...spaced, ...compact].filter(Boolean);
+  if (!candidates.length) return "";
+  candidates.sort((a, b) => b.length - a.length);
+  return candidates[0];
 }
 
 export function classifyMemoryKind(value) {
@@ -81,6 +97,6 @@ export function classifyMemoryKind(value) {
   if (/(?:مشروع|تطبيق|موقع|شركة|منصة|نظام)/u.test(text)) return "project";
   if (/(?:قرار|اتفقنا|اعتمدنا|هنستخدم|هنعمل|اخترنا)/u.test(text)) return "decision";
   if (/(?:مهمة|لازم|مطلوب|متبقي|هعمل|هتعمل|تابع|خلص)/u.test(text)) return "task";
-  if (/\d{3,}/u.test(text) || spokenNumbers >= 2) return "reference";
+  if (extractMemoryNumberSignature(text) || /\d{3,}/u.test(text) || spokenNumbers >= 2) return "reference";
   return "note";
 }
