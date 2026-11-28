@@ -65,13 +65,29 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$PAGES_URL"
+
+          # Download each response completely before searching it. Piping curl
+          # into grep -q can close the pipe early and make curl exit with code 23.
+          fetch_and_check() {
+            local url="$1"
+            local marker="$2"
+            local output_file="$3"
+            curl --fail --silent --show-error --location "$url" --output "$output_file"
+            grep -qF "$marker" "$output_file"
+          }
+
           for attempt in $(seq 1 12); do
-            if curl -fsSL "$PAGES_URL" -o /tmp/solina-index.html; then
+            if curl --fail --silent --show-error --location "$PAGES_URL" --output /tmp/solina-index.html; then
               break
+            fi
+            if [ "$attempt" -eq 12 ]; then
+              echo "GitHub Pages index did not become available after 12 attempts."
+              exit 1
             fi
             sleep 5
           done
-          grep -q 'app.js?v=solina-stability-v5' /tmp/solina-index.html
-          curl -fsSL "${PAGES_URL%/}/app.js?v=solina-stability-v5" | grep -q 'SPEECH_QUOTA_EXCEEDED'
-          curl -fsSL "${PAGES_URL%/}/conversation-context.js?v=topic-followup-v1" | grep -q 'classifyConversationTurn'
-          curl -fsSL "${PAGES_URL%/}/speech-quota.js?v=quota-fallback-v1" | grep -q 'isSpeechQuotaCoolingDown'
+
+          grep -qF 'app.js?v=solina-stability-v5' /tmp/solina-index.html
+          fetch_and_check "${PAGES_URL%/}/app.js?v=solina-stability-v5" 'SPEECH_QUOTA_EXCEEDED' /tmp/solina-app.js
+          fetch_and_check "${PAGES_URL%/}/conversation-context.js?v=topic-followup-v1" 'classifyConversationTurn' /tmp/solina-conversation-context.js
+          fetch_and_check "${PAGES_URL%/}/speech-quota.js?v=quota-fallback-v1" 'isSpeechQuotaCoolingDown' /tmp/solina-speech-quota.js
