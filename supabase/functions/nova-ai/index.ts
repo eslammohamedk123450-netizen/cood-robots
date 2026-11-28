@@ -61,12 +61,12 @@ function normalizeMessages(value: unknown): Array<{role:"system"|"user"|"assista
   for (let i = 0; i < value.length; i++) {
     const item = value[i];
     if (!item || typeof item !== "object" || !["system","user","assistant"].includes(item.role) || typeof item.content !== "string") return null;
-    if (item.content.length > 12000 || (item.role === "user" && !item.content.trim())) return null;
+    if (item.content.length > (item.role === "system" ? 24000 : 12000) || (item.role === "user" && !item.content.trim())) return null;
     total += item.content.length;
-    if (total > 200000) return null;
+    if (total > 220000) return null;
     if (item.role === "system") {
       systemCount++;
-      if (systemCount > 1 || i !== 0 || item.content.length > 8000) return null;
+      if (systemCount > 1 || i !== 0) return null;
     }
     clean.push({ role: item.role, content: item.content });
   }
