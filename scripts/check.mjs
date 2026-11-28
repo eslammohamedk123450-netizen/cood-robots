@@ -650,5 +650,5 @@ assert.match(edge, /if \(asksRecall\)/, "Personal note retrieval should be deter
 assert.match(edge, /correctionHistoryRecall[\s\S]{0,500}correction_history/, "Recall must search corrected-number history");
 assert.match(edge, /seenRecallValues/, "Vague number recall must deduplicate repeated saved values");
 assert.match(edge, /numberRecall[\s\S]{0,500}memory_kind === "reference"/, "Vague number recall must exclude unrelated notes");
-assert.match(edge, /correctedReferences\.length \? correctedReferences/, "Vague number recall must prefer the latest corrected reference over its superseded value");
+assert.match(edge, /numberRecall \? \(correctedReferences\.length/, "Vague number recall must prefer corrected references over stale values");
 console.log("SOLINA memory-context integration checks added.");
