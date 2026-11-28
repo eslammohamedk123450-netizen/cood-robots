@@ -6,6 +6,8 @@ import { requiresMultiAgentWork } from "./routing-policy.js";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const allowedOrigins = new Set(["https://eslammohamedk123450-netizen.github.io"]);
+const speechVoiceVerificationCache = new Map<string, number>();
+const SPEECH_VOICE_VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const cors = (origin: string | null) => ({
   ...(origin && allowedOrigins.has(origin) ? { "Access-Control-Allow-Origin": origin } : {}),
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
@@ -1007,19 +1009,23 @@ Deno.serve(async (req: Request) => {
       const { data: apiKey, error: keyError } = await admin.rpc("nova_read_api_secret", { p_secret_id: settings.secret_id });
       if (keyError || typeof apiKey !== "string" || !apiKey) throw new Error("Speech provider credential unavailable");
       if (!voiceId || !/^[A-Za-z0-9_-]{8,100}$/.test(voiceId)) return json({ error: "اختاري صوت سولينا النسائي من القائمة أولًا." }, 400, origin);
-      let isVerifiedFemale = false;
-      if (settings.region === "elevenlabs") {
+      const voiceVerificationKey = [userId, settings.region, voiceId].join(":");
+      const cachedVerificationUntil = speechVoiceVerificationCache.get(voiceVerificationKey) || 0;
+      let isVerifiedFemale = cachedVerificationUntil > Date.now();
+      if (!isVerifiedFemale && settings.region === "elevenlabs") {
         const voicesResponse = await fetch("https://api.elevenlabs.io/v1/voices", { headers: { "xi-api-key": apiKey, Accept: "application/json" }, signal: AbortSignal.timeout(20000), redirect: "error" });
         if (!voicesResponse.ok) throw new Error("تعذر التحقق من الصوت النسائي المحدد.");
         const voicePayload = await voicesResponse.json();
         isVerifiedFemale = Array.isArray(voicePayload?.voices) && voicePayload.voices.some((voice: any) => voice?.voice_id === voiceId && String(voice?.labels?.gender || "").toLowerCase() === "female");
-      } else {
+      } else if (!isVerifiedFemale) {
         const voicesResponse = await fetch("https://api.sonexlabs.com/v1/voices", { headers: { Authorization: "Bearer " + apiKey, Accept: "application/json" }, signal: AbortSignal.timeout(20000), redirect: "error" });
         if (!voicesResponse.ok) throw new Error("تعذر التحقق من الصوت النسائي المحدد.");
         const voicePayload = await voicesResponse.json();
         isVerifiedFemale = Array.isArray(voicePayload) && voicePayload.some((voice: any) => voice?.id === voiceId && String(voice?.gender || "").toLowerCase() === "female");
       }
       if (!isVerifiedFemale) return json({ error: "تم رفض الصوت لأن المزود لم يؤكد أنه صوت نسائي." }, 400, origin);
+      if (speechVoiceVerificationCache.size >= 500) speechVoiceVerificationCache.delete(speechVoiceVerificationCache.keys().next().value!);
+      speechVoiceVerificationCache.set(voiceVerificationKey, Date.now() + SPEECH_VOICE_VERIFICATION_TTL_MS);
       const audio = settings.region === "elevenlabs"
         ? await requestElevenLabsSpeech(apiKey, text, voiceId)
         : await requestSonexSpeech(apiKey, text, voiceId);
@@ -1913,6 +1919,9 @@ Deno.serve(async (req: Request) => {
     const message = error instanceof Error ? error.message : "Internal server error";
     if (message === "Request body too large") return json({ error: message }, 413, origin);
     if (error instanceof SyntaxError) return json({ error: "Invalid JSON request body" }, 400, origin);
+    if (/(?:ElevenLabs رفض توليد الصوت|Sonex Labs رفض طلب الصوت)/i.test(message) && /(?:quota_exceeded|exceeds your quota|quota exceeded|not enough credits)/i.test(message)) {
+      return json({ error: "حصة مزود الصوت لا تكفي لهذا الرد. استخدمي صوت الجهاز المجاني مؤقتًا.", code: "SPEECH_QUOTA_EXCEEDED" }, 429, origin);
+    }
     return json({ error: "Internal server error" }, 500, origin);
   }
 });
