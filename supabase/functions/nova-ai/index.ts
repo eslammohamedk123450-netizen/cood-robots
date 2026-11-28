@@ -106,8 +106,8 @@ function uniqueReferenceNotes(notes: any[]): any[] {
   return notes.filter((note: any) => {
     if (note.metadata?.superseded_by) return false;
     const content = String(note.content || note.title || "");
-    const numberKey = extractMemoryNumberSignature(content);
-    const signature = numberKey ? "digits:" + numberKey : "text:" + normalizeMemoryText(content);
+    // Equal numeric values can belong to different subjects; deduplicate only equivalent full memories.
+    const signature = "text:" + normalizeMemoryText(content);
     if (seen.has(signature)) return false;
     seen.add(signature);
     return true;
@@ -1391,8 +1391,8 @@ Deno.serve(async (req: Request) => {
         const seenRecallValues = new Set<string>();
         const relevantNotes = recallPool.filter((note: any) => {
           const content = String(note.content || note.title || "");
-          const numberKey = extractMemoryNumberSignature(content);
-          const signature = numberKey ? "digits:" + numberKey : "text:" + normalizeMemoryText(content);
+          // Never collapse unrelated memories just because they contain the same number.
+          const signature = "text:" + normalizeMemoryText(content);
           if (seenRecallValues.has(signature)) return false;
           seenRecallValues.add(signature);
           return true;
