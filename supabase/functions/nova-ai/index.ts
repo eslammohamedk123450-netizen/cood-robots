@@ -1430,14 +1430,14 @@ Deno.serve(async (req: Request) => {
         if (duplicateReadError) throw duplicateReadError;
         if (existingNote) {
           const savedDate = formatCairoMemoryDate(existingNote.created_at);
-          return json({ reply: "المعلومة دي محفوظة عندي بالفعل، ومش هكررها في الدفتر. حفظتها يوم " + savedDate + ".\n\n" + String(existingNote.content || existingNote.title), memory_saved: true, saved_note: true, duplicate: true }, 200, origin);
+          return json({ reply: "فاكرة، المعلومة دي محفوظة عندي بالفعل.", memory_saved: true, saved_note: true, duplicate: true }, 200, origin);
         }
         const { data: savedNote, error: saveNoteError } = await admin.from("nova_personal_items")
           .insert({ user_id: userId, item_type: "note", title: noteTitle, content: saveNotePayload, metadata: memoryGraphMetadata })
           .select("id,title,content,created_at").single();
         if (saveNoteError) throw saveNoteError;
         const savedDate = formatCairoMemoryDate(savedNote.created_at);
-        return json({ reply: "حاضر، حفظت النص الأصلي كاملًا، واستخرجت منه " + memoryGraph.facts.length + " حقيقة مترابطة و" + memoryGraph.entities.length + " كيان. " + (memoryGraph.extraction_status === "complete" ? "بقى عندي فهرس يساعدني أفهم العلاقات وأسترجع المعنى." : "حفظت النص بأمان، لكن تعذر إنشاء الفهرس الدلالي حاليًا؛ مش هادّعي إني حللته.") + " اتسجل يوم " + savedDate + ".\n\n" + saveNotePayload, memory_saved: true, saved_note: true, memory_kind: memoryKind, memory_graph_status: memoryGraph.extraction_status, memory_fact_count: memoryGraph.facts.length }, 200, origin);
+        const saveReply = memoryKind === "project" ? "حاضر، حفظت تفاصيل المشروع." : memoryKind === "task" ? "حاضر، حفظت المهمة." : "حاضر، حفظت المعلومة.";\n        return json({ reply: saveReply, memory_saved: true, saved_note: true, memory_kind: memoryKind, memory_graph_status: memoryGraph.extraction_status, memory_fact_count: memoryGraph.facts.length }, 200, origin);
       }
 
       const memoryWords = extractMemoryTokens(latestUserText);
@@ -1542,12 +1542,12 @@ Deno.serve(async (req: Request) => {
           : notes.slice(0, 8);
         // Model-backed semantic ranking resolves paraphrases and property/value references.
         // Deterministic date and correction-history queries retain their stricter existing filters.
-        if (!correctionHistoryRecall && !asksToday && !asksYesterday && !asksThisWeek && notes.length) {
+        if (!asksToday && !asksYesterday && !asksThisWeek && notes.length) {
           let semanticResult: any = null;
           try {
             semanticResult = await runMemoryInterpreter(admin, userId, MEMORY_RECALL_INSTRUCTION, {
               query: latestUserText,
-              candidates: notes.slice(0, 40).map((note: any) => ({
+              candidates: (correctionHistoryRecall ? correctedMemories : notes).slice(0, 40).map((note: any) => ({
                 id: note.id,
                 title: String(note.title || "").slice(0, 180),
                 original_text: String(note.content || note.title || "").slice(0, 320),
@@ -1563,15 +1563,16 @@ Deno.serve(async (req: Request) => {
                   })) : [],
                 } : null,
                 saved_at: note.created_at,
+                correction_history: correctionHistoryRecall && Array.isArray(note.metadata?.correction_history) ? note.metadata.correction_history.slice(-8).map((change: any) => ({ subject: change.subject, predicate: change.predicate, previous_value: change.previous_value, new_value: change.new_value, corrected_at: change.corrected_at })) : [],
               })),
             }, req.signal);
           } catch (error) {
             console.warn("NOVA_MEMORY_RECALL_FALLBACK", String(error).slice(0, 180));
           }
-          const semanticIds = validateSemanticRecallIds(semanticResult, notes.map((note: any) => note.id));
+          const semanticIds = validateSemanticRecallIds(semanticResult, (correctionHistoryRecall ? correctedMemories : notes).map((note: any) => note.id));
           const confidence = Number(semanticResult?.confidence);
           if (semanticIds.length && Number.isFinite(confidence) && confidence >= 0.35) {
-            recallPool = notes.filter((note: any) => semanticIds.includes(note.id));
+            recallPool = (correctionHistoryRecall ? correctedMemories : notes).filter((note: any) => semanticIds.includes(note.id));
           }
         }
         const seenRecallValues = new Set<string>();
