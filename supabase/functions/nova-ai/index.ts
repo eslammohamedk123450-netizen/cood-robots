@@ -1010,8 +1010,13 @@ Deno.serve(async (req: Request) => {
       const saveNotePayload = saveNoteMatch?.[1]?.trim().replace(/^["'«»]+|["'«»]+$/g, "").trim();
       if (saveNotePayload && saveNotePayload.length >= 2) {
         const noteTitle = saveNotePayload.replace(/\s+/g, " ").slice(0, 160);
+        const memoryKind = /(?:مشروع|تطبيق|موقع|شركة|منصة|نظام)/u.test(saveNotePayload) ? "project"
+          : /(?:قرار|اتفقنا|اعتمدنا|هنستخدم|هنعمل|اخترنا)/u.test(saveNotePayload) ? "decision"
+          : /(?:مهمة|لازم|مطلوب|متبقي|هعمل|هتعمل|تابع|خلص)/u.test(saveNotePayload) ? "task"
+          : /\d{3,}/u.test(saveNotePayload) ? "reference"
+          : "note";
         const { data: savedNote, error: saveNoteError } = await admin.from("nova_personal_items")
-          .insert({ user_id: userId, item_type: "note", title: noteTitle, content: saveNotePayload, metadata: { source: "explicit_voice_or_chat_memory", explicit_save: true } })
+          .insert({ user_id: userId, item_type: "note", title: noteTitle, content: saveNotePayload, metadata: { source: "explicit_voice_or_chat_memory", explicit_save: true, memory_kind: memoryKind } })
           .select("id,title,content,created_at").single();
         if (saveNoteError) throw saveNoteError;
         const savedDate = new Date(savedNote.created_at).toLocaleString("ar-EG", { dateStyle: "long", timeStyle: "short" });
