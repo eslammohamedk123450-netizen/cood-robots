@@ -6,10 +6,7 @@ Legend: [x] implemented or deployed; [ ] not yet implemented or not yet verified
 - [x] Character-first meeting screen; removed camera, face-recognition, guest and command-dashboard demos.
 - [x] Voice-first controls with optional text entry and conversation transcript.
 - [x] Solina only; legacy dual-persona identity removed.
-- [x] Dedicated 3D character mount.
-- [x] Original procedural full-body 3D robot scene implemented in `nova-3d.js` using Three.js primitives (not an imported GLB asset).
-- [ ] Verify Three.js CDN loading, rendering, resizing and performance on Android Chrome and desktop.
-- [ ] Replace the procedural prototype with a polished authored/licensed character model and richer facial/body animation.
+- [x] Animated Solina audio orb and live speech-reactive waveform are the active character presentation.
 
 ## Supabase connection and authentication
 - [x] Configure the public Supabase project URL and publishable key in the client; no service-role key is exposed.
@@ -20,9 +17,9 @@ Legend: [x] implemented or deployed; [ ] not yet implemented or not yet verified
 - [ ] Disable new user sign-ups in Supabase Auth settings (dashboard toggle still required).
 - [x] Create NOVA-owned provider/model/preference tables with RLS enabled.
 - [x] Add owner-only RLS policies for provider keys, models, preferences and the memory table.
-- [x] Create the owner-scoped `nova_memories` table for future persistent memory.
+- [x] Keep one unified owner-scoped personal-items table for explicit notes, reminders, alarms and tasks.
 - [x] Add Vault-backed secret storage/retrieval SQL functions callable only by service_role.
-- [x] Deploy `nova-ai` Edge Function (active version 11); it verifies the bearer session with Supabase Auth.
+- [x] Deploy `nova-ai` Edge Function; latest verified deployment is active version 65 and validates the bearer session with Supabase Auth.
 - [x] Commit the deployed Edge Function source and the applied SQL migration history under `supabase/`.
 - [x] Add multiple provider-key records, server-side model discovery, per-model enable/disable, and automatic fallback across enabled models.
 - [x] Add provider dropdown presets for Gemini, OpenRouter, OpenAI, Claude/Anthropic and custom OpenAI-compatible endpoints.
@@ -36,8 +33,11 @@ Legend: [x] implemented or deployed; [ ] not yet implemented or not yet verified
 - [x] Enforce a single owner account at the Edge Function even if someone creates a separate Auth identity.
 - [x] Create the owner-only persistent memory table with RLS.
 - [x] Add a server-side per-action rate limiter for chat, provider creation, model sync, model toggles and provider listing.
-- [ ] Connect the memory engine and UI to `nova_memories`; memory creation/retrieval is not yet wired into chat.
-- [ ] Persist conversations and chat messages under the owner account; current chat history is still in page memory only.
+- [x] Connect explicit note capture and recall to `nova_personal_items`, including timestamps, provenance and categories for projects, decisions, open tasks and reference numbers.
+- [x] Inject relevant saved notes and owner profile facts into chat context without loading the entire archive.
+- [x] Persist user/assistant messages and conversations under the owner account; list, reopen and search historical conversations.
+- [x] Add archive recall by relative Cairo date, explicit date and requested hour.
+- [ ] Upgrade archive search from bounded keyword matching to semantic/vector retrieval after a cost/latency review.
 - [ ] Add safe provider-key deletion/rotation and Vault secret cleanup.
 - [ ] Add manual preferred-model selection and model-specific capability filters.
 - [ ] Enable Supabase leaked-password protection in Auth settings.
