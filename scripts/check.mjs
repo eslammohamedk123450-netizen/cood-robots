@@ -38,6 +38,7 @@ const weekClarification = classifyMemoryPeriodRequest("فاكرة اللي حف�
 assert.equal(weekClarification.shouldClarifyWeek, true, "A vague this-week recall must ask whether to select a day or the whole week");
 const wholeWeek = classifyMemoryPeriodRequest("فاكرة كل اللي حفظته الأسبوع ده");
 assert.equal(wholeWeek.asksWholeWeek, true, "An explicit whole-week request must not ask an unnecessary clarification");
+assert.equal(classifyMemoryPeriodRequest("فاكرة كل الأسبوع").asksThisWeek, true, "Whole-week wording must activate the current-week date filter");
 assert.equal(wholeWeek.shouldClarifyWeek, false, "An explicit whole-week request must proceed directly");
 const thursdayRecall = classifyMemoryPeriodRequest("فاكرة اللي حفظته يوم الخميس الأسبوع ده");
 assert.equal(thursdayRecall.requestedWeekday, "الخميس", "A named weekday within this week must be resolved");
