@@ -958,6 +958,41 @@ Deno.serve(async (req: Request) => {
     if (action === "chat") {
       const messages = normalizeMessages(body?.messages);
       if (!messages) return json({ error: "سجل المحادثة غير صالح أو تجاوز الحدود المسموحة" }, 400, origin);
+      // Explicit personal notes are deterministic and owner-scoped: "remember this" saves the user's exact payload.
+      const latestUserText = [...messages].reverse().find((item) => item.role === "user")?.content ?? "";
+      const saveNoteMatch = latestUserText.match(/(?:خلي(?:كي|ك)s+(?:فاكر(?:ة)?|فيs+بالك)|افتكر(?:ي)?|احفظ(?:ي)?|سجل(?:ي)?|خلي(?:كي|ك)s+فاكر(?:ة)?s+عندك)\s*(?:إن|ان|بأن)?\s*(?:ده|دي|دا)?\s*[:،]?\s*([\s\S]{2,12000})$/iu);
+      const saveNotePayload = saveNoteMatch?.[1]?.trim().replace(/^["'«»]+|["'«»]+$/g, "").trim();
+      if (saveNotePayload && saveNotePayload.length >= 2) {
+        const noteTitle = saveNotePayload.replace(/\s+/g, " ").slice(0, 160);
+        const { data: savedNote, error: saveNoteError } = await admin.from("nova_personal_items")
+          .insert({ user_id: userId, item_type: "note", title: noteTitle, content: saveNotePayload, metadata: { source: "explicit_voice_or_chat_memory", explicit_save: true } })
+          .select("id,title,content,created_at").single();
+        if (saveNoteError) throw saveNoteError;
+        const savedDate = new Date(savedNote.created_at).toLocaleString("ar-EG", { dateStyle: "long", timeStyle: "short" });
+        return json({ reply: "حاضر، حفظت الكلام ده في ملاحظاتي الشخصية وهقدر أرجعهولك بعدين. حفظته بتاريخ " + savedDate + ".\n\n" + saveNotePayload, memory_saved: true, saved_note: true }, 200, origin);
+      }
+      const asksRecall = /(?:فاكر(?:ة)?|تفتكر(?:ي)?|افتكر(?:ي)?|رجع(?:ي)?لي|هات(?:ي)?لي|إيه\s*(?:ال)?(?:رقم|الحاجة|المعلومة)|ايه\s*(?:ال)?(?:رقم|الحاجة|المعلومة)|اللي\s*قلت(?:ه|لك)|الملاحظ(?:ة|ات)\s*(?:اللي|بتاعتي)|ملاحظاتي|اللي\s*حفظ(?:تي|ت))/iu.test(latestUserText);
+      const memoryWords = [...new Set((latestUserText.match(/[\p{L}\p{N}]{2,}/gu) || []).filter(word => !/^(فاكر|فاكرة|تفتكر|افتكر|هات|رجع|لي|لها|عندي|اللي|قلت|قلته|حفظ|حفظتي|ملاحظات|ملاحظة|رقم|الحاجة|المعلومة|إيه|ايه|من|في|على|ده|دي|هو|هي|أنا|انا|انت|أنت)$/u.test(word)))].slice(0, 8);
+      const { data: savedNotes, error: notesReadError } = await admin.from("nova_personal_items")
+        .select("id,title,content,created_at").eq("user_id", userId).eq("item_type", "note").eq("status", "active")
+        .order("created_at", { ascending: false }).limit(80);
+      if (notesReadError) throw notesReadError;
+      const notes = savedNotes ?? [];
+      const relevantNotes = notes.filter((note: any) => {
+        const haystack = (String(note.title || "") + " " + String(note.content || "")).toLocaleLowerCase("ar");
+        return memoryWords.length ? memoryWords.some(word => haystack.includes(word.toLocaleLowerCase("ar"))) : true;
+      }).slice(0, 8);
+      if (asksRecall && relevantNotes.length) {
+        const candidates = relevantNotes.slice(0, 6).map((note: any, index: number) => {
+          const when = new Date(note.created_at).toLocaleString("ar-EG", { dateStyle: "long", timeStyle: "short" });
+          return (index + 1) + ") " + String(note.content || note.title) + " — حفظته يوم " + when;
+        });
+        const exactNumber = relevantNotes.find((note: any) => /\d{3,}/.test(String(note.content || "")));
+        const response = relevantNotes.length === 1
+          ? "أيوه، فاكرة. " + String(relevantNotes[0].content || relevantNotes[0].title) + " — حفظته يوم " + new Date(relevantNotes[0].created_at).toLocaleString("ar-EG", { dateStyle: "long", timeStyle: "short" }) + "."
+          : "لقيت كذا حاجة محفوظة ممكن تقصديها:\n" + candidates.join("\n") + "\nقولي رقم الاختيار لو عايزة حاجة معينة.";
+        return json({ reply: response, recalled_notes: relevantNotes.length, exact_number_found: Boolean(exactNumber) }, 200, origin);
+      }
       // Run independent owner-scoped reads concurrently to reduce first-token latency.
       const latestUserText = [...messages].reverse().find((item) => item.role === "user")?.content ?? "";
       const memoryTokens = [...new Set((latestUserText.match(/[\\p{L}\\p{N}]{2,}/gu) || [])
