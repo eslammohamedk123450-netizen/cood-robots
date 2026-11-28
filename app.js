@@ -1764,16 +1764,21 @@ async function executeTaskIntent(intent) {
       const raw = String(prayerData?.timings?.[intent.prayer] || "").match(/^(\d{1,2}):(\d{2})/);
       if (!raw) return "مش قادرة أجيب موعد الصلاة من مصدر المواقيت دلوقتي، فمش هخمن وقت التذكير.";
       const now = new Date();
+      const offsetMinutes = Number(intent.offsetMinutes || 0);
       const at = new Date(now);
       at.setHours(Number(raw[1]), Number(raw[2]), 0, 0);
+      at.setMinutes(at.getMinutes() + offsetMinutes);
+      // Compare the final reminder time (including before/after offsets), not
+      // the prayer time alone. This avoids rejecting a valid next-day reminder
+      // when today's prayer is still ahead but its requested lead time passed.
       if (at.getTime() <= now.getTime()) {
         const tomorrowData = await invokeNova("live_info", { kind: "prayer", city: intent.city || "المحلة الكبرى", country: "Egypt", date_offset: 1 });
-        const tomorrowRaw = String(tomorrowData?.timings?.[intent.prayer] || "").match(/^(\d{1,2}):(\d{2})/);
+        const tomorrowRaw = String(tomorrowData?.timings?.[intent.prayer] || "").match(/^(\\d{1,2}):(\\d{2})/);
         if (!tomorrowRaw) return "جبت مواقيت النهارده، لكن تعذر التأكد من موعد الصلاة القادم. مش هضبط تذكير بوقت غير مؤكد.";
         at.setDate(at.getDate() + 1);
         at.setHours(Number(tomorrowRaw[1]), Number(tomorrowRaw[2]), 0, 0);
+        at.setMinutes(at.getMinutes() + offsetMinutes);
       }
-      at.setMinutes(at.getMinutes() + Number(intent.offsetMinutes || 0));
       if (at.getTime() <= Date.now()) return "الوقت المحسوب للتذكير عدى بالفعل، فمش هسجل منبه في الماضي.";
       const title = "تذكير صلاة " + intent.prayerName;
       return await executeTaskIntent({ action: "create", type: intent.type || "reminder", title, scheduledAt: at.toISOString() });
