@@ -64,6 +64,9 @@ assert.match(app, /getDeviceArabicVoice\(\)/, "Device TTS must select an availab
 assert.match(app, /مزود الصوت لم يرجع صوتًا نسائيًا موثقًا/, "Cloud provider voices must be validated as female");
 assert.match(app, /recognition\.maxAlternatives = 3/, "Speech recognition must collect alternatives for Egyptian Arabic disambiguation");
 assert.match(app, /voiceAlternatives/, "Alternative speech transcripts must be passed as context to the AI");
+assert.match(app, /Keep a short rolling draft across pauses/, "Speech without the wake word must be held briefly across pauses instead of dropped");
+assert.match(app, /8000\)/, "Unaddressed speech drafts must expire after a short silence to avoid ambient capture");
+assert.match(app, /Typed input follows the same wake-word rule/, "Typed drafts must wait for the wake word when voice session is not active");
 assert.match(app, /تفاصيل النماذج:/, "Provider failures must expose safe model diagnostics to the owner");
 assert.match(html, /سولينا/, "The female persona must be named Solina in the UI");
 assert.doesNotMatch(html, /سولين(?!ا)/, "The old female persona name must not remain in the UI");
