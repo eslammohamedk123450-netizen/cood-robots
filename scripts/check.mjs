@@ -498,3 +498,10 @@ assert.match(androidMain, /facebooklite/, "Android app resolver must recognize F
 assert.match(androidMain, /Never mistake Facebook Lite for Facebook/, "Android app resolver must prevent Lite/standard cross-launch");
 assert.match(app, /فيسبوك العادي وفيسبوك لايت تطبيقان مختلفان/, "AI system prompt must understand distinct app variants");
 assert.match(app, /محرك أوامر الجهاز المحلي/, "AI system prompt must know app opening is a real local capability");
+
+assert.match(edge, /saveNoteMatch/, "Explicit remember phrases must save a user note without relying on model interpretation");
+assert.match(edge, /explicit_save: true/, "Explicitly saved memories must be tagged for traceability");
+assert.match(edge, /asksRecall/, "Memory recall phrases must be detected");
+assert.match(edge, /recalled_notes/, "Recall must report a deterministic note result");
+assert.match(edge, /nova_personal_items/, "Saved memories must use the existing unified personal-items table, not another storage system");
+console.log("SOLINA explicit memory save and recall checks passed.");
