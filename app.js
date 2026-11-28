@@ -284,6 +284,19 @@ function getDeviceArabicVoice() {
   // Prefer an Egyptian female voice, but never block speech because gender metadata is missing.
   return female(egyptian) || egyptian[0] || female(arabic) || arabic[0] || voices[0] || null;
 }
+async function waitForDeviceVoice(timeoutMs = 1800) {
+  if (!("speechSynthesis" in window)) return null;
+  const first = getDeviceArabicVoice();
+  if (first) return first;
+  await new Promise((resolve) => {
+    let done = false;
+    const finish = () => { if (done) return; done = true; clearTimeout(timer); window.speechSynthesis.removeEventListener?.("voiceschanged", finish); resolve(); };
+    const timer = window.setTimeout(finish, timeoutMs);
+    window.speechSynthesis.addEventListener?.("voiceschanged", finish, { once: true });
+    try { window.speechSynthesis.getVoices(); } catch (_) {}
+  });
+  return getDeviceArabicVoice();
+}
 function speakWithNativeDevice(text, segments = []) {
   return new Promise((resolve, reject) => {
     const bridge = window.SolinaNative;
@@ -338,7 +351,8 @@ function speakWithDevice(text, segments = []) {
       return;
     }
     window.speechSynthesis.cancel();
-    const voice = getDeviceArabicVoice();
+    // On web browsers, Arabic voice inventory may load asynchronously after first access.
+    const voice = await waitForDeviceVoice(1800);
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = voice?.lang || "ar-EG";
     utterance.rate = 0.98;
