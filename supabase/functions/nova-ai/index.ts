@@ -1343,7 +1343,7 @@ Deno.serve(async (req: Request) => {
               return memoryWords.every((word) => haystack.includes(normalizeMemoryText(word)));
             })
           : wordNotes;
-        const recallPool = correctionHistoryRecall
+        let recallPool = correctionHistoryRecall
           ? correctedReferences
           : asksToday || asksYesterday || asksThisWeek ? notes.filter(requestedPeriodFilter)
           : numberRecall ? (matchedNotes.some((note: any) => note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference")
@@ -1353,6 +1353,25 @@ Deno.serve(async (req: Request) => {
           : matchedNotes.length ? matchedNotes
           : memoryWords.length ? []
           : notes.slice(0, 8);
+        // Model-backed semantic ranking resolves paraphrases and property/value references.
+        // Deterministic date and correction-history queries retain their stricter existing filters.
+        if (!correctionHistoryRecall && !asksToday && !asksYesterday && !asksThisWeek && notes.length) {
+          const semanticResult = await runMemoryInterpreter(admin, userId, MEMORY_RECALL_INSTRUCTION, {
+            query: latestUserText,
+            candidates: notes.slice(0, 60).map((note: any) => ({
+              id: note.id,
+              title: String(note.title || "").slice(0, 180),
+              original_text: String(note.content || note.title || "").slice(0, 1200),
+              semantic_graph: note.metadata?.memory_graph || null,
+              saved_at: note.created_at,
+            })),
+          }, req.signal);
+          const semanticIds = validateSemanticRecallIds(semanticResult, notes.map((note: any) => note.id));
+          const confidence = Number(semanticResult?.confidence);
+          if (semanticIds.length && Number.isFinite(confidence) && confidence >= 0.35) {
+            recallPool = notes.filter((note: any) => semanticIds.includes(note.id));
+          }
+        }
         const seenRecallValues = new Set<string>();
         const relevantNotes = recallPool.filter((note: any) => {
           const content = String(note.content || note.title || "");
