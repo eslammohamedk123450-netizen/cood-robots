@@ -599,6 +599,7 @@ assert.deepEqual(extractMemoryTokens("سولينا فاكره الرقم الل�
 assert.equal(normalizeMemoryText("إسلام ١٢٣"), "اسلام 123", "Arabic spelling and digit normalization must be stable");
 assert.match(edge, /duplicateReadError/, "Repeated explicit memory saves must be deduplicated");
 assert.match(edge, /correction_history/, "Memory corrections must preserve a short history of replaced values");
+assert.match(edge, /المعلومه\|ملاحظة/, "Delete intent must recognize Egyptian spoken spelling of المعلومة");
 assert.match(edge, /uniqueReferenceNotes/, "Reference recall and correction must deduplicate repeated voice-recognition copies");
 assert.match(edge, /extractMemoryNumberSignature/, "Digit-by-digit references must be detected consistently in recall and correction paths");
 assert.match(edge, /superseded_by/, "Duplicate reference notes must be retained but excluded after a correction");
