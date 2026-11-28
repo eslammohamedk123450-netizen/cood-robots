@@ -356,8 +356,8 @@ async function speakWithDevice(text, segments = []) {
   return new Promise((resolve, reject) => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = voice?.lang || "ar-EG";
-    utter.rate = 0.98;
-    utter.pitch = 1.08;
+    utterance.rate = 0.98;
+    utterance.pitch = 1.08;
     if (voice) utterance.voice = voice;
     let rafId = 0, startedAt = 0, lastBoundaryProgress = 0, ended = false;
     const estimatedDuration = Math.max(1800, (text.length / 13.5) * 1000 / utterance.rate);
