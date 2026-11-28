@@ -1114,8 +1114,14 @@ async function requestAIReply(text, signal, voiceAlternatives = []) {
   const result = await invokeNova("chat", { messages: requestMessages, exclude_conversation_id: state.conversationIds[state.persona] }, { signal });
     const rawReply = sanitizeInternalReply(result.reply || result.text || result.content || "");
     if (result.memory_saved) {
-      await loadOwnerMemory();
-      if ($("memoryFeedback")) $("memoryFeedback").textContent = "سولينا حفظت معلومة دائمة جديدة من كلامك تلقائيًا. تقدر تراجعها أو تعدلها من الإعدادات."; 
+      await Promise.allSettled([loadOwnerMemory(), loadPersonalItems()]);
+      if ($("memoryFeedback")) $("memoryFeedback").textContent = result.duplicate
+        ? "المعلومة موجودة بالفعل في دفتر سولينا، ولم يتم تكرارها."
+        : "سولينا حفظت معلومة دائمة جديدة من كلامك. تقدر تراجعها من دفتر سولينا.";
+    }
+    if (result.memory_corrected) {
+      await loadPersonalItems();
+      if ($("memoryFeedback")) $("memoryFeedback").textContent = "تم تصحيح المعلومة المحفوظة وتحديث دفتر سولينا.";
     }
     const parsedReply = extractSpeechSegments(rawReply);
     setSpeechSegmentTone(parsedReply.emotion);
