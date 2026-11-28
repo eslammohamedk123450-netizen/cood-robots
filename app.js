@@ -1,5 +1,6 @@
 // Android APK build refresh: settings pages + staged native reminder bridge.
 import { parseTaskCommand, formatTaskDate, normalizeTaskText } from "./task-manager.js?v=prayer-intent-v1";
+import { classifyConversationTurn } from "./conversation-context.js?v=topic-followup-v1";
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soleen", emotion: "idle", listening: false, speaking: false,
@@ -18,7 +19,7 @@ for (let index = localStorage.length - 1; index >= 0; index--) {
 }
 let speechAudioContext = null;
 
-// Reuse identical Gemini TTS output during this page session. This cache is
+// Reuse identical neural TTS output during this page session. This cache is
 // memory-only; conversation text and generated audio are not persisted.
 const speechAudioCache = new Map();
 const SPEECH_AUDIO_CACHE_MAX_ENTRIES = 6;
@@ -993,17 +994,6 @@ async function saveSpeechSettings() {
     button.textContent = "اختبار المفتاح وحفظه بأمان";
   }
 }
-function classifyConversationTurn(text, messages = []) {
-  const current = String(text || "").trim();
-  const normalized = current.toLocaleLowerCase("ar").replace(/[ًٌٍَُِّْـ]/g, "").replace(/[،.!؟?؛,:]/g, " ").replace(/\\s+/g, " ").trim();
-  const explicitSwitch = /(?:موضوع تاني|سؤال تاني|بعيدا عن|سيبك من|خلينا نتكلم عن|نغير الموضوع|على فكره سؤال|بالمناسبه سؤال)/iu.test(normalized);
-  if (explicitSwitch) return "topic_change";
-  const shortFollowUp = current.length <= 100 && /^(?:طب|طيب|وال|وإيه|وايه|ليه|ازاي|إزاي|يعني|هو|هي|ده|دي|دول|كده|وبعدين|تمام بس|طيب وبالنسبه|وبالنسبة|ممكن توضح|مش فاهم|مش فاهمه)(?:\\s|$)/iu.test(normalized);
-  const pronounFollowUp = /(?:وده|ودي|وده ايه|ودي ايه|التاني|التانيه|اللي بعده|نفسه|نفسها|كمان|هناك|فيه|فيها)/iu.test(normalized) && messages.filter(item => item?.role === "user").length > 0;
-  const explicitContinuation = /(?:كمل|كملي|نكمل|زي ما قولت|زي ما قلتي|بالنسبه ل|بالنسبة ل|عن نفس الموضوع|اللي كنا بنتكلم فيه)/iu.test(normalized);
-  if (shortFollowUp || pronounFollowUp || explicitContinuation) return "follow_up";
-  return "new_topic";
-}
 async function requestAIReply(text, signal, voiceAlternatives = []) {
   // invokeNova owns session recovery; do not reject a turn based on a stale in-memory
   // session before it has a chance to restore the validated owner token.
@@ -1622,16 +1612,16 @@ function handleTaskDialogue(clean) {
   const dueItems = state.personalItems
     .filter(task => ["reminder", "task"].includes(task.item_type) && task.status === "active" && personalItemDate(task) > 0 && personalItemDate(task) <= Date.now())
     .sort((a, b) => personalItemDate(a) - personalItemDate(b));
-  const completionCommand = /^(?:انا\\s*)?(?:خلصت|انتهيت|تم|خلصنا)(?:\\s+منه)?[.!؟، ]*$/i.test(normalized);
-  const snoozeCommand = /^(?:أجليها|اجليها|أجّلها|اجلها|فكريني\\s+كمان|ذكريني\\s+كمان|بعد\\s+عشر\\s+دقايق|بعد\\s+10\\s+دقايق|بعد\\s+عشر\\s+دقائق)/i.test(normalized);
+  const completionCommand = /^(?:انا\s*)?(?:خلصت|انتهيت|تم|خلصنا)(?:\s+منه)?[.!؟، ]*$/i.test(normalized);
+  const snoozeCommand = /^(?:أجليها|اجليها|أجّلها|اجلها|فكريني\s+كمان|ذكريني\s+كمان|بعد\s+عشر\s+دقايق|بعد\s+10\s+دقايق|بعد\s+عشر\s+دقائق)/i.test(normalized);
   const pending = state.pendingTaskDraft;
   if (pending?.stage === "choose_due_action") {
-    const choiceText = normalizeTaskText(clean).replace(/^(?:يا\\s*)?سولينا\\s*/, "").trim();
+    const choiceText = normalizeTaskText(clean).replace(/^(?:يا\s*)?سولينا\s*/, "").trim();
     if (/^(?:لا|لأ|الغاء|إلغاء|تراجع|سيبها)$/.test(choiceText)) {
       state.pendingTaskDraft = null;
       return { handled: true, reply: "تمام، ألغيت الاختيار وماغيرتش أي تذكير أو مهمة." };
     }
-    const choiceMatch = choiceText.match(/^(?:رقم\\s*)?(\\d+)$/);
+    const choiceMatch = choiceText.match(/^(?:رقم\s*)?(\d+)$/);
     const numericChoice = choiceMatch ? Number(choiceMatch[1]) : 0;
     const matches = numericChoice > 0
       ? [pending.options[numericChoice - 1]].filter(Boolean)
