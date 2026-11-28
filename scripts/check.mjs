@@ -622,6 +622,12 @@ assert.equal(parseExplicitMemorySave("احفظي رقم الحساب 123456789")
 assert.equal(parseExplicitMemorySave("عدلي ميزانية مشروع النور خليها 6000 جنيه واحفظيه بالقيمة القديمة واحتفظي بالقيمة القديمة"), null, "A save-like verb embedded in a correction must not create a garbage memory");
 assert.match(edge, /const saveReply = memoryKind === "project"/, "Successful saves must return a short human confirmation instead of exposing graph internals");
 assert.match(edge, /correctionHistoryRecall \? correctedMemories : notes/, "Old/new-value recall must semantically rank only corrected memories when relevant");
+assert.match(edge, /MEMORY_FACT_DELETE_INSTRUCTION/, "Partial deletion must resolve exact facts inside a combined memory");
+assert.match(edge, /pending_fact_deletions/, "Partial deletion must persist the exact selected facts for confirmation");
+assert.match(edge, /personal_fact_archived/, "Confirming a partial deletion must archive only the selected facts");
+assert.match(edge, /correctedMemoriesForQuery/, "Correction-history recall must be scoped to the subject named by the user");
+assert.match(edge, /explicitSaveAtStart/, "A correction that mentions preserving the old value must still enter correction handling");
+assert.equal(parseExplicitMemorySave("احفظي ميزانية مشروع النور 5000 جنيه"), "ميزانية مشروع النور 5000 جنيه", "A normal direct save must remain supported after save-trigger boundary hardening");
 assert.equal(classifyMemoryKind("رقم الحساب ١٢٣٤٥٦"), "reference", "Arabic-Indic numeric references must be categorized correctly");
 assert.equal(classifyMemoryKind("الرقم ده 1 2 3 4 5"), "reference", "Digit-by-digit references must be categorized as reference memories");
 assert.equal(extractMemoryNumberSignature("الرقم ده 1 2 3 4 5"), "12345", "Spaced digit-by-digit numbers must yield one stable memory key");
