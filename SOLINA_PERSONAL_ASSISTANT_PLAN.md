@@ -136,12 +136,20 @@ Priority: highest.
 Acceptance: Solina answers casual conversation naturally, continues an indicated topic, and does not bring up work unless relevant.
 
 ### Phase 2 — Exact personal memory
-- Test and harden "remember this" capture, including Arabic colloquial forms and long numeric references.
-- Test exact recall after app reload and a new conversation.
-- Improve ambiguity handling and date-aware recall.
-- Ensure explicit memory is not confused with conversation archive search.
-- Add regression tests for save, exact recall, multiple candidate recall, correction, and unrelated questions.
-Acceptance: an explicitly saved number is returned exactly; a vague request does not invent a value.
+Status: implementation complete in Edge Function version 72; owner-account end-to-end voice verification remains pending.
+- [x] Shared Arabic memory utilities normalize Arabic-Indic digits, common Arabic letter variants, diacritics, and colloquial command forms.
+- [x] Explicit save phrases ("خليكي فاكرة", "احفظي", "سجلي") save the exact supplied text without asking an AI model to interpret it.
+- [x] Spoken number sequences are categorized as reference memories while preserving their original wording exactly.
+- [x] Repeated identical saves are idempotent and do not create duplicate notes.
+- [x] Recall phrases such as "فاكرة الرقم؟" and "هات الرقم اللي حفظته" retrieve owner-scoped saved notes deterministically.
+- [x] Missing or unmatched memories return an explicit no-match response; the model is not allowed to invent a saved value.
+- [x] Vague recall presents a short candidate list; targeted recall filters by keywords and Cairo-local date/hour/minute when supplied.
+- [x] Explicit correction commands update a single matching saved reference and preserve up to three previous values in correction history; ambiguous multiple matches ask for clarification and make no change.
+- [x] Ordinary greetings and short turns skip the saved-notes query; keyword-matched notes are fetched only when at least two meaningful terms exist and in parallel with other context reads.
+- [x] Notebook refreshes immediately after save/correction results.
+- [x] Regression tests cover Arabic save phrases, spoken numbers, numeric normalization, recall, false-positive avoidance, duplicate protection, no-match behavior, exact time filtering, and safe corrections.
+- [ ] Run a real owner-account voice test after opening the deployed app: save a reference, close/reopen, recall it, repeat the save, then correct it. No synthetic personal data was inserted into the owner's account during this implementation.
+Acceptance: implementation and CI checks pass; the final live owner-account workflow still requires confirmation on the owner's device.
 
 ### Phase 3 — Alexa-like personal actions
 - Audit existing alarm/reminder/task parser and Android AlarmManager bridge.
