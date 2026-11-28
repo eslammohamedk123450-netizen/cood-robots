@@ -1586,6 +1586,20 @@ Deno.serve(async (req: Request) => {
         const correctedMemories = notes.filter((note: any) =>
           Array.isArray(note.metadata?.correction_history) && note.metadata.correction_history.length > 0
         );
+        const correctionQuery = normalizeMemoryText(latestUserText);
+        const correctedMemoriesForQuery = correctedMemories.map((note: any) => {
+          const history = Array.isArray(note.metadata?.correction_history) ? note.metadata.correction_history : [];
+          const matchedHistory = history.filter((change: any) => {
+            const subjectTokens = extractMemoryTokens(String(change.subject || ""));
+            const overlaps = subjectTokens.filter((token) => correctionQuery.includes(normalizeMemoryText(token)));
+            // If the user names part of a subject, require the full subject to match.
+            // If no subject is named, keep candidates for general old/new-value recall.
+            return overlaps.length === 0 || overlaps.length === subjectTokens.length;
+          });
+          return matchedHistory.length
+            ? { ...note, metadata: { ...(note.metadata || {}), correction_history: matchedHistory } }
+            : null;
+        }).filter(Boolean);
         const keywordNotes = notes.filter((note: any) => {
           const value = normalizeMemoryText(String(note.content || note.title || ""));
           return /(?:^|\s)(?:كلمة|الكلمه|كلمه)(?=\s|$)/u.test(value);
@@ -1618,7 +1632,7 @@ Deno.serve(async (req: Request) => {
           try {
             semanticResult = await runMemoryInterpreter(admin, userId, MEMORY_RECALL_INSTRUCTION, {
               query: latestUserText,
-              candidates: (correctionHistoryRecall ? correctedMemories : notes).slice(0, 40).map((note: any) => ({
+              candidates: (correctionHistoryRecall ? correctedMemoriesForQuery : notes).slice(0, 40).map((note: any) => ({
                 id: note.id,
                 title: String(note.title || "").slice(0, 180),
                 original_text: String(note.content || note.title || "").slice(0, 320),
@@ -1640,10 +1654,10 @@ Deno.serve(async (req: Request) => {
           } catch (error) {
             console.warn("NOVA_MEMORY_RECALL_FALLBACK", String(error).slice(0, 180));
           }
-          const semanticIds = validateSemanticRecallIds(semanticResult, (correctionHistoryRecall ? correctedMemories : notes).map((note: any) => note.id));
+          const semanticIds = validateSemanticRecallIds(semanticResult, (correctionHistoryRecall ? correctedMemoriesForQuery : notes).map((note: any) => note.id));
           const confidence = Number(semanticResult?.confidence);
           if (semanticIds.length && Number.isFinite(confidence) && confidence >= 0.35) {
-            recallPool = (correctionHistoryRecall ? correctedMemories : notes).filter((note: any) => semanticIds.includes(note.id));
+            recallPool = (correctionHistoryRecall ? correctedMemoriesForQuery : notes).filter((note: any) => semanticIds.includes(note.id));
           }
         }
         const seenRecallValues = new Set<string>();
