@@ -1231,6 +1231,16 @@ Deno.serve(async (req: Request) => {
       if (saveNotePayload) {
         const noteTitle = saveNotePayload.replace(/\s+/g, " ").slice(0, 160);
         const memoryKind = classifyMemoryKind(saveNotePayload);
+        const interpretedMemory = await runMemoryInterpreter(admin, userId, MEMORY_GRAPH_INSTRUCTION, { statement: saveNotePayload }, req.signal);
+        const memoryGraph = buildMemoryGraph(saveNotePayload, interpretedMemory);
+        const memoryGraphMetadata = {
+          source: "explicit_voice_or_chat_memory",
+          explicit_save: true,
+          memory_kind: memoryKind,
+          memory_graph: memoryGraph,
+          memory_graph_status: memoryGraph.extraction_status,
+          ...(interpretedMemory?.model_id ? { memory_graph_model: interpretedMemory.model_id } : {}),
+        };
         const { data: existingNote, error: duplicateReadError } = await admin.from("nova_personal_items")
           .select("id,title,content,created_at").eq("user_id", userId).eq("item_type", "note")
           .eq("status", "active").eq("content", saveNotePayload)
@@ -1241,11 +1251,11 @@ Deno.serve(async (req: Request) => {
           return json({ reply: "المعلومة دي محفوظة عندي بالفعل، ومش هكررها في الدفتر. حفظتها يوم " + savedDate + ".\n\n" + String(existingNote.content || existingNote.title), memory_saved: true, saved_note: true, duplicate: true }, 200, origin);
         }
         const { data: savedNote, error: saveNoteError } = await admin.from("nova_personal_items")
-          .insert({ user_id: userId, item_type: "note", title: noteTitle, content: saveNotePayload, metadata: { source: "explicit_voice_or_chat_memory", explicit_save: true, memory_kind: memoryKind } })
+          .insert({ user_id: userId, item_type: "note", title: noteTitle, content: saveNotePayload, metadata: memoryGraphMetadata })
           .select("id,title,content,created_at").single();
         if (saveNoteError) throw saveNoteError;
         const savedDate = formatCairoMemoryDate(savedNote.created_at);
-        return json({ reply: "حاضر، حفظت المعلومة دي في دفتري الشخصي. هتلاقيني فاكرها بعدين. " + (memoryKind === "reference" ? "حفظته يوم " : "حفظتها يوم ") + savedDate + ".\n\n" + saveNotePayload, memory_saved: true, saved_note: true, memory_kind: memoryKind }, 200, origin);
+        return json({ reply: "حاضر، حفظت النص الأصلي كاملًا، واستخرجت منه " + memoryGraph.facts.length + " حقيقة مترابطة و" + memoryGraph.entities.length + " كيان. " + (memoryGraph.extraction_status === "complete" ? "بقى عندي فهرس يساعدني أفهم العلاقات وأسترجع المعنى." : "حفظت النص بأمان، لكن تعذر إنشاء الفهرس الدلالي حاليًا؛ مش هادّعي إني حللته.") + " اتسجل يوم " + savedDate + ".\n\n" + saveNotePayload, memory_saved: true, saved_note: true, memory_kind: memoryKind, memory_graph_status: memoryGraph.extraction_status, memory_fact_count: memoryGraph.facts.length }, 200, origin);
       }
 
       const memoryWords = extractMemoryTokens(latestUserText);
