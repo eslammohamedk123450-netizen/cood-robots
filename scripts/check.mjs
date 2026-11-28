@@ -598,6 +598,8 @@ assert.match(edge, /single-agent-fallback/, "One successful worker must still re
 
 
 assert.match(edge, /note\.metadata\?\.memory_kind/, "Relevant categorized notes must carry their category into model context");
+assert.match(edge, /افهم الكلام المصري الطبيعي مع التردد والتلعثم وإعادة صياغة الكلمة داخل نفس الرسالة/, "Context-aware Egyptian speech instructions must be present");
+assert.match(edge, /لا تعرض تفاصيل التحليل أو الفهرسة أو عدد الحقائق أو الخطوات الداخلية/, "Memory confirmations should be concise and hide internal system details");
 assert.match(app, /memoryLabels = \{ project: "مشروع", decision: "قرار", task: "مهمة مفتوحة", reference: "رقم \/ معلومة مرجعية", note: "ملاحظة" \}/, "Personal notebook must display project, decision, open-task and reference categories");
 
 
