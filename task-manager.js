@@ -108,7 +108,7 @@ export function parseTaskCommand(value, now = new Date()) {
   // Prayer-based reminders are resolved from live prayer timings by the app; never ask the owner to supply the clock time.
   const prayerMatch = text.match(/(?:صلاه|الصلاه|صلاة|الصلاة|اذان|الأذان)?\\s*(الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا)(?:\\s+الصلاه|\\s+الصلاة)?/);
   const prayerKey = prayerMatch ? (/فجر/.test(prayerMatch[1]) ? "fajr" : /ظهر/.test(prayerMatch[1]) ? "dhuhr" : /عصر/.test(prayerMatch[1]) ? "asr" : /مغرب/.test(prayerMatch[1]) ? "maghrib" : "isha") : "";
-  const prayerReminderIntent = /فكريني|فكرني|ذكريني|ذكرني|نبهيني|نبهني|تذكير|منبه|اضبطي|اضبط|اعملي|اعمل|سجلي|سجل/.test(text);
+  const prayerReminderIntent = /فكريني|فكرني|ذكريني|ذكرني|نبهيني|نبهني|تذكير|منبه|اضبطي|اضبط|اعملي|اعمل|سجلي|سجل|صحيني|صحييني|اصحيني|فوقيني/.test(text);
   if (prayerKey && prayerReminderIntent) {
     const before = /قبل.{0,24}(?:عشر|10|خمسه|خمسة|5|ربع|15)\\s*(?:دقايق|دقائق|دقيقه|دقيقة)?/.test(text);
     const after = /بعد.{0,24}(?:عشر|10|خمسه|خمسة|5|ربع|15)\\s*(?:دقايق|دقائق|دقيقه|دقيقة)/.test(text);
@@ -118,7 +118,6 @@ export function parseTaskCommand(value, now = new Date()) {
     return { action: "create_prayer_reminder", prayer: prayerKey, prayerName: ({fajr:"الفجر",dhuhr:"الظهر",asr:"العصر",maghrib:"المغرب",isha:"العشاء"})[prayerKey], offsetMinutes, type: /منبه|صحيني|اصحيني|فوقيني/.test(text) ? "alarm" : "reminder", city: cityMatch?.[1]?.trim() || "المحلة الكبرى" };
   }
   if (!isAlarm && !isReminder) return null;
-  if (isFajr && isAlarm) return { action: "needs_fajr_time" };
   const scheduledAt = parseSchedule(text, now);
   if (!scheduledAt) return { action: "needs_time", type: isAlarm ? "alarm" : "reminder" };
   const timeMatch = text.match(/(?:الساعه|الساعة)\s*(\d{1,2}|واحده|واحد|واحدة|اتنين|اثنين|تلاته|تلاتة|ثلاثه|ثلاثة|اربعه|اربعة|أربعة|خمسه|خمسة|خمس|سته|ستة|سبعه|سبعة|تمانيه|تمانية|تمنية|ثمانية|تسعه|تسعة|عشره|عشرة|حداشر|احداشر|اتناشر|اثناشر)/);
