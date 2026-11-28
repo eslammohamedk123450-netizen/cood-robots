@@ -564,6 +564,7 @@ const correctionByTopic = parseExplicitMemoryCorrection("صححي الرقم ا�
 assert.deepEqual(correctionByTopic, { target: "الحساب", value: "987654" }, "Correction commands must target the intended saved reference when the user identifies it");
 assert.deepEqual(parseExplicitMemoryCorrection("الرقم القديم غلط، الصحيح 123456"), { target: "", value: "123456" }, "A clear correction must extract the new exact value");
 assert.deepEqual(parseExplicitMemoryCorrection("صححي الرقم المحفوظ: 555666"), { target: "", value: "555666" }, "A direct saved-number correction must be recognized");
+assert.deepEqual(parseExplicitMemoryCorrection("صححي الرقم المحفوظ وخليه 9 8 7 6 5"), { target: "", value: "9 8 7 6 5" }, "Generic descriptors such as saved number must not become literal search targets");
 assert.equal(parseExplicitMemoryCorrection("الرقم ده غلط"), null, "Incomplete corrections must not modify saved memory");
 const spokenNumberMemory = parseExplicitMemorySave("خليكي فاكرة عندك الرقم ده، واحد اثنين ثلاثة أربعة خمسة");
 assert.equal(spokenNumberMemory, "الرقم ده، واحد اثنين ثلاثة أربعة خمسة", "Explicit remember phrases must preserve the complete spoken number payload exactly");
