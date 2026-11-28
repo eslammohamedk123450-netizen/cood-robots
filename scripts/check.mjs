@@ -548,7 +548,7 @@ assert.equal(parseTaskCommand("فكريني بعد دقيقتين بالظبط �
 
 assert.match(androidMain, /TextToSpeech/, "Android APK must provide native text-to-speech output");
 assert.match(androidMain, /setLanguage\(new Locale\("ar", "EG"\)\)/, "Native speech must prefer Egyptian Arabic");
-assert.match(androidMain, /speakText\(String text\)/, "Web app must be able to request native Android speech");
+assert.match(androidMain, /speakText\(String text, String requestId\)/, "Native Android speech must carry a playback correlation ID");
 assert.match(androidMain, /solina-native-tts/, "Native TTS playback status must be returned to the web app");
 assert.match(app, /speakWithNativeDevice\(text, segments\)/, "Android app must use native TTS before browser speech synthesis");
 assert.match(app, /let speechPlaybackId = 0/, "Audio output must have a single latest-playback generation guard");
