@@ -1067,7 +1067,8 @@ Deno.serve(async (req: Request) => {
         if (!correctedNote) return json({ error: "المعلومة لم تعد موجودة في حسابك، لم يتم إجراء أي تعديل." }, 404, origin);
         return json({ reply: "تمام، صححت الرقم المحفوظ واستبدلت القديم بالجديد. المعلومة دلوقتي: " + correctedNote.content + ". واحتفظت بنسخة من القيمة القديمة في سجل التصحيح.", memory_corrected: true, memory_kind: "reference" }, 200, origin);
       }
-      const saveNotePayload = parseExplicitMemorySave(latestUserText);
+      const asksRecall = isExplicitMemoryRecall(latestUserText);
+      const saveNotePayload = asksRecall ? null : parseExplicitMemorySave(latestUserText);
       if (saveNotePayload) {
         const noteTitle = saveNotePayload.replace(/\s+/g, " ").slice(0, 160);
         const memoryKind = classifyMemoryKind(saveNotePayload);
@@ -1088,7 +1089,6 @@ Deno.serve(async (req: Request) => {
         return json({ reply: "حاضر، حفظت المعلومة دي في دفتري الشخصي زي ما قلتها، وهقدر أرجعهالك بعدين. حفظتها بتاريخ " + savedDate + ".\n\n" + saveNotePayload, memory_saved: true, saved_note: true, memory_kind: memoryKind }, 200, origin);
       }
 
-      const asksRecall = isExplicitMemoryRecall(latestUserText);
       const memoryWords = extractMemoryTokens(latestUserText);
       const recallDigits = latestUserText.replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
       const relativeNoteDay = /(?:أول\s+امبارح|اول\s+امبارح|قبل\s+امبارح|قبل\s+أمس)/u.test(recallDigits) ? -2
