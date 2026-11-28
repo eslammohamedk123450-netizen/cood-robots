@@ -1547,14 +1547,20 @@ Deno.serve(async (req: Request) => {
           try {
             semanticResult = await runMemoryInterpreter(admin, userId, MEMORY_RECALL_INSTRUCTION, {
               query: latestUserText,
-              candidates: notes.slice(0, 24).map((note: any) => ({
+              candidates: notes.slice(0, 40).map((note: any) => ({
                 id: note.id,
                 title: String(note.title || "").slice(0, 180),
-                original_text: String(note.content || note.title || "").slice(0, 450),
+                original_text: String(note.content || note.title || "").slice(0, 320),
                 semantic_graph: note.metadata?.memory_graph ? {
-                  summary: String(note.metadata.memory_graph.summary || "").slice(0, 180),
-                  facts: Array.isArray(note.metadata.memory_graph.facts) ? note.metadata.memory_graph.facts.slice(0, 4) : [],
-                  relations: Array.isArray(note.metadata.memory_graph.relations) ? note.metadata.memory_graph.relations.slice(0, 2) : [],
+                  summary: String(note.metadata.memory_graph.summary || "").slice(0, 120),
+                  facts: Array.isArray(note.metadata.memory_graph.facts) ? note.metadata.memory_graph.facts.slice(0, 3).map((fact: any) => ({
+                    subject: fact.subject, predicate: fact.predicate, value: fact.value,
+                    value_type: fact.value_type, context: fact.context, provenance: fact.provenance,
+                    previous_value: fact.previous_value,
+                  })) : [],
+                  relations: Array.isArray(note.metadata.memory_graph.relations) ? note.metadata.memory_graph.relations.slice(0, 2).map((relation: any) => ({
+                    from: relation.from, relation: relation.relation, to: relation.to,
+                  })) : [],
                 } : null,
                 saved_at: note.created_at,
               })),
