@@ -57,6 +57,7 @@ Open `http://localhost:4173`. This is a static UI preview only: the Edge Functio
 ## Security and audit
 - [Security audit and remaining actions](SECURITY_AUDIT.md)
 - [Supabase integration and security details](NOVA_SUPABASE.md)
+- [Personal assistant roadmap and phased execution plan](SOLINA_PERSONAL_ASSISTANT_PLAN.md)
 - [Execution checklist](TODO.md)
 - [Development plan](plan.md)
 - Master vision: `NOVA_MASTER_VISION.md`
@@ -74,4 +75,4 @@ The existing Supabase project also contains older SULY AI routing, model synchro
 - Complex research, planning, coding, comparison and multi-step requests can launch two independent enabled models concurrently with different roles (analysis/planning and practical solution/verification).
 - When both workers succeed, the primary configured model synthesizes their outputs into one answer. If one worker fails, the surviving worker can still answer; if parallel execution fails, the normal single-model fallback path remains available.
 - The response includes internal diagnostic fields `agent_mode` and `agents_used`; timing is logged without exposing provider credentials.
-- This is a bounded multi-model reasoning layer, not yet a general function-calling runtime. Live web search and local task/device actions continue through their existing app capabilities.
+- This is a bounded multi-model reasoning layer, not yet a general function-calling runtime. Live web search and local task/device actions continue through their existing app capabilities. The current product scope is a lightweight personal assistant; programming-agent behavior is deferred. See [SOLINA_PERSONAL_ASSISTANT_PLAN.md](SOLINA_PERSONAL_ASSISTANT_PLAN.md).
