@@ -1012,7 +1012,7 @@ async function requestAIReply(text, signal, voiceAlternatives = []) {
     const requestMessages = state.messages.slice();
   // Search the durable transcript only when the user refers to earlier conversations,
   // dates, or a topic they want to resume. Keep ordinary turns fast and cheap.
-  const asksPastConversation = /(?:فاكر(?:ة)?|تفتكر(?:ي)?|سألتك|قلتلك|قلتهولك|كنا\s+بنتكلم|المرة\s+اللي\s+فاتت|الموضوع\s+اللي\s+فات|امبارح|مبارح|أمس|أول\s+امبارح|النهارده|النهاردة|يوم\s+\d{1,2}|نكمل|كملي|كمل\s+من|نرجع\s+لموضوع)/iu.test(text);
+  const asksPastConversation = /(?:كنا\s+بنتكلم|المرة\s+اللي\s+فاتت|الموضوع\s+اللي\s+فات|آخر\s+(?:محادثة|حاجة)|اخر\s+(?:محادثة|حاجة)|وقفنا\s+(?:فين|عند)|نكمل|كملي|كمل\s+من|نرجع\s+لموضوع|فاكر(?:ة)?\s+(?:كنا|احنا|الموضوع|المرة|وقفنا)|تفتكر(?:ي)?\s+(?:كنا|احنا|الموضوع|المرة|وقفنا)|سألتك\s+(?:قبل|المرة)|قلتلك\s+(?:قبل|المرة))/iu.test(text);
   if (asksPastConversation) {
     const archiveMatches = await searchConversationMemory(text, signal);
     if (archiveMatches.length) {
