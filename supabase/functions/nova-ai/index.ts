@@ -262,7 +262,7 @@ async function requestProviderChat(provider: ProviderType, baseUrl: string, apiK
   if (provider === "gemini") {
     const contents = dialogue.map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content.slice(0, 12000) }],
+      parts: [{ text: m.content.slice(0, 40000) }],
     }));
     const payload: any = { contents, generationConfig: { temperature: 0.75, maxOutputTokens: 2048 } };
     if (systemText) payload.systemInstruction = { parts: [{ text: systemText.slice(0, 24000) }] };
@@ -297,7 +297,7 @@ async function requestProviderChat(provider: ProviderType, baseUrl: string, apiK
         model: modelId,
         max_tokens: 2048,
         ...(systemText ? { system: systemText.slice(0, 24000) } : {}),
-        messages: dialogue.map((m) => ({ role: m.role, content: m.content.slice(0, 12000) })),
+        messages: dialogue.map((m) => ({ role: m.role, content: m.content.slice(0, 40000) })),
       }),
       signal: requestSignal ? AbortSignal.any([requestSignal, AbortSignal.timeout(45000)]) : AbortSignal.timeout(45000),
       redirect: "error",
@@ -1367,14 +1367,14 @@ Deno.serve(async (req: Request) => {
           try {
             semanticResult = await runMemoryInterpreter(admin, userId, MEMORY_RECALL_INSTRUCTION, {
               query: latestUserText,
-              candidates: notes.slice(0, 40).map((note: any) => ({
+              candidates: notes.slice(0, 24).map((note: any) => ({
                 id: note.id,
                 title: String(note.title || "").slice(0, 180),
-                original_text: String(note.content || note.title || "").slice(0, 700),
+                original_text: String(note.content || note.title || "").slice(0, 450),
                 semantic_graph: note.metadata?.memory_graph ? {
-                  summary: String(note.metadata.memory_graph.summary || "").slice(0, 240),
-                  facts: Array.isArray(note.metadata.memory_graph.facts) ? note.metadata.memory_graph.facts.slice(0, 6) : [],
-                  relations: Array.isArray(note.metadata.memory_graph.relations) ? note.metadata.memory_graph.relations.slice(0, 4) : [],
+                  summary: String(note.metadata.memory_graph.summary || "").slice(0, 180),
+                  facts: Array.isArray(note.metadata.memory_graph.facts) ? note.metadata.memory_graph.facts.slice(0, 4) : [],
+                  relations: Array.isArray(note.metadata.memory_graph.relations) ? note.metadata.memory_graph.relations.slice(0, 2) : [],
                 } : null,
                 saved_at: note.created_at,
               })),
