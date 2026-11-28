@@ -631,6 +631,9 @@ assert.match(edge, /duplicateReadError/, "Repeated explicit memory saves must be
 assert.match(edge, /correction_history/, "Memory corrections must preserve a short history of replaced values");
 assert.match(edge, /المعلومه\|ملاحظة/, "Delete intent must recognize Egyptian spoken spelling of المعلومة");
 assert.match(edge, /uniqueReferenceNotes/, "Reference recall and correction must deduplicate repeated voice-recognition copies");
+assert.match(edge, /const signature = "text:" \\+ normalizeMemoryText\\(content\\)/, "Memory deduplication must compare the complete note, not a shared numeric value");
+assert.match(edge, /previousSignature = normalizeMemoryText\\(previousContent\\)/, "Correction cleanup must not supersede a different subject that happens to share the old number");
+
 assert.match(edge, /extractMemoryNumberSignature/, "Digit-by-digit references must be detected consistently in recall and correction paths");
 assert.match(edge, /superseded_by/, "Duplicate reference notes must be retained but excluded after a correction");
 
