@@ -210,6 +210,16 @@ assert.equal(beforePrayer?.action, "create_prayer_reminder", "Relative prayer re
 assert.equal(beforePrayer?.offsetMinutes, -10, "Before-prayer offset must be calculated correctly");
 const afterPrayer = parseTaskCommand("اعملي تذكير بعد صلاة المغرب بعشر دقائق", new Date("2026-11-28T10:00:00+02:00"));
 assert.equal(afterPrayer?.offsetMinutes, 10, "After-prayer offset must be calculated correctly");
+const halfPast = parseTaskCommand("فكريني بكرة الساعة تلاتة ونص مساء عشان الاجتماع", new Date("2026-11-28T10:00:00+02:00"));
+assert.equal(halfPast?.action, "create", "Spoken half-hour clock expressions must be understood");
+assert.equal(new Date(halfPast.scheduledAt).getHours(), 15, "Half-past parsing must preserve the requested PM hour");
+assert.equal(new Date(halfPast.scheduledAt).getMinutes(), 30, "Half-past parsing must resolve thirty minutes");
+const quarterPast = parseTaskCommand("فكريني بكرة الساعة أربعة وربع صباحا عشان الصلاة", new Date("2026-11-28T10:00:00+02:00"));
+assert.equal(new Date(quarterPast.scheduledAt).getHours(), 4, "Quarter-past parsing must preserve the requested hour");
+assert.equal(new Date(quarterPast.scheduledAt).getMinutes(), 15, "Quarter-past parsing must resolve fifteen minutes");
+const quarterTo = parseTaskCommand("فكريني بكرة الساعة تلاتة إلا ربع مساء عشان الاجتماع", new Date("2026-11-28T10:00:00+02:00"));
+assert.equal(new Date(quarterTo.scheduledAt).getHours(), 14, "Quarter-to parsing must roll back to the preceding hour");
+assert.equal(new Date(quarterTo.scheduledAt).getMinutes(), 45, "Quarter-to parsing must resolve forty-five minutes");
 
 
 assert.ok(edge.includes("runMemoryInterpreter(admin, userId, MEMORY_GRAPH_INSTRUCTION"), "Explicit memory saves must use the configured model to extract general semantic facts");
