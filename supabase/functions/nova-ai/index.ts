@@ -1101,9 +1101,10 @@ Deno.serve(async (req: Request) => {
             const memoryTokens = [...new Set((latestUserText.match(/[\p{L}\p{N}]{2,}/gu) || [])
         .filter((word) => !/^(من|في|على|الى|إلى|عن|ده|دي|هو|هي|انا|أنا|انت|أنت|كان|قال|قالي|ليه|ايه|إيه|ازاي|إزاي|مع|ولا|او|أو)$/u.test(word)))].slice(0, 6);
       const escapedTokens = memoryTokens.map((word) => word.replace(/[,%_()]/g, " "));
-      const [{ data: memoryRow, error: memoryReadError }, { data: models, error }, oldRowsResult] = await Promise.all([
+      const [{ data: memoryRow, error: memoryReadError }, { data: models, error }, { data: aiPreference, error: preferenceError }, oldRowsResult] = await Promise.all([
         admin.from("nova_owner_profile_memory").select("profile_text").eq("user_id", userId).maybeSingle(),
-        admin.from("nova_api_models").select("id,model_id,api_key_id").eq("user_id", userId).eq("enabled", true).limit(30),
+        admin.from("nova_api_models").select("id,model_id,api_key_id,created_at").eq("user_id", userId).eq("enabled", true).order("created_at", { ascending: true }).limit(30),
+        admin.from("nova_ai_preferences").select("selected_model_id,routing_mode").eq("user_id", userId).maybeSingle(),
         escapedTokens.length
           ? admin.from("nova_messages").select("conversation_id,role,content,created_at").eq("user_id", userId)
               .or(escapedTokens.map((word) => `content.ilike.%${word}%`).join(","))
@@ -1112,7 +1113,13 @@ Deno.serve(async (req: Request) => {
       ]);
       if (memoryReadError) throw memoryReadError;
       if (error) throw error;
+      if (preferenceError) throw preferenceError;
       if (oldRowsResult.error) throw oldRowsResult.error;
+      const orderedModels = [...(models ?? [])];
+      if (aiPreference?.selected_model_id) {
+        const preferredIndex = orderedModels.findIndex((item: any) => item.id === aiPreference.selected_model_id);
+        if (preferredIndex > 0) orderedModels.unshift(orderedModels.splice(preferredIndex, 1)[0]);
+      }
       const savedProfile = String(memoryRow?.profile_text ?? "").slice(0, 12000);
       let memorySystem = [
         "ذاكرة NOVA المستمرة عن المالك (معلومات موثوقة صرّح بها المستخدم سابقًا):",
@@ -1165,7 +1172,7 @@ Deno.serve(async (req: Request) => {
       }));
       const secretMap = new Map(secretEntries);
       const failures: string[] = [];
-      const usableModels = (models ?? []).map((model: any) => {
+      const usableModels = orderedModels.map((model: any) => {
         const provider = providerMap.get(model.api_key_id), apiKey = secretMap.get(model.api_key_id);
         if (!provider) { failures.push(model.model_id + ": provider key record missing"); return null; }
         const modelLabel = String(provider.label || provider.provider || "provider").slice(0, 80) + " / " + model.model_id;
