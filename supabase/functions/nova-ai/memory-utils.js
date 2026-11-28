@@ -47,7 +47,7 @@ export function classifyMemoryPeriodRequest(value) {
   const normalized = normalizeMemoryText(value);
   const asksToday = /(?:النهارده|النهاردة|اليوم)/u.test(normalized);
   const asksYesterday = /(?:امبارح|مبارح|امس)/u.test(normalized);
-  const asksThisWeek = /(?:الاسبوع ده|الاسبوع الحالي|اسبوعنا ده)/u.test(normalized);
+  const asksThisWeek = /(?:الاسبوع ده|الاسبوع الحالي|اسبوعنا ده|الاسبوع كله|كل الاسبوع)/u.test(normalized);
   const asksWholeWeek = /(?:الاسبوع كله|كل الاسبوع|كل اللي حفظته|كل المحفوظ|اعرضي?لي? كل|وريني كل|كله)/u.test(normalized);
   const words = new Set(normalized.split(" "));
   const requestedWeekday = Object.keys(MEMORY_WEEKDAY_OFFSETS).find((day) => words.has(day)) || null;
