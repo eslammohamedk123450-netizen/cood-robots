@@ -236,7 +236,7 @@ async function requestProviderChat(provider: ProviderType, baseUrl: string, apiK
       parts: [{ text: m.content.slice(0, 12000) }],
     }));
     const payload: any = { contents, generationConfig: { temperature: 0.75, maxOutputTokens: 2048 } };
-    if (systemText) payload.systemInstruction = { parts: [{ text: systemText.slice(0, 8000) }] };
+    if (systemText) payload.systemInstruction = { parts: [{ text: systemText.slice(0, 24000) }] };
     const response = await fetch(baseUrl + "/models/" + encodeURIComponent(modelId.replace(/^models\//, "")) + ":generateContent", {
       method: "POST",
       headers: { ...providerHeaders(provider, apiKey), "Content-Type": "application/json" },
@@ -257,7 +257,7 @@ async function requestProviderChat(provider: ProviderType, baseUrl: string, apiK
       body: JSON.stringify({
         model: modelId,
         max_tokens: 2048,
-        ...(systemText ? { system: systemText.slice(0, 8000) } : {}),
+        ...(systemText ? { system: systemText.slice(0, 24000) } : {}),
         messages: dialogue.map((m) => ({ role: m.role, content: m.content.slice(0, 12000) })),
       }),
       signal: requestSignal ? AbortSignal.any([requestSignal, AbortSignal.timeout(45000)]) : AbortSignal.timeout(45000),
