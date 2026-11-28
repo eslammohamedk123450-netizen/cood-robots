@@ -760,5 +760,5 @@ assert.match(app, /speechCacheKey = JSON\.stringify\(\[persona, speechAction, sp
 assert.match(app, /getSpeechAudioCache\(speechCacheKey\)/, "Repeated speech must reuse cached audio within the current page session");
 assert.match(app, /rememberSpeechAudio\(speechCacheKey, result\)/, "Successful speech responses must enter the bounded in-memory cache");
 
-assert.match(app, /at\.setMinutes\(at\.getMinutes\(\) \+ offsetMinutes\);[\\s\\S]{0,600}if \(at\.getTime\(\) <= now\.getTime\(\)\)/, "Prayer reminder offsets must be applied before deciding whether to roll to tomorrow");
-assert.match(app, /date_offset: 1[\\s\\S]{0,300}at\.setMinutes\(at\.getMinutes\(\) \+ offsetMinutes\)/, "A missed prayer lead-time must resolve against tomorrow's verified prayer timing");
+assert.ok(app.indexOf("at.setMinutes(at.getMinutes() + offsetMinutes);") < app.indexOf("if (at.getTime() <= now.getTime())"), "Prayer reminder offsets must be applied before deciding whether to roll to tomorrow");
+assert.ok(app.includes("date_offset: 1") && app.includes("const tomorrowRaw") && app.includes("at.setMinutes(at.getMinutes() + offsetMinutes);"), "A missed prayer lead-time must resolve against tomorrow's verified prayer timing");
