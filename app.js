@@ -462,8 +462,10 @@ async function speak(text, segments = [], signal) {
     if (!result && !useGeminiTts && isSpeechQuotaCoolingDown(speechVendor)) {
       throw Object.assign(new Error("خدمة الصوت السحابية متوقفة مؤقتًا بسبب حد الاستخدام؛ هستخدم صوت الجهاز المجاني."), { code: "SPEECH_QUOTA_COOLDOWN" });
     }
-    if (!result) result = await invokeNova(speechAction, { text: spokenText, persona, voice_id: voiceId, provider: speechVendor }, { signal });
-    if (!useGeminiTts) clearSpeechQuotaCooldown(speechVendor);
+    if (!result) {
+      result = await invokeNova(speechAction, { text: spokenText, persona, voice_id: voiceId, provider: speechVendor }, { signal });
+      if (!useGeminiTts) clearSpeechQuotaCooldown(speechVendor);
+    }
     if (playbackId !== speechPlaybackId || signal?.aborted) return;
       if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
     const mime = String(result.mime_type || "").split(";")[0].trim().toLowerCase();
