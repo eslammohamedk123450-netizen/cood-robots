@@ -167,6 +167,18 @@ const secretPatterns = [
 for (const [name, source] of [["index.html", html], ["app.js", app], ["style.css", css], ["pin.js", pin], ["nova-ai", edge]]) {
   for (const pattern of secretPatterns) assert.doesNotMatch(source, pattern, name + " may contain a committed secret");
 }
+
+const { parseTaskCommand } = await import("../task-manager.js");
+const prayerReminder = parseTaskCommand("اعملي تذكير بعد صلاة العصر", new Date("2026-11-28T10:00:00+02:00"));
+assert.equal(prayerReminder?.action, "create_prayer_reminder", "Prayer reminder requests must not ask the owner for a clock time");
+assert.equal(prayerReminder?.prayer, "asr", "Asr prayer intent must be identified deterministically");
+assert.equal(prayerReminder?.offsetMinutes, 0, "A prayer reminder defaults to the prayer's actual time");
+const beforePrayer = parseTaskCommand("فكريني قبل صلاة العصر بعشر دقايق", new Date("2026-11-28T10:00:00+02:00"));
+assert.equal(beforePrayer?.action, "create_prayer_reminder", "Relative prayer reminders must be recognized");
+assert.equal(beforePrayer?.offsetMinutes, -10, "Before-prayer offset must be calculated correctly");
+const afterPrayer = parseTaskCommand("اعملي تذكير بعد صلاة المغرب بعشر دقائق", new Date("2026-11-28T10:00:00+02:00"));
+assert.equal(afterPrayer?.offsetMinutes, 10, "After-prayer offset must be calculated correctly");
+
 console.log("NOVA repository checks passed.");
 
 
