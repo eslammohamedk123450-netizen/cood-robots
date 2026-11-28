@@ -762,3 +762,7 @@ assert.match(app, /rememberSpeechAudio\(speechCacheKey, result\)/, "Successful s
 
 assert.ok(app.indexOf("at.setMinutes(at.getMinutes() + offsetMinutes);") < app.indexOf("if (at.getTime() <= now.getTime())"), "Prayer reminder offsets must be applied before deciding whether to roll to tomorrow");
 assert.ok(app.includes("date_offset: 1") && app.includes("const tomorrowRaw") && app.includes("at.setMinutes(at.getMinutes() + offsetMinutes);"), "A missed prayer lead-time must resolve against tomorrow's verified prayer timing");
+
+assert.match(edge, /seenResultUrls/, "Live research must deduplicate repeated source URLs");
+assert.match(edge, /sourceUrl\.username \|\| sourceUrl\.password/, "Search results must reject credential-bearing URLs");
+assert.match(edge, /utm_\|fbclid\|gclid/, "Search links must remove common tracking parameters");
