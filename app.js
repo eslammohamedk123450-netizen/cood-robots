@@ -1257,7 +1257,7 @@ function persistConversationMessage(role, content) {
 }
 async function searchConversationMemory(query, signal) {
   if (!state.session || !query?.trim()) return [];
-  try { const result = await invokeNova("history_search", { query: query.trim().slice(0,240), exclude_conversation_id: state.conversationIds[state.persona] }, {signal}); return Array.isArray(result.matches) ? result.matches : []; }
+  try { const result = await invokeNova("history_search", { query: query.trim().slice(0,240) }, {signal}); return Array.isArray(result.matches) ? result.matches : []; }
   catch (error) { if (error?.name === "AbortError") throw error; console.warn("NOVA history search unavailable:", error); return []; }
 }
 async function persistConversationTurn(userText, assistantText) {
