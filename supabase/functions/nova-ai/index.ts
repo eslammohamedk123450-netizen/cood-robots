@@ -1452,6 +1452,23 @@ Deno.serve(async (req: Request) => {
           return json({ reply: "عندي أكتر من رقم محفوظ، ومش هغيّر حاجة قبل ما أحدد المقصود. قوليلي الرقم الخاص بإيه؟\\n" + options.join("\\n"), memory_corrected: false, correction_needs_clarification: true }, 200, origin);
         }
         const target = candidates[0];
+        // COMBINED_MEMORY_CORRECTION_REQUIRES_FACT_RESOLUTION:
+        // Never replace a whole multi-fact note when semantic resolution could not
+        // safely identify the exact property. That would destroy unrelated values.
+        const fallbackFacts = Array.isArray(target.metadata?.memory_graph?.facts) ? target.metadata.memory_graph.facts : [];
+        const graphIsComplete = target.metadata?.memory_graph_status === "complete" &&
+          target.metadata?.memory_graph?.extraction_status === "complete";
+        if (!graphIsComplete || fallbackFacts.length !== 1) {
+          const factOptions = fallbackFacts.slice(0, 6).map((fact: any) =>
+            String(fact.subject || "المعلومة") + " — " + String(fact.predicate || "الخاصية") + ": " + String(fact.value || "")
+          );
+          const detail = factOptions.length ? " الموجود عندي: " + factOptions.join("؛ ") + "." : "";
+          return json({
+            reply: "لقيت المعلومة، لكن مش هغيّر النص كله عشان ما أضيّعش تفاصيل تانية. حدّد الخاصية اللي عايز تصححها." + detail,
+            memory_corrected: false,
+            correction_needs_clarification: true,
+          }, 200, origin);
+        }
         const now = new Date().toISOString();
         const previousContent = String(target.content || target.title);
         const previousHistory = Array.isArray(target.metadata?.correction_history) ? target.metadata.correction_history : [];
