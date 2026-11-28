@@ -33,6 +33,63 @@ export function normalizeMemoryText(value) {
     .toLocaleLowerCase("ar");
 }
 
+const MEMORY_WEEKDAY_OFFSETS = Object.freeze({
+  "السبت": 0,
+  "الاحد": 1,
+  "الاثنين": 2,
+  "الثلاثاء": 3,
+  "الاربعاء": 4,
+  "الخميس": 5,
+  "الجمعة": 6,
+});
+
+export function classifyMemoryPeriodRequest(value) {
+  const normalized = normalizeMemoryText(value);
+  const asksToday = /(?:النهارده|النهاردة|اليوم)/u.test(normalized);
+  const asksYesterday = /(?:امبارح|مبارح|امس)/u.test(normalized);
+  const asksThisWeek = /(?:الاسبوع ده|الاسبوع الحالي|اسبوعنا ده)/u.test(normalized);
+  const asksWholeWeek = /(?:الاسبوع كله|كل الاسبوع|كل اللي حفظته|كل المحفوظ|اعرضي?لي? كل|وريني كل|كله)/u.test(normalized);
+  const words = new Set(normalized.split(" "));
+  const requestedWeekday = Object.keys(MEMORY_WEEKDAY_OFFSETS).find((day) => words.has(day)) || null;
+  return {
+    asksToday,
+    asksYesterday,
+    asksThisWeek,
+    asksWholeWeek,
+    requestedWeekday,
+    shouldClarifyWeek: asksThisWeek && !asksWholeWeek && !asksToday && !asksYesterday && !requestedWeekday,
+  };
+}
+
+export function getCairoWeekDateKeys(now = new Date()) {
+  const dateOptions = { year: "numeric", month: "2-digit", day: "2-digit" };
+  const cairoDateKey = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo", ...dateOptions });
+  const utcDateKey = new Intl.DateTimeFormat("en-CA", { timeZone: "UTC", ...dateOptions });
+  const todayKey = cairoDateKey.format(now);
+  const todayAnchor = new Date(todayKey + "T12:00:00.000Z");
+  const yesterdayDate = new Date(todayAnchor);
+  yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
+  const localWeekday = new Intl.DateTimeFormat("en-US", { timeZone: "Africa/Cairo", weekday: "short" }).format(todayAnchor);
+  const daysSinceSaturday = ({ Sat: 0, Sun: 1, Mon: 2, Tue: 3, Wed: 4, Thu: 5, Fri: 6 })[localWeekday] ?? 0;
+  const weekStartDate = new Date(todayAnchor);
+  weekStartDate.setUTCDate(weekStartDate.getUTCDate() - daysSinceSaturday);
+  const weekEndDate = new Date(weekStartDate);
+  weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 6);
+  const weekdayKeys = {};
+  for (const [day, offset] of Object.entries(MEMORY_WEEKDAY_OFFSETS)) {
+    const date = new Date(weekStartDate);
+    date.setUTCDate(date.getUTCDate() + offset);
+    weekdayKeys[day] = utcDateKey.format(date);
+  }
+  return {
+    todayKey,
+    yesterdayKey: utcDateKey.format(yesterdayDate),
+    weekStartKey: utcDateKey.format(weekStartDate),
+    weekEndKey: utcDateKey.format(weekEndDate),
+    weekdayKeys,
+  };
+}
+
 export function extractMemoryTokens(value) {
   const normalized = normalizeMemoryText(value);
   const hasClock = /(?:الساعة|الساعه|ساعة)\s*\d/u.test(normalized);
