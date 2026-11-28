@@ -594,8 +594,8 @@ assert.match(alarmActivity, /isStopPhrase/, "Alarm must accept spoken stop comma
 assert.match(alarmActivity, /clean\.contains\("اوقفيالمنبه"\)/, "Alarm stop phrases must match after whitespace compaction");
 assert.match(alarmActivity, /clean\.contains\("اوقفيالتذكير"\)/, "Reminder stop phrases must match after whitespace compaction");
 assert.doesNotMatch(alarmActivity, /clean\.contains\("اوقفي المنبه"\)/, "Alarm matching must not compare spaced phrases against compact text");
-assert.match(main, /onStop\(String id, boolean interrupted\)/, "Native TTS cancellation must settle the active playback promise immediately");
-assert.match(main, /activeTtsRequestId/, "Android must track the active TTS request for deterministic cancellation");
+assert.match(androidMain, /onStop\(String id, boolean interrupted\)/, "Native TTS cancellation must settle the active playback promise immediately");
+assert.match(androidMain, /activeTtsRequestId/, "Android must track the active TTS request for deterministic cancellation");
 assert.match(app, /detail\.event === "done" \|\| detail\.event === "cancelled"/, "Client TTS promises must settle on native cancellation without waiting for timeout");
 assert.match(alarmActivity, /انا قمت|قمت/, "Alarm must recognize the user confirming they woke up");
 assert.match(alarmActivity, /صحيت|صاحي/, "Alarm must also stop when the user says «أنا صحيت» or «أنا صاحي»");
