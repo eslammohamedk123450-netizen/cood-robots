@@ -186,6 +186,10 @@ assert.match(edge, /relativeDay !== null \|\| explicitDate/, "History recall mus
 assert.match(edge, /timeZone: "Africa\/Cairo"/, "History timestamps must be interpreted in Cairo local time");
 assert.match(app, /const asksPastConversation =/, "Chat requests must detect references to previous conversations");
 assert.match(app, /searchConversationMemory\(text, signal\)/, "Relevant prior transcript excerpts must be added to the model context");
+assert.match(app, /وقفنا\\s\+\(\?:فين\|عند\)/, "Archive search must recognize explicit requests to recall where a topic stopped");
+assert.doesNotMatch(app.match(/const asksPastConversation = (.*?);/)?.[1] || "", /النهارده|النهاردة|امبارح|مبارح|أمس/, "Ordinary date mentions must not trigger an unnecessary archive search");
+assert.doesNotMatch(app.match(/const asksPastConversation = (.*?);/)?.[1] || "", /فاكر\(\?:ة\)\?\|/, "Vague saved-note recall must be handled by the memory lookup without an extra archive request");
+
 
 console.log("NOVA repository checks passed.");
 
