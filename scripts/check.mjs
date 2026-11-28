@@ -37,7 +37,7 @@ const edge = read("../supabase/functions/nova-ai/index.ts");
 const routing = read("../supabase/functions/nova-ai/routing-policy.js");
 const memoryUtils = read("../supabase/functions/nova-ai/memory-utils.js");
 const taskManager = read("../task-manager.js");
-const stopWordsBlock = memoryUtils.match(/const STOP_WORDS = new Set\\(\\[([\\s\\S]*?)\\]\\);/)?.[1] || "";
+const stopWordsBlock = memoryUtils.match(/const STOP_WORDS = new Set\(\[([\s\S]*?)\]\);/)?.[1] || "";
 const stopWordEntries = [...stopWordsBlock.matchAll(/"([^"]*)"/g)].map((entry) => entry[1]);
 assert.equal(new Set(stopWordEntries).size, stopWordEntries.length, "The memory stop-word catalog must not contain redundant duplicate entries");
 const personalItemsMigration = read("../supabase/migrations/20261127233636_nova_account_synced_personal_items.sql");
