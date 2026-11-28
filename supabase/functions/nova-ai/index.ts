@@ -905,7 +905,7 @@ Deno.serve(async (req: Request) => {
           .every((key) => /^\d{1,2}:\d{2}/.test(String(times[key] ?? "")));
         // Primary: AlAdhan by city. Backup 1: AlAdhan coordinate route (same Egyptian method).
         try {
-          const response = await fetch(endpoint, { signal: AbortSignal.timeout(10000), redirect: "follow" });
+          const response = await fetch(endpoint, { signal: AbortSignal.timeout(6000), redirect: "follow" });
           const payload = await response.json().catch(() => null);
           const timings = payload?.data?.timings;
           if (response.ok && payload?.code === 200 && timings) {
@@ -926,7 +926,7 @@ Deno.serve(async (req: Request) => {
           const backupUrl = "https://api.aladhan.com/v1/timings/" + date + "?" + new URLSearchParams({
             latitude: String(coords.latitude), longitude: String(coords.longitude), method: "5",
           }).toString();
-          const response = await fetch(backupUrl, { signal: AbortSignal.timeout(9000), redirect: "follow" });
+          const response = await fetch(backupUrl, { signal: AbortSignal.timeout(5000), redirect: "follow" });
           const payload = await response.json().catch(() => null);
           const timings = payload?.data?.timings;
           if (response.ok && payload?.code === 200 && timings) return json({
