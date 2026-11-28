@@ -902,7 +902,7 @@ Deno.serve(async (req: Request) => {
           isha: times.Isha ?? times.isha,
         });
         const validTimes = (times: Record<string, unknown>) => ["fajr", "dhuhr", "asr", "maghrib", "isha"]
-          .every((key) => /^\\d{1,2}:\\d{2}/.test(String(times[key] ?? "")));
+          .every((key) => /^\d{1,2}:\d{2}/.test(String(times[key] ?? "")));
         // Primary: AlAdhan by city. Backup 1: AlAdhan coordinate route (same Egyptian method).
         try {
           const response = await fetch(endpoint, { signal: AbortSignal.timeout(10000), redirect: "follow" });
