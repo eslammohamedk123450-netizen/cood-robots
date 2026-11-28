@@ -91,7 +91,8 @@ The approved product direction and complete phased plan are documented in [SOLIN
 
 - [x] Record the current product boundary: lightweight Alexa-like personal assistant; coding-agent behavior is deferred.
 - [x] Audit existing conversation archive, owner memory, personal items, reminder/alarm parser, Android scheduling bridge, live search, model routing, and CI.
-- [ ] Phase 1: strengthen conversational continuity and topic-switch behavior with regression tests.
+- [x] Phase 1 initial pass: compact the client prompt and avoid unnecessary archive-search round trips for ordinary date mentions and saved-note recall.
+- [ ] Phase 1 remaining: expand topic-continuity and topic-switch behavior with additional regression and live conversation tests.
 - [ ] Phase 2: verify exact explicit memory capture and recall across new sessions.
 - [ ] Phase 3: harden personal actions and clarify ambiguous date/time details before scheduling.
 - [ ] Phase 4: improve source-backed web research while preserving the existing search path.
