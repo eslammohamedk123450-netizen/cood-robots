@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { classifyMemoryKind, extractMemoryTokens, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemorySave } from "./memory-utils.js";
+import { classifyMemoryKind, extractMemoryTokens, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "./memory-utils.js";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -1034,6 +1034,39 @@ Deno.serve(async (req: Request) => {
       if (!messages) return json({ error: "سجل المحادثة غير صالح أو تجاوز الحدود المسموحة" }, 400, origin);
       // Explicit memory operations are deterministic and owner-scoped; never ask a model to invent saved facts.
       const latestUserText = [...messages].reverse().find((item) => item.role === "user")?.content ?? "";
+      const memoryCorrection = parseExplicitMemoryCorrection(latestUserText);
+      if (memoryCorrection) {
+        const { data: savedNotes, error: notesReadError } = await admin.from("nova_personal_items")
+          .select("id,title,content,created_at,metadata").eq("user_id", userId).eq("item_type", "note")
+          .eq("status", "active").order("created_at", { ascending: false }).limit(80);
+        if (notesReadError) throw notesReadError;
+        const references = (savedNotes ?? []).filter((note: any) => note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference");
+        const targetTokens = memoryCorrection.target ? extractMemoryTokens(memoryCorrection.target) : [];
+        const candidates = targetTokens.length
+          ? references.filter((note: any) => {
+              const haystack = normalizeMemoryText(String(note.title || "") + " " + String(note.content || ""));
+              return targetTokens.every((token) => haystack.includes(normalizeMemoryText(token)));
+            })
+          : references;
+        if (!references.length) return json({ reply: "مش لاقية رقم محفوظ في الدفتر عشان أصححه. احفظي الرقم الأول، وبعدها قوليلي الرقم الصحيح.", memory_corrected: false }, 200, origin);
+        if (!candidates.length) return json({ reply: "مش لاقية رقم محفوظ يطابق الوصف ده. حددي اسم المعلومة أو الحساب المرتبط بالرقم، ومش هغيّر أي رقم بالتخمين.", memory_corrected: false }, 200, origin);
+        if (candidates.length > 1) {
+          const options = candidates.slice(0, 6).map((note: any, index: number) => (index + 1) + ") " + String(note.title || note.content).slice(0, 180));
+          return json({ reply: "عندي أكتر من رقم محفوظ، ومش هغيّر حاجة قبل ما أحدد المقصود. قوليلي الرقم الخاص بإيه؟\\n" + options.join("\\n"), memory_corrected: false, correction_needs_clarification: true }, 200, origin);
+        }
+        const target = candidates[0];
+        const now = new Date().toISOString();
+        const previousContent = String(target.content || target.title);
+        const previousHistory = Array.isArray(target.metadata?.correction_history) ? target.metadata.correction_history : [];
+        const metadata = { ...(target.metadata || {}), memory_kind: "reference", correction_history: [...previousHistory, { previous_content: previousContent, corrected_at: now }].slice(-3) };
+        const { data: correctedNote, error: correctionError } = await admin.from("nova_personal_items")
+          .update({ title: memoryCorrection.value.replace(/\\s+/g, " ").slice(0, 160), content: memoryCorrection.value, metadata, updated_at: now })
+          .eq("id", target.id).eq("user_id", userId)
+          .select("id,title,content,created_at,updated_at").maybeSingle();
+        if (correctionError) throw correctionError;
+        if (!correctedNote) return json({ error: "المعلومة لم تعد موجودة في حسابك، لم يتم إجراء أي تعديل." }, 404, origin);
+        return json({ reply: "تمام، صححت الرقم المحفوظ واستبدلت القديم بالجديد. المعلومة دلوقتي: " + correctedNote.content + ". واحتفظت بنسخة من القيمة القديمة في سجل التصحيح.", memory_corrected: true, memory_kind: "reference" }, 200, origin);
+      }
       const saveNotePayload = parseExplicitMemorySave(latestUserText);
       if (saveNotePayload) {
         const noteTitle = saveNotePayload.replace(/\s+/g, " ").slice(0, 160);
