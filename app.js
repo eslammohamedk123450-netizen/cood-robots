@@ -1753,8 +1753,8 @@ async function executeTaskIntent(intent) {
     if (!intent.all && tasks.length > 1) {
       const options = tasks.slice(0, 6).map((task) => ({ id: String(task.id), title: String(task.title || "موعد محفوظ") }));
       state.pendingTaskDraft = { stage: "choose_cancel", options };
-      return "عندك أكتر من موعد مطابق. اختار رقم الموعد اللي تقصده:\n" +
-        options.map((task, index) => (index + 1) + ". " + task.title).join("\n");
+      return "عندك أكتر من موعد مطابق. اختار رقم الموعد اللي تقصده:" + String.fromCharCode(10) +
+        options.map((task, index) => (index + 1) + ". " + task.title).join(String.fromCharCode(10));
     }
     const selected = intent.all ? tasks : [tasks[0]];
     const ids = selected.map((task) => String(task.id));
