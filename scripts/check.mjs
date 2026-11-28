@@ -178,6 +178,15 @@ assert.equal(beforePrayer?.offsetMinutes, -10, "Before-prayer offset must be cal
 const afterPrayer = parseTaskCommand("اعملي تذكير بعد صلاة المغرب بعشر دقائق", new Date("2026-11-28T10:00:00+02:00"));
 assert.equal(afterPrayer?.offsetMinutes, 10, "After-prayer offset must be calculated correctly");
 
+
+assert.match(edge, /عندك\)\?\|افتكر/, "Explicit save phrases with 'عندك' must be recognized");
+assert.equal((edge.match(/const latestUserText =/g) || []).length, 1, "Chat memory context must define the latest user text only once");
+assert.match(edge, /latestUserText\.match\(\/\[\\p\{L\}\\p\{N\}\]\{2,\}\/gu\)/, "Arabic and Unicode memory tokenization must use Unicode property escapes");
+assert.match(edge, /relativeDay !== null \|\| explicitDate/, "History recall must support relative and explicit dates");
+assert.match(edge, /timeZone: "Africa\/Cairo"/, "History timestamps must be interpreted in Cairo local time");
+assert.match(app, /const asksPastConversation =/, "Chat requests must detect references to previous conversations");
+assert.match(app, /searchConversationMemory\(text, signal\)/, "Relevant prior transcript excerpts must be added to the model context");
+
 console.log("NOVA repository checks passed.");
 
 
