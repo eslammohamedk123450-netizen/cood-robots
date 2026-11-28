@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { classifyMemoryKind, extractMemoryNumberSignature, extractMemoryTokens, isCorrectionHistoryRecall, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "../supabase/functions/nova-ai/memory-utils.js";
 import { buildMemoryGraph, parseMemoryModelJson, validateSemanticRecallIds } from "../supabase/functions/nova-ai/memory-graph.js";
 import { classifyConversationTurn } from "../conversation-context.js";
+import { requiresMultiAgentWork } from "../supabase/functions/nova-ai/routing-policy.js";
 
 
 const graphFixture = buildMemoryGraph("المشروع ألف ميزانيته 5000 جنيه وموعده الخميس، والمشروع باء ميزانيته 7000 جنيه.", {
@@ -610,7 +611,11 @@ assert.match(edge, /hourMatch/, "Conversation recall must narrow historical resu
 assert.match(edge, /requestedNoteDate/, "Saved personal notes must be retrievable by relative Cairo date");
 assert.match(edge, /requestedNoteHour/, "Saved personal notes must be retrievable by requested hour");
 assert.equal(extractMemoryTokens("الساعة ٨ مساء").length, 0, "Clock-only requests must skip note retrieval and must not match personal numeric references");
-assert.match(edge, /function requiresMultiAgentWork/, "Complex tasks must be routed through adaptive multi-agent orchestration");
+assert.match(edge, /import \{ requiresMultiAgentWork \} from "\.\/routing-policy\.js"/, "Edge routing must use the shared, directly testable routing policy");
+assert.equal(requiresMultiAgentWork("فكريني بعد نص ساعة"), false, "Personal reminders must never trigger parallel model calls");
+assert.equal(requiresMultiAgentWork("فاكرة الرقم اللي حفظته؟"), false, "Memory recall must stay on the deterministic single-model path");
+assert.equal(requiresMultiAgentWork("هات مصادر عن الذكاء الاصطناعي"), true, "Explicit source-backed research must be eligible for independent analysis");
+assert.equal(requiresMultiAgentWork("إيه الأخبار؟"), false, "Short everyday conversation must stay on the fast path");
 assert.match(edge, /Promise\.allSettled\(\[/, "Independent agents must execute concurrently and tolerate one worker failure");
 assert.match(edge, /function buildSynthesisMessages/, "A synthesis agent must reconcile parallel worker outputs into one answer");
 assert.match(edge, /agent_mode: agentMode/, "Agent execution mode must be observable for diagnostics");
@@ -752,7 +757,9 @@ assert.match(edge, /if \(value\.length < 90\) return false/, "Short everyday tur
 assert.match(edge, /if \(multiAgent\)/, "Complex work must retain bounded parallel reasoning and synthesis");
 
 // Context discipline: short references continue the nearby topic; explicit switch phrases isolate a new topic.
-assert.match(app, /classifyConversationTurn\(text, state\.messages\)/, "Conversation turns must be classified before model context is assembled");
+assert.match(app, /classifyConversationTurn\(text, requestMessages\.slice\(-8\)\)/, "Conversation turns must be classified against the latest bounded message window");
+assert.equal(app.includes("\\\\s"), false, "Client regexes must not contain double-escaped whitespace tokens");
+assert.equal(edge.includes("\\\\s"), false, "Edge regexes must not contain double-escaped whitespace tokens");
 assert.equal(classifyConversationTurn("طيب كملي", [{ role: "user", content: "احكيلي عن الموضوع" }]), "follow_up", "A short Arabic follow-up with a normal space must continue the current topic");
 assert.equal(classifyConversationTurn("رقم 2", [{ role: "user", content: "اختاري موعدًا" }]), "new_topic", "A numbered selection is not automatically a conversational follow-up");
 assert.equal(classifyConversationTurn("موضوع تاني عن السفر", [{ role: "user", content: "احكيلي عن الدراسة" }]), "topic_change", "Explicit topic changes must isolate the new subject");
