@@ -37,13 +37,14 @@ function uniqueRows(rows, keyOf, limit) {
 export function buildMemoryGraph(originalText, proposed) {
   const source = clean(originalText, 12000);
   const data = proposed && typeof proposed === "object" && !Array.isArray(proposed) ? proposed : {};
+  const normalizedSource = normalizeEvidence(source);
+  // Entity labels must be grounded in the user's original note.
   const entities = (Array.isArray(data.entities) ? data.entities : []).map((item) => ({
     id: clean(item?.id, 80),
     name: clean(item?.name, 180),
     kind: clean(item?.kind, 80),
     context: clean(item?.context, 240),
-  })).filter((item) => item.name);
-  const normalizedSource = normalizeEvidence(source);
+  })).filter((item) => item.name && normalizedSource.includes(normalizeEvidence(item.name)));
   const facts = (Array.isArray(data.facts) ? data.facts : []).map((item) => ({
     subject: clean(item?.subject, 180),
     predicate: clean(item?.predicate, 120),
@@ -54,6 +55,7 @@ export function buildMemoryGraph(originalText, proposed) {
     evidence: clean(item?.evidence, 500),
     confidence: Number.isFinite(Number(item?.confidence)) ? Math.max(0, Math.min(1, Number(item.confidence))) : 0.5,
   })).filter((item) => item.subject && item.predicate && item.value && item.evidence &&
+    normalizedSource.includes(normalizeEvidence(item.subject)) &&
     normalizedSource.includes(normalizeEvidence(item.evidence)) &&
     normalizeEvidence(item.evidence).includes(normalizeEvidence(item.value)));
   const relations = (Array.isArray(data.relations) ? data.relations : []).map((item) => ({
@@ -63,6 +65,8 @@ export function buildMemoryGraph(originalText, proposed) {
     context: clean(item?.context, 240),
     evidence: clean(item?.evidence, 500),
   })).filter((item) => item.from && item.relation && item.to && item.evidence &&
+    normalizedSource.includes(normalizeEvidence(item.from)) &&
+    normalizedSource.includes(normalizeEvidence(item.to)) &&
     normalizedSource.includes(normalizeEvidence(item.evidence)));
   const topics = uniqueRows((Array.isArray(data.topics) ? data.topics : []).map((v) => clean(v, 100)).filter(Boolean), (v) => v, 16);
   return {
