@@ -345,7 +345,7 @@ function speakWithDevice(text, segments = []) {
   if (window.SolinaNative && typeof window.SolinaNative.speakText === "function") {
     return speakWithNativeDevice(text, segments);
   }
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
       reject(new Error("محرك النطق غير متاح في المتصفح ده. افتح NOVA من Chrome على أندرويد."));
       return;
