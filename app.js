@@ -267,6 +267,8 @@ function addConversationLine(text, speaker) {
 }
 let currentSpeechUrl = null;
 let speechAudioElement = null;
+// Latest-wins audio guard prevents delayed TTS results from older turns from playing.
+let speechPlaybackId = 0;
 function cleanSpeechText(value) {
   return String(value || "")
     .replace(/```[\s\S]*?```/g, " تم عرض كود في الرسالة. ")
@@ -403,6 +405,10 @@ async function speak(text, segments = [], signal) {
   if (!spokenText) return;
   const persona = "soleen";
   const speechSegments = segments.length ? segments : [{ text: spokenText, emotion: state.replyEmotion || "neutral" }];
+  const playbackId = ++speechPlaybackId;
+  // Stop all playback backends first: Android TTS and browser TTS must never overlap.
+  try { window.SolinaNative?.stopSpeaking?.(); } catch (_) {}
+  try { window.speechSynthesis?.cancel?.(); } catch (_) {}
   state.speaking = true;
   // Keep the dedicated interrupt listener alive during playback so "اسكت"
   // can cancel speech immediately instead of being ignored.
@@ -416,6 +422,7 @@ async function speak(text, segments = [], signal) {
   const finish = () => {
     if (finished) return;
     finished = true;
+    if (playbackId !== speechPlaybackId) return;
     state.speaking = false;
     stopInterruptRecognition();
     state.audio = null;
@@ -444,7 +451,8 @@ async function speak(text, segments = [], signal) {
     const geminiCacheKey = useGeminiTts ? JSON.stringify([persona, "gemini-2.5-flash-preview-tts", spokenText]) : "";
     let result = geminiCacheKey ? getSpeechAudioCache(geminiCacheKey) : null;
     if (!result) result = await invokeNova(speechAction, { text: spokenText, persona, voice_id: voiceId, provider: speechVendor }, { signal });
-    if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
+    if (playbackId !== speechPlaybackId || signal?.aborted) return;
+      if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
     const mime = String(result.mime_type || "").split(";")[0].trim().toLowerCase();
     if (!["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav"].includes(mime)) {
       throw new Error("الخادم رجّع صيغة صوت غير مدعومة: " + (mime || "غير معروفة"));
@@ -500,11 +508,12 @@ async function speak(text, segments = [], signal) {
       source.start(0);
     }
   } catch (error) {
+    if (playbackId !== speechPlaybackId) return;
     state.speaking = false;
     state.audio = null;
-    resetSpeechMouth();
+    resetSpeechMouth;
     if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
-    if (error?.name === "AbortError" || signal?.aborted) { resetSpeechMouth(); return; }
+    if (error?.name === "AbortError" || signal?.aborted || playbackId !== speechPlaybackId) { resetSpeechMouth(); return; }
     // Last-resort voice: use any installed phone voice (Arabic preferred), without
     // surfacing provider/network errors to the conversation. Never let TTS failure
     // block the text reply.
