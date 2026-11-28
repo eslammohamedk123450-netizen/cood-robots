@@ -620,6 +620,7 @@ assert.equal(isCorrectionHistoryRecall("فاكر الرقم اللي انا قل
 assert.equal(isCorrectionHistoryRecall("فاكره الرقم اللي انا قلت لك صححيه"), true, "Feminine colloquial recall must target correction history");
 assert.equal(isCorrectionHistoryRecall("فاكره الرقم اللي قلت لك صححيه"), true, "Shortened spoken correction recall must target correction history");
 assert.equal(isExplicitMemoryRecall("هات الرقم اللي حفظته"), true, "Direct requests to retrieve a saved number must be recognized");
+assert.equal(isExplicitMemoryRecall("هات كل المعلومات اللي عندك فيها كلمة بطيخ"), true, "General requests to list all saved information by context must enter semantic recall");
 assert.equal(isExplicitMemoryRecall("تفتكري إيه رأيك في الفيلم؟"), false, "Ordinary conversational questions must not trigger memory recall");
 assert.deepEqual(extractMemoryTokens("الساعة ٨ مساء"), [], "Clock-only questions must not trigger personal-note searches");
 assert.deepEqual(extractMemoryTokens("فاكرة الرقم ١٢٣؟"), ["123"], "Arabic digits must normalize for exact reference matching");
