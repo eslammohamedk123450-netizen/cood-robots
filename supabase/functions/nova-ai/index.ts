@@ -1147,7 +1147,7 @@ Deno.serve(async (req: Request) => {
         const previousHistory = Array.isArray(target.metadata?.correction_history) ? target.metadata.correction_history : [];
         const metadata = { ...(target.metadata || {}), memory_kind: "reference", correction_history: [...previousHistory, { previous_content: previousContent, corrected_at: now }].slice(-3) };
         const { data: correctedNote, error: correctionError } = await admin.from("nova_personal_items")
-          .update({ title: memoryCorrection.value.replace(/\\s+/g, " ").slice(0, 160), content: memoryCorrection.value, metadata, updated_at: now })
+          .update({ title: memoryCorrection.value.replace(/\s+/g, " ").slice(0, 160), content: memoryCorrection.value, metadata, updated_at: now })
           .eq("id", target.id).eq("user_id", userId)
           .select("id,title,content,created_at,updated_at").maybeSingle();
         if (correctionError) throw correctionError;
@@ -1267,7 +1267,7 @@ Deno.serve(async (req: Request) => {
           return /(?:^|\s)(?:كلمة|الكلمه|كلمه)(?=\s|$)/u.test(value);
         });
         const wordNotes = notes.filter((note: any) =>
-          note.metadata?.memory_kind === "word" || /(?:^|\\s)(?:الكلمة|كلمة|الكلمه|كلمه)(?:\\s|$)/u.test(normalizeMemoryText(String(note.content || note.title || "")))
+          note.metadata?.memory_kind === "word" || /(?:^|\s)(?:الكلمة|كلمة|الكلمه|كلمه)(?:\s|$)/u.test(normalizeMemoryText(String(note.content || note.title || "")))
         );
         const matchingWordNotes = memoryWords.length
           ? wordNotes.filter((note: any) => {
@@ -1278,7 +1278,9 @@ Deno.serve(async (req: Request) => {
         const recallPool = correctionHistoryRecall
           ? correctedReferences
           : asksToday || asksYesterday || asksThisWeek ? notes.filter(requestedPeriodFilter)
-          : numberRecall ? (matchedNotes.some((note: any) => note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference")\n            ? uniqueReferenceNotes(matchedNotes.filter((note: any) => note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference"))\n            : allReferences)
+          : numberRecall ? (matchedNotes.some((note: any) => note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference")
+            ? uniqueReferenceNotes(matchedNotes.filter((note: any) => note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference"))
+            : allReferences)
           : wordRecall ? matchingWordNotes
           : matchedNotes.length ? matchedNotes
           : memoryWords.length ? []
