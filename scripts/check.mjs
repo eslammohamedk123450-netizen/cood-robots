@@ -759,3 +759,6 @@ assert.match(edge, /if \(explicitResearch\) return true/, "Short explicit resear
 assert.match(app, /speechCacheKey = JSON\.stringify\(\[persona, speechAction, speechVendor, voiceId, spokenText\]\)/, "Neural speech cache must be keyed by provider, engine, voice and exact text");
 assert.match(app, /getSpeechAudioCache\(speechCacheKey\)/, "Repeated speech must reuse cached audio within the current page session");
 assert.match(app, /rememberSpeechAudio\(speechCacheKey, result\)/, "Successful speech responses must enter the bounded in-memory cache");
+
+assert.match(app, /at\.setMinutes\(at\.getMinutes\(\) \+ offsetMinutes\);[\\s\\S]{0,600}if \(at\.getTime\(\) <= now\.getTime\(\)\)/, "Prayer reminder offsets must be applied before deciding whether to roll to tomorrow");
+assert.match(app, /date_offset: 1[\\s\\S]{0,300}at\.setMinutes\(at\.getMinutes\(\) \+ offsetMinutes\)/, "A missed prayer lead-time must resolve against tomorrow's verified prayer timing");
