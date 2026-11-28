@@ -293,6 +293,8 @@ assert.match(edge, /action === "personal_item_delete"/, "The owner API must dele
 assert.match(app, /const asksClock =/, "Clock questions must be answered from the device clock without depending on an AI provider");
 assert.match(app, /const asksPrayer = \/[\\s\\S]*الفجر.*يأذن/, "Fajr adhan-time questions must be recognized before generic clock questions");
 assert.match(app, /const asksClock = !asksPrayer/, "Prayer questions mentioning the word clock must never be mistaken for device clock questions");
+assert.match(app, /الفجر\|فجر\|الظهر/, "Short speech-recognition transcripts that omit the definite article in Fajr must still be understood");
+
 assert.match(app, /فاضل.{0,25}(?:الفجر|الظهر|العصر|المغرب|العشاء)/, "Remaining-time questions for the next prayer must be recognized");
 assert.match(edge, /item.role === "system" \? 24000 : 12000/, "The system prompt must allow the complete assistant instructions without rejecting normal chats");
 assert.match(edge, /total > 220000/, "The chat payload limit must leave room for the system prompt and live tool context");
