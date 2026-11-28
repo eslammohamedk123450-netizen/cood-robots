@@ -991,7 +991,7 @@ async function saveSpeechSettings() {
     button.textContent = "اختبار المفتاح وحفظه بأمان";
   }
 }
-async function classifyConversationTurn(text, messages = []) {
+function classifyConversationTurn(text, messages = []) {
   const current = String(text || "").trim();
   const normalized = current.toLocaleLowerCase("ar").replace(/[ًٌٍَُِّْـ]/g, "").replace(/[،.!؟?؛,:]/g, " ").replace(/\\s+/g, " ").trim();
   const explicitSwitch = /(?:موضوع تاني|سؤال تاني|بعيدا عن|سيبك من|خلينا نتكلم عن|نغير الموضوع|على فكره سؤال|بالمناسبه سؤال)/iu.test(normalized);
@@ -1002,7 +1002,7 @@ async function classifyConversationTurn(text, messages = []) {
   if (shortFollowUp || pronounFollowUp || explicitContinuation) return "follow_up";
   return "new_topic";
 }
-function requestAIReply(text, signal, voiceAlternatives = []) {
+async function requestAIReply(text, signal, voiceAlternatives = []) {
   // invokeNova owns session recovery; do not reject a turn based on a stale in-memory
   // session before it has a chance to restore the validated owner token.
   if (!state.messages.length || state.messages[0].role !== "system") {
