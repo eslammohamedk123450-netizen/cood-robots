@@ -37,6 +37,7 @@ public class MainActivity extends Activity {
     private TextToSpeech textToSpeech;
     private boolean ttsReady = false;
     private String pendingTtsText = null;
+    private String pendingTtsRequestId = null;
     private final String appUrl = "https://eslammohamedk123450-netizen.github.io/cood-robots/?solina=live-clock-prayer-fix-v9";
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -44,7 +45,7 @@ public class MainActivity extends Activity {
         textToSpeech = new TextToSpeech(this, status -> {
             if (status != TextToSpeech.SUCCESS) {
                 ttsReady = false;
-                dispatchTtsEvent("error", "تعذر تهيئة محرك تحويل النص إلى كلام في أندرويد.");
+                dispatchTtsEvent("error", "تعذر تهيئة محرك تحويل النص إلى كلام في أندرويد.", null);
                 return;
             }
             int language = textToSpeech.setLanguage(new Locale("ar", "EG"));
@@ -52,7 +53,7 @@ public class MainActivity extends Activity {
             if (language < TextToSpeech.LANG_AVAILABLE) language = textToSpeech.setLanguage(Locale.getDefault());
             if (language < TextToSpeech.LANG_AVAILABLE) {
                 ttsReady = false;
-                dispatchTtsEvent("error", "حزمة الصوت العربية غير مثبتة على الجهاز.");
+                dispatchTtsEvent("error", "حزمة الصوت العربية غير مثبتة على الجهاز.", null);
                 return;
             }
             if (Build.VERSION.SDK_INT >= 21) {
@@ -64,8 +65,10 @@ public class MainActivity extends Activity {
             ttsReady = true;
             if (pendingTtsText != null) {
                 String pending = pendingTtsText;
+                String pendingRequestId = pendingTtsRequestId;
                 pendingTtsText = null;
-                speakNativeTextNow(pending);
+                pendingTtsRequestId = null;
+                if (pendingRequestId != null) speakNativeTextNow(pending, pendingRequestId);
             }
         });
         webView = new WebView(this);
@@ -100,26 +103,33 @@ public class MainActivity extends Activity {
         requestStartupPermissions();
     }
 
-    private void dispatchTtsEvent(String event, String message) {
+    private String requestIdFromUtterance(String utteranceId) {
+        String prefix = "solina-";
+        return utteranceId != null && utteranceId.startsWith(prefix) ? utteranceId.substring(prefix.length()) : "";
+    }
+
+    private void dispatchTtsEvent(String event, String message, String requestId) {
         if (webView == null) return;
         String script = "window.dispatchEvent(new CustomEvent('solina-native-tts',{detail:{event:"
-                + JSONObject.quote(event) + ",message:" + JSONObject.quote(message == null ? "" : message) + "}}));";
+                + JSONObject.quote(event) + ",message:" + JSONObject.quote(message == null ? "" : message)
+                + ",requestId:" + JSONObject.quote(requestId == null ? "" : requestId) + "}}));";
         runOnUiThread(() -> { if (webView != null) webView.evaluateJavascript(script, null); });
     }
 
-    private void speakNativeTextNow(String text) {
+    private void speakNativeTextNow(String text, String requestId) {
         if (!ttsReady || textToSpeech == null) {
-            dispatchTtsEvent("error", "محرك الصوت في أندرويد غير جاهز.");
+            dispatchTtsEvent("error", "محرك الصوت في أندرويد غير جاهز.", requestId);
             return;
         }
+        String utteranceId = "solina-" + requestId;
         textToSpeech.setOnUtteranceProgressListener(new UtteranceProgressListener() {
-            @Override public void onStart(String utteranceId) { dispatchTtsEvent("start", ""); }
-            @Override public void onDone(String utteranceId) { dispatchTtsEvent("done", ""); }
-            @Override public void onError(String utteranceId) { dispatchTtsEvent("error", "محرك أندرويد فشل في إخراج الصوت."); }
-            @Override public void onError(String utteranceId, int errorCode) { dispatchTtsEvent("error", "فشل إخراج الصوت، رمز الخطأ " + errorCode); }
+            @Override public void onStart(String id) { dispatchTtsEvent("start", "", requestIdFromUtterance(id)); }
+            @Override public void onDone(String id) { dispatchTtsEvent("done", "", requestIdFromUtterance(id)); }
+            @Override public void onError(String id) { dispatchTtsEvent("error", "محرك أندرويد فشل في إخراج الصوت.", requestIdFromUtterance(id)); }
+            @Override public void onError(String id, int errorCode) { dispatchTtsEvent("error", "فشل إخراج الصوت، رمز الخطأ " + errorCode, requestIdFromUtterance(id)); }
         });
-        int result = textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "solina-" + System.currentTimeMillis());
-        if (result == TextToSpeech.ERROR) dispatchTtsEvent("error", "تعذر بدء النطق على الجهاز.");
+        int result = textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
+        if (result == TextToSpeech.ERROR) dispatchTtsEvent("error", "تعذر بدء النطق على الجهاز.", requestId);
     }
 
     void dispatchSpeechResult(JSONArray transcripts) {
@@ -474,18 +484,23 @@ public class MainActivity extends Activity {
             } catch (Exception ignored) { return "{\"platform\":\"android\"}"; }
         }
 
-        @JavascriptInterface public String speakText(String text) {
-            if (text == null || text.trim().isEmpty()) return "{\"ok\":false,\"error\":\"empty_text\"}";
+        @JavascriptInterface public String speakText(String text, String requestId) {
+            if (text == null || text.trim().isEmpty() || requestId == null || requestId.trim().isEmpty()) return "{\"ok\":false,\"error\":\"invalid_request\"}";
             String safeText = text.length() > 3900 ? text.substring(0, 3900) : text;
+            String safeRequestId = requestId.length() > 64 ? requestId.substring(0, 64) : requestId;
             activity.runOnUiThread(() -> {
-                if (activity.ttsReady) activity.speakNativeTextNow(safeText);
-                else activity.pendingTtsText = safeText;
+                if (activity.ttsReady) activity.speakNativeTextNow(safeText, safeRequestId);
+                else {
+                    activity.pendingTtsText = safeText;
+                    activity.pendingTtsRequestId = safeRequestId;
+                }
             });
             return "{\"ok\":true,\"queued\":true}";
         }
         @JavascriptInterface public void stopSpeaking() {
             activity.runOnUiThread(() -> {
                 activity.pendingTtsText = null;
+                activity.pendingTtsRequestId = null;
                 if (activity.textToSpeech != null) activity.textToSpeech.stop();
             });
         }
