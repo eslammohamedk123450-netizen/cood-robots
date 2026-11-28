@@ -20,6 +20,7 @@ assert.equal(graphFixture.facts.length, 3, "Semantic indexing must preserve dist
 assert.equal(graphFixture.facts[0].subject, "المشروع ألف", "Each value must remain attached to its correct subject");
 assert.equal(graphFixture.facts[2].subject, "المشروع باء", "Similar properties must not merge facts belonging to different subjects");
 assert.equal(graphFixture.facts[2].value, "7000", "Exact values must survive semantic graph validation");
+assert.equal(buildMemoryGraph("المشروع ألف ميزانيته 5000 جنيه.", { facts: [{ subject: "المشروع ألف", predicate: "الميزانية", value: "9000", evidence: "ميزانيته 9000 جنيه" }] }).facts.length, 0, "Model-invented facts without matching source evidence must be rejected");
 assert.deepEqual(validateSemanticRecallIds({ selected_ids: ["note-b", "not-real", "note-a", "note-b"] }, ["note-a", "note-b"]), ["note-b", "note-a"], "Semantic retrieval must reject unknown IDs and deduplicate valid candidates");
 assert.deepEqual(parseMemoryModelJson('prefix ```json\\n{"selected_ids":["n1"],"confidence":0.9}\\n``` suffix'), { selected_ids: ["n1"], confidence: 0.9 }, "Model JSON parsing must tolerate fenced JSON and surrounding prose");
 assert.equal(buildMemoryGraph("نص أصلي", null).extraction_status, "empty", "Missing model output must never be marked as semantically processed");
