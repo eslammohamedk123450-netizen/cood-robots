@@ -647,12 +647,12 @@ Deno.serve(async (req: Request) => {
       const region = provider;
       const { data: previous, error: previousError } = await admin.from("nova_speech_settings")
         .select("secret_id").eq("user_id", userId).maybeSingle();
-      if (previousError) throw previousError;
+      if (previousError) {\n        console.error("Speech settings lookup failed:", previousError.message);\n        return json({ error: "تعذر قراءة إعداد الصوت السابق: " + String(previousError.message || "database error").slice(0, 180) }, 500, origin);\n      }
       const { data: secretId, error: secretError } = await admin.rpc("nova_store_api_secret", {
         p_name: "NOVA " + (provider === "elevenlabs" ? "ElevenLabs" : "Sonex Labs") + " Speech Voice",
         p_secret: apiKey,
       });
-      if (secretError || !secretId) throw new Error("تعذر حفظ مفتاح Microsoft Speech في Vault.");
+      if (secretError || !secretId) {\n        const detail = secretError?.message ? String(secretError.message).slice(0, 180) : "Vault returned no secret ID";\n        console.error("Speech key Vault save failed:", detail);\n        return json({ error: "فشل تخزين مفتاح الصوت في Vault: " + detail }, 500, origin);\n      }
       const { error: saveError } = await admin.from("nova_speech_settings").upsert({
         user_id: userId, secret_id: secretId, region, updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" });
