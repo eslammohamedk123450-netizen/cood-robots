@@ -52,6 +52,7 @@ public class MainActivity extends Activity {
             int language = textToSpeech.setLanguage(new Locale("ar", "EG"));
             if (language < TextToSpeech.LANG_AVAILABLE) language = textToSpeech.setLanguage(new Locale("ar"));
             if (language < TextToSpeech.LANG_AVAILABLE) language = textToSpeech.setLanguage(Locale.getDefault());
+            textToSpeech.setSpeechRate(1.05f);
             if (language < TextToSpeech.LANG_AVAILABLE) {
                 ttsReady = false;
                 dispatchTtsEvent("error", "حزمة الصوت العربية غير مثبتة على الجهاز.", null);
