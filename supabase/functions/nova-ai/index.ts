@@ -1055,6 +1055,72 @@ Deno.serve(async (req: Request) => {
       if (!messages) return json({ error: "سجل المحادثة غير صالح أو تجاوز الحدود المسموحة" }, 400, origin);
       // Explicit memory operations are deterministic and owner-scoped; never ask a model to invent saved facts.
       const latestUserText = [...messages].reverse().find((item) => item.role === "user")?.content ?? "";
+      // Safe, deterministic delete/cancel flow for personal notes and reminders.
+      const normalizedCommand = normalizeMemoryText(latestUserText);
+      const affirmative = /^(ايوه|اه|أيوه|نعم|اكد|اكدلي|موافق|تمام|احذفها|نفذ|نفذي)$/u.test(normalizedCommand);
+      const negative = /^(لا|لأ|مش|الغاء|إلغاء|تراجع|سيبها)$/u.test(normalizedCommand);
+      const { data: pendingRows, error: pendingReadError } = await admin.from("nova_personal_items")
+        .select("id,item_type,title,content,metadata,updated_at").eq("user_id", userId).eq("status", "active")
+        .contains("metadata", { pending_action: "delete_confirmation" })
+        .gte("updated_at", new Date(Date.now() - 10 * 60 * 1000).toISOString()).limit(3);
+      if (pendingReadError) throw pendingReadError;
+      if (affirmative && pendingRows?.length === 1) {
+        const pending = pendingRows[0];
+        const metadata = { ...(pending.metadata || {}), pending_action: null, pending_action_at: null, archived_at: new Date().toISOString() };
+        const { data: archived, error: archiveError } = await admin.from("nova_personal_items")
+          .update({ status: "cancelled", metadata, updated_at: new Date().toISOString() })
+          .eq("id", pending.id).eq("user_id", userId).eq("status", "active")
+          .select("id,item_type,title").maybeSingle();
+        if (archiveError) throw archiveError;
+        if (!archived) return json({ reply: "المعلومة اتغيرت أو لم تعد نشطة؛ لم أنفذ أي حذف." }, 200, origin);
+        const actionLabel = ["reminder","alarm"].includes(archived.item_type) ? "ألغيت التذكير" : "أرشفت المعلومة";
+        return json({ reply: "تم التأكيد. " + actionLabel + " «" + archived.title + "». احتفظت بسجلها بدل الحذف النهائي، ويمكن استعادتها من السجل.", personal_item_archived: true }, 200, origin);
+      }
+      if (negative && pendingRows?.length) {
+        for (const pending of pendingRows) {
+          const metadata = { ...(pending.metadata || {}), pending_action: null, pending_action_at: null };
+          const { error: clearError } = await admin.from("nova_personal_items").update({ metadata, updated_at: new Date().toISOString() })
+            .eq("id", pending.id).eq("user_id", userId);
+          if (clearError) throw clearError;
+        }
+        return json({ reply: "تمام، ألغيت طلب الحذف ولم ألمس المعلومة." }, 200, origin);
+      }
+      const reminderIntent = /(?:الغي|الغى|الغِي|الغاء|الغاء|الغِ|الغى|الغ|الغِي|إلغي|إلغاء|ألغى|ألغ|الغى).{0,45}(?:تذكير|منبه|المنبه|التذكير)|(?:الغِ|الغى|إلغي|إلغاء).{0,30}(?:تذكير|منبه)/u.test(normalizedCommand);
+      const deleteIntent = /(?:احذف|احذفي|امسح|امسحي|شيل|شيلي|امحي).{0,70}(?:معلومة|المعلومة|ملاحظة|الملاحظة|نوتة|النوتة|كلمة|كلمه|رقم|الرقم|ذاكرة|الذاكرة)|^(?:احذف|احذفي|امسح|امسحي|شيل|شيلي)\s+/u.test(normalizedCommand);
+      if (reminderIntent || deleteIntent) {
+        const { data: activeItems, error: itemsError } = await admin.from("nova_personal_items")
+          .select("id,item_type,title,content,scheduled_at,metadata,updated_at").eq("user_id", userId)
+          .eq("status", "active").order("created_at", { ascending: false }).limit(300);
+        if (itemsError) throw itemsError;
+        const eligible = (activeItems || []).filter((item: any) => reminderIntent
+          ? ["reminder","alarm"].includes(item.item_type)
+          : ["note","task"].includes(item.item_type));
+        const verbMatch = normalizedCommand.match(/(?:احذف|احذفي|امسح|امسحي|شيل|شيلي|امحي|الغي|الغى|الغِي|الغاء|الغِ|إلغي|إلغاء|ألغى|ألغ)\s+(.+)$/u);
+        let targetText = verbMatch?.[1] || "";
+        targetText = targetText.replace(/^(?:لي\s+)?(?:ال)?(?:معلومة|معلومات|ملاحظة|ملاحظات|نوتة|نوت|تذكير|تذكيرات|منبه|منبهات|كلمة|كلمه|رقم|ذاكرة)\s*/u, "")
+          .replace(/^(?:اللي|بتاعة|بتاع|الخاصة\s+ب|الخاص\s+ب)\s*/u, "")
+          .replace(/\s+(?:من فضلك|لو سمحتي|يا سولينا)$/u, "").trim();
+        const targetTokens = extractMemoryTokens(targetText);
+        if (!targetTokens.length) {
+          const options = eligible.slice(0, 6).map((item: any, i: number) => (i + 1) + ") " + item.title);
+          return json({ reply: eligible.length
+            ? "حاضر، بس عشان ما أحذفش حاجة غلط، تقصد أنهي عنصر؟\\n" + options.join("\\n")
+            : reminderIntent ? "مفيش تذكيرات أو منبهات نشطة عندك أقدر ألغيها." : "مفيش ملاحظات أو معلومات نشطة في الدفتر أقدر أحذفها.", deletion_needs_target: true }, 200, origin);
+        }
+        const matches = eligible.filter((item: any) => {
+          const haystack = normalizeMemoryText(String(item.title || "") + " " + String(item.content || ""));
+          return targetTokens.every((token) => haystack.includes(normalizeMemoryText(token)));
+        });
+        if (!matches.length) return json({ reply: "مش لاقية عنصرًا نشطًا يطابق «" + targetText + "». لم أحذف أو ألغِ أي حاجة.", deletion_performed: false }, 200, origin);
+        if (matches.length > 1) return json({ reply: "لقيت أكتر من عنصر ممكن تقصده، ومش هختار بالتخمين:\\n" + matches.slice(0, 6).map((item: any, i: number) => (i + 1) + ") " + item.title).join("\\n") + "\\nحدد العنوان أو الموعد بدقة.", deletion_needs_clarification: true }, 200, origin);
+        const target = matches[0];
+        const metadata = { ...(target.metadata || {}), pending_action: "delete_confirmation", pending_action_at: new Date().toISOString() };
+        const { error: pendingWriteError } = await admin.from("nova_personal_items").update({ metadata, updated_at: new Date().toISOString() })
+          .eq("id", target.id).eq("user_id", userId).eq("status", "active");
+        if (pendingWriteError) throw pendingWriteError;
+        const label = ["reminder","alarm"].includes(target.item_type) ? "إلغاء التذكير" : "أرشفة المعلومة";
+        return json({ reply: "لقيت العنصر المقصود: «" + target.title + "». هل تؤكد " + label + "؟ قل «أيوه» للتأكيد أو «لا» للإلغاء. مش هأنفذ أي تغيير قبل تأكيدك.", deletion_confirmation_required: true }, 200, origin);
+      }
       const memoryCorrection = parseExplicitMemoryCorrection(latestUserText);
       if (memoryCorrection) {
         const { data: savedNotes, error: notesReadError } = await admin.from("nova_personal_items")
