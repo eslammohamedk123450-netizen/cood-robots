@@ -583,6 +583,9 @@ assert.equal(extractMemoryNumberSignature("ه الرقم ده 1 2 3 4 5 سولي
 assert.deepEqual(parseExplicitMemoryCorrection("عايزك تصححي الرقم اللي انت حفظتيه خليه 9 8 7 6 5 سولينا"), { target: "", value: "9 8 7 6 5" }, "Colloquial correction requests with filler and wake words must be accepted");
 
 assert.equal(isExplicitMemoryRecall("فاكرة الرقم؟"), true, "Natural vague recall must activate deterministic memory retrieval");
+assert.equal(isExplicitMemoryRecall("سولينا فاكره الرقم"), true, "A wake word before a vague memory question must not block recall");
+assert.equal(isCorrectionHistoryRecall("سولينا فاكره الرقم اللي انا قلت لك صححيه"), true, "Wake-word-prefixed correction-history recall must be recognized");
+
 assert.equal(isCorrectionHistoryRecall("فاكر الرقم اللي انا قلت لك صححيه"), true, "Recall of a previously corrected number must target correction history");
 assert.equal(isCorrectionHistoryRecall("فاكره الرقم اللي انا قلت لك صححيه"), true, "Feminine colloquial recall must target correction history");
 assert.equal(isCorrectionHistoryRecall("فاكره الرقم اللي قلت لك صححيه"), true, "Shortened spoken correction recall must target correction history");
