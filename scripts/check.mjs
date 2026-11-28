@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
-import { classifyMemoryKind, extractMemoryTokens, isCorrectionHistoryRecall, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "../supabase/functions/nova-ai/memory-utils.js";
+import { classifyMemoryKind, extractMemoryNumberSignature, extractMemoryTokens, isCorrectionHistoryRecall, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "../supabase/functions/nova-ai/memory-utils.js";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const html = read("../index.html");
@@ -577,6 +577,11 @@ assert.equal(classifyMemoryKind(spokenNumberMemory), "reference", "Spoken number
 assert.equal(parseExplicitMemorySave("افتكري الرقم اللي قولتهولك"), null, "A recall request must not be misclassified as a new memory save");
 assert.equal(parseExplicitMemorySave("احفظي رقم الحساب 123456789"), "رقم الحساب 123456789", "Direct save commands must capture numeric reference values");
 assert.equal(classifyMemoryKind("رقم الحساب ١٢٣٤٥٦"), "reference", "Arabic-Indic numeric references must be categorized correctly");
+assert.equal(classifyMemoryKind("الرقم ده 1 2 3 4 5"), "reference", "Digit-by-digit references must be categorized as reference memories");
+assert.equal(extractMemoryNumberSignature("الرقم ده 1 2 3 4 5"), "12345", "Spaced digit-by-digit numbers must yield one stable memory key");
+assert.equal(extractMemoryNumberSignature("ه الرقم ده 1 2 3 4 5 سولينا خليكي فاكره الرقم ده 1 2 3 4 5"), "12345", "Repeated ASR copies of the same number must share one stable key");
+assert.deepEqual(parseExplicitMemoryCorrection("عايزك تصححي الرقم اللي انت حفظتيه خليه 9 8 7 6 5 سولينا"), { target: "", value: "9 8 7 6 5" }, "Colloquial correction requests with filler and wake words must be accepted");
+
 assert.equal(isExplicitMemoryRecall("فاكرة الرقم؟"), true, "Natural vague recall must activate deterministic memory retrieval");
 assert.equal(isCorrectionHistoryRecall("فاكر الرقم اللي انا قلت لك صححيه"), true, "Recall of a previously corrected number must target correction history");
 assert.equal(isCorrectionHistoryRecall("فاكره الرقم اللي انا قلت لك صححيه"), true, "Feminine colloquial recall must target correction history");
@@ -589,6 +594,10 @@ assert.deepEqual(extractMemoryTokens("سولينا فاكره الرقم الل�
 assert.equal(normalizeMemoryText("إسلام ١٢٣"), "اسلام 123", "Arabic spelling and digit normalization must be stable");
 assert.match(edge, /duplicateReadError/, "Repeated explicit memory saves must be deduplicated");
 assert.match(edge, /correction_history/, "Memory corrections must preserve a short history of replaced values");
+assert.match(edge, /uniqueReferenceNotes/, "Reference recall and correction must deduplicate repeated voice-recognition copies");
+assert.match(edge, /extractMemoryNumberSignature/, "Digit-by-digit references must be detected consistently in recall and correction paths");
+assert.match(edge, /superseded_by/, "Duplicate reference notes must be retained but excluded after a correction");
+
 assert.match(edge, /correction_needs_clarification/, "Ambiguous reference corrections must ask before changing stored data");
 assert.match(edge, /memory_found: false/, "A missing saved memory must return an explicit no-match result instead of asking a model to guess");
 assert.match(app, /result\.saved_note[\s\S]*?loadPersonalItems\(\)/, "The notebook must refresh immediately after an explicit personal-note save");
