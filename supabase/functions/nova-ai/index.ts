@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { classifyMemoryKind, extractMemoryNumberSignature, extractMemoryTokens, isCorrectionHistoryRecall, isExplicitMemoryRecall, isWordMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "./memory-utils.js";
-import { buildMemoryGraph, parseMemoryModelJson, validateSemanticRecallIds } from "./memory-graph.js";
+import { buildMemoryGraph, parseMemoryModelJson, resolveMemoryFactIndex, validateSemanticRecallIds } from "./memory-graph.js";
 import { requiresMultiAgentWork } from "./routing-policy.js";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -1385,26 +1385,7 @@ Deno.serve(async (req: Request) => {
               }
             }
             const facts = Array.isArray(graph?.facts) ? graph.facts : [];
-            const requestedIndex = Number(semanticCorrection?.fact_index);
-            let factIndex = Number.isInteger(requestedIndex) && requestedIndex >= 0 && requestedIndex < facts.length ? requestedIndex : -1;
-            const requestedSubject = normalizeMemoryText(String(semanticCorrection?.fact_subject || ""));
-            const requestedPredicate = normalizeMemoryText(String(semanticCorrection?.fact_predicate || ""));
-            const requestedOldValue = normalizeMemoryText(String(semanticCorrection?.old_value || ""));
-            if (factIndex >= 0) {
-              const selectedFact = facts[factIndex];
-              if ((requestedSubject && normalizeMemoryText(String(selectedFact.subject || "")) !== requestedSubject) ||
-                  (requestedPredicate && normalizeMemoryText(String(selectedFact.predicate || "")) !== requestedPredicate)) factIndex = -1;
-            }
-            if (factIndex < 0) {
-              const factMatches = facts.map((fact: any, index: number) => ({ fact, index })).filter(({ fact }: any) =>
-                (!requestedSubject || normalizeMemoryText(String(fact.subject || "")) === requestedSubject) &&
-                (!requestedPredicate || normalizeMemoryText(String(fact.predicate || "")) === requestedPredicate) &&
-                (!requestedOldValue || normalizeMemoryText(String(fact.value || "")) === requestedOldValue ||
-                  (extractMemoryNumberSignature(String(fact.value || "")) !== "" &&
-                    extractMemoryNumberSignature(String(fact.value || "")) === extractMemoryNumberSignature(String(semanticCorrection?.old_value || ""))))
-              );
-              if (factMatches.length === 1) factIndex = factMatches[0].index;
-            }
+            const factIndex = resolveMemoryFactIndex(facts, semanticCorrection);
             if (factIndex < 0 || !facts[factIndex]) {
               const description = String(semanticCorrection?.fact_subject || "المعلومة") + " — " + String(semanticCorrection?.fact_predicate || "الخاصية");
               return json({ reply: "حددت المعلومة «" + target.title + "»، لكن محتاجة أحدد الخاصية اللي عايز تغيّرها داخلها (" + description + "). مش هعدّل أي حاجة قبل ما نتأكد.", memory_corrected: false, correction_needs_clarification: true }, 200, origin);
