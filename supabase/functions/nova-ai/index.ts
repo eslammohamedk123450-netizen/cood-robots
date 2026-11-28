@@ -1032,7 +1032,11 @@ Deno.serve(async (req: Request) => {
         return json({ reply: "حاضر، حفظت الكلام ده في ملاحظاتي الشخصية وهقدر أرجعهولك بعدين. حفظته بتاريخ " + savedDate + ".\n\n" + saveNotePayload, memory_saved: true, saved_note: true }, 200, origin);
       }
       const asksRecall = /(?:فاكر(?:ة)?|تفتكر(?:ي)?|افتكر(?:ي)?|رجع(?:ي)?لي|هات(?:ي)?لي|إيه\s*(?:ال)?(?:رقم|الحاجة|المعلومة)|ايه\s*(?:ال)?(?:رقم|الحاجة|المعلومة)|اللي\s*قلت(?:ه|لك)|الملاحظ(?:ة|ات)\s*(?:اللي|بتاعتي)|ملاحظاتي|اللي\s*حفظ(?:تي|ت))/iu.test(latestUserText);
-      const memoryWords = [...new Set((latestUserText.match(/[\p{L}\p{N}]{2,}/gu) || []).filter(word => !/^(فاكر|فاكرة|تفتكر|افتكر|هات|رجع|لي|لها|عندي|اللي|قلت|قلته|حفظ|حفظتي|ملاحظات|ملاحظة|رقم|الحاجة|المعلومة|إيه|ايه|من|في|على|ده|دي|هو|هي|أنا|انا|انت|أنت)$/u.test(word)))].slice(0, 8);
+      const hasClockRecall = /(?:الساعة|الساعه|ساعة)\s*\d/u.test(latestUserText);
+      const memoryWords = [...new Set((latestUserText.match(/[\p{L}\p{N}]{2,}/gu) || []).filter(word =>
+        !/^(فاكر|فاكرة|تفتكر|افتكر|هات|رجع|لي|لها|عندي|اللي|قلت|قلته|حفظ|حفظتي|ملاحظات|ملاحظة|رقم|الحاجة|المعلومة|إيه|ايه|من|في|على|ده|دي|هو|هي|أنا|انا|انت|أنت|امبارح|أمس|مبارح|النهارده|النهاردة|اليوم|الساعة|الساعه|ساعة|صباح|الصبح|مساء|بالليل|ليل)$/u.test(word) &&
+        !(hasClockRecall && /^[\d٠-٩]{1,2}$/u.test(word))
+      ))].slice(0, 8);
       const { data: savedNotes, error: notesReadError } = await admin.from("nova_personal_items")
         .select("id,title,content,created_at").eq("user_id", userId).eq("item_type", "note").eq("status", "active")
         .order("created_at", { ascending: false }).limit(80);
