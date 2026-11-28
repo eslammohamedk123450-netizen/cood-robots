@@ -365,7 +365,7 @@ assert.equal(alarmIntent?.action, "needs_period", "Ambiguous alarm time must ask
 const morningAlarm = parseTaskCommand("صحيني الساعة 9 الصبح", fixedNow);
 assert.equal(morningAlarm?.action, "create", "Explicit morning alarm should be schedulable");
 assert.equal(new Date(morningAlarm.scheduledAt).getHours(), 9, "Morning alarm should preserve the requested hour");
-assert.equal(parseTaskCommand("صحيني الفجر", fixedNow)?.action, "needs_fajr_time", "Fajr alarm must request a real prayer time");
+assert.equal(parseTaskCommand("صحيني الفجر", fixedNow)?.action, "create_prayer_reminder", "Fajr alarm must resolve the real prayer time automatically");
 assert.equal(parseTaskCommand("صحيني بعد دقيقتين", fixedNow)?.action, "create", "Two-minute wake-up command should be recognized");
 assert.match(parseTaskCommand("فكريني بعد ثلاث دقايق إن أنا أغسل سناني", fixedNow)?.title || "", /أغسل سناني/, "Relative reminder titles must remove filler words and preserve the actual task");
 assert.doesNotMatch(parseTaskCommand("فكريني بعد ثلاث دقايق إن أنا أغسل سناني", fixedNow)?.title || "", /إن أنا|ثلاث|دقايق|فكريني/, "Reminder title must not contain command words or relative time");
