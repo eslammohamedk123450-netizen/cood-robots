@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { classifyMemoryKind, extractMemoryTokens, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemorySave } from "./memory-utils.js";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -1031,35 +1032,31 @@ Deno.serve(async (req: Request) => {
     if (action === "chat") {
       const messages = normalizeMessages(body?.messages);
       if (!messages) return json({ error: "سجل المحادثة غير صالح أو تجاوز الحدود المسموحة" }, 400, origin);
-      // Explicit personal notes are deterministic and owner-scoped: "remember this" saves the user's exact payload.
+      // Explicit memory operations are deterministic and owner-scoped; never ask a model to invent saved facts.
       const latestUserText = [...messages].reverse().find((item) => item.role === "user")?.content ?? "";
-      const saveNoteMatch = latestUserText.match(/(?:خلي(?:كي|ك)\s+(?:فاكر(?:ة)?|في\s+بالك)(?:\s+عندك)?|افتكر(?:ي)?|احفظ(?:ي)?|سجل(?:ي)?)\s*(?:إن|ان|بأن)?\s*(?:ده|دي|دا)?\s*[:،]?\s*([\s\S]{2,12000})$/iu);
-      const saveNotePayload = saveNoteMatch?.[1]?.trim().replace(/^["'«»]+|["'«»]+$/g, "").trim();
-      if (saveNotePayload && saveNotePayload.length >= 2) {
+      const saveNotePayload = parseExplicitMemorySave(latestUserText);
+      if (saveNotePayload) {
         const noteTitle = saveNotePayload.replace(/\s+/g, " ").slice(0, 160);
-        const memoryKind = /(?:مشروع|تطبيق|موقع|شركة|منصة|نظام)/u.test(saveNotePayload) ? "project"
-          : /(?:قرار|اتفقنا|اعتمدنا|هنستخدم|هنعمل|اخترنا)/u.test(saveNotePayload) ? "decision"
-          : /(?:مهمة|لازم|مطلوب|متبقي|هعمل|هتعمل|تابع|خلص)/u.test(saveNotePayload) ? "task"
-          : /\d{3,}/u.test(saveNotePayload) ? "reference"
-          : "note";
+        const memoryKind = classifyMemoryKind(saveNotePayload);
+        const { data: existingNote, error: duplicateReadError } = await admin.from("nova_personal_items")
+          .select("id,title,content,created_at").eq("user_id", userId).eq("item_type", "note")
+          .eq("status", "active").eq("content", saveNotePayload)
+          .order("created_at", { ascending: false }).limit(1).maybeSingle();
+        if (duplicateReadError) throw duplicateReadError;
+        if (existingNote) {
+          const savedDate = new Date(existingNote.created_at).toLocaleString("ar-EG", { dateStyle: "long", timeStyle: "short" });
+          return json({ reply: "المعلومة دي محفوظة عندي بالفعل، ومش هكررها في الدفتر. حفظتها يوم " + savedDate + ".\n\n" + String(existingNote.content || existingNote.title), memory_saved: true, saved_note: true, duplicate: true }, 200, origin);
+        }
         const { data: savedNote, error: saveNoteError } = await admin.from("nova_personal_items")
           .insert({ user_id: userId, item_type: "note", title: noteTitle, content: saveNotePayload, metadata: { source: "explicit_voice_or_chat_memory", explicit_save: true, memory_kind: memoryKind } })
           .select("id,title,content,created_at").single();
         if (saveNoteError) throw saveNoteError;
         const savedDate = new Date(savedNote.created_at).toLocaleString("ar-EG", { dateStyle: "long", timeStyle: "short" });
-        return json({ reply: "حاضر، حفظت الكلام ده في ملاحظاتي الشخصية وهقدر أرجعهولك بعدين. حفظته بتاريخ " + savedDate + ".\n\n" + saveNotePayload, memory_saved: true, saved_note: true }, 200, origin);
+        return json({ reply: "حاضر، حفظت المعلومة دي في دفتري الشخصي زي ما قلتها، وهقدر أرجعهالك بعدين. حفظتها بتاريخ " + savedDate + ".\n\n" + saveNotePayload, memory_saved: true, saved_note: true, memory_kind: memoryKind }, 200, origin);
       }
-      const asksRecall = /(?:فاكر(?:ة)?|تفتكر(?:ي)?|افتكر(?:ي)?|رجع(?:ي)?لي|هات(?:ي)?لي|إيه\s*(?:ال)?(?:رقم|الحاجة|المعلومة)|ايه\s*(?:ال)?(?:رقم|الحاجة|المعلومة)|اللي\s*قلت(?:ه|لك)|الملاحظ(?:ة|ات)\s*(?:اللي|بتاعتي)|ملاحظاتي|اللي\s*حفظ(?:تي|ت))/iu.test(latestUserText);
-      const hasClockRecall = /(?:الساعة|الساعه|ساعة)\s*\d/u.test(latestUserText);
-      const memoryWords = [...new Set((latestUserText.match(/[\p{L}\p{N}]{2,}/gu) || []).filter(word =>
-        !/^(فاكر|فاكرة|تفتكر|افتكر|هات|رجع|لي|لها|عندي|اللي|قلت|قلته|حفظ|حفظتي|ملاحظات|ملاحظة|رقم|الحاجة|المعلومة|إيه|ايه|من|في|على|ده|دي|هو|هي|أنا|انا|انت|أنت|امبارح|أمس|مبارح|النهارده|النهاردة|اليوم|الساعة|الساعه|ساعة|صباح|الصبح|مساء|بالليل|ليل)$/u.test(word) &&
-        !(hasClockRecall && /^[\d٠-٩]{1,2}$/u.test(word))
-      ))].slice(0, 8);
-      const { data: savedNotes, error: notesReadError } = await admin.from("nova_personal_items")
-        .select("id,title,content,created_at").eq("user_id", userId).eq("item_type", "note").eq("status", "active")
-        .order("created_at", { ascending: false }).limit(80);
-      if (notesReadError) throw notesReadError;
-      const notes = savedNotes ?? [];
+
+      const asksRecall = isExplicitMemoryRecall(latestUserText);
+      const memoryWords = extractMemoryTokens(latestUserText);
       const recallDigits = latestUserText.replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
       const relativeNoteDay = /(?:أول\s+امبارح|اول\s+امبارح|قبل\s+امبارح|قبل\s+أمس)/u.test(recallDigits) ? -2
         : /(?:امبارح|أمس|مبارح)/u.test(recallDigits) ? -1
@@ -1069,39 +1066,55 @@ Deno.serve(async (req: Request) => {
       const noteDateBase = new Date(todayCairo + "T12:00:00Z");
       if (relativeNoteDay !== null) noteDateBase.setUTCDate(noteDateBase.getUTCDate() + relativeNoteDay);
       const requestedNoteDate = relativeNoteDay === null ? "" : new Intl.DateTimeFormat("en-CA", { timeZone: "UTC", year: "numeric", month: "2-digit", day: "2-digit" }).format(noteDateBase);
-      const matchedNotes = notes.filter((note: any) => {
-        const haystack = (String(note.title || "") + " " + String(note.content || "")).toLocaleLowerCase("ar");
-        if (requestedNoteDate) {
-          const noteDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(note.created_at));
-          if (noteDate !== requestedNoteDate) return false;
-        }
-        if (requestedNoteHour) {
-          const targetHour = Number(requestedNoteHour[1]);
-          const noteHour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", hourCycle: "h23" }).format(new Date(note.created_at)));
-          const pm = /مساء|بالليل|ليل/u.test(recallDigits);
-          const am = /صباح|الصبح|صباحًا/u.test(recallDigits);
-          if (am ? noteHour !== targetHour % 12 : pm ? noteHour !== targetHour % 12 + 12 : noteHour !== targetHour && noteHour % 12 !== targetHour % 12) return false;
-        }
-        return memoryWords.length ? memoryWords.some(word => haystack.includes(word.toLocaleLowerCase("ar"))) : true;
-      }).slice(0, 8);
-      // Vague recall phrases (e.g. "فاكرة الرقم؟") fall back to the latest saved notes instead of silently missing.
-      const relevantNotes = asksRecall && matchedNotes.length === 0 ? notes.slice(0, 8) : (asksRecall ? matchedNotes : (memoryWords.length ? matchedNotes : []));
-      if (asksRecall && relevantNotes.length) {
+      const notesBaseQuery = () => admin.from("nova_personal_items")
+        .select("id,title,content,created_at,metadata").eq("user_id", userId)
+        .eq("item_type", "note").eq("status", "active").order("created_at", { ascending: false });
+      if (asksRecall) {
+        const { data: savedNotes, error: notesReadError } = await notesBaseQuery().limit(80);
+        if (notesReadError) throw notesReadError;
+        const notes = savedNotes ?? [];
+        const matchedNotes = notes.filter((note: any) => {
+          const haystack = normalizeMemoryText(String(note.title || "") + " " + String(note.content || ""));
+          if (requestedNoteDate) {
+            const noteDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(note.created_at));
+            if (noteDate !== requestedNoteDate) return false;
+          }
+          if (requestedNoteHour) {
+            const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(note.created_at));
+            const noteHour = Number(parts.find((part) => part.type === "hour")?.value ?? "0");
+            const noteMinute = Number(parts.find((part) => part.type === "minute")?.value ?? "0");
+            const targetHour = Number(requestedNoteHour[1]);
+            const targetMinute = requestedNoteHour[2] === undefined ? null : Number(requestedNoteHour[2]);
+            const pm = /مساء|بالليل|ليل/u.test(recallDigits);
+            const am = /صباح|الصبح|صباحًا/u.test(recallDigits);
+            if (am ? noteHour !== targetHour % 12 : pm ? noteHour !== targetHour % 12 + 12 : noteHour !== targetHour && noteHour % 12 !== targetHour % 12) return false;
+            if (targetMinute !== null && noteMinute !== targetMinute) return false;
+          }
+          return memoryWords.length ? memoryWords.some((word) => haystack.includes(normalizeMemoryText(word))) : true;
+        }).slice(0, 8);
+        const relevantNotes = matchedNotes.length ? matchedNotes : (memoryWords.length ? [] : notes.slice(0, 8));
+        if (!notes.length) return json({ reply: "دورت في دفتري الشخصي، لكن مفيش معلومة محفوظة لسه. لو تحب، ابعتلي المعلومة بصيغة «خليكي فاكرة...» وأنا أحفظها.", recalled_notes: 0, memory_found: false }, 200, origin);
+        if (!relevantNotes.length) return json({ reply: "مش لاقية في دفتري معلومة محفوظة تطابق الوصف أو التاريخ ده، ومش هخمن رقم من عندي. ممكن تديني كلمة مميزة عنها؟", recalled_notes: 0, memory_found: false }, 200, origin);
         const candidates = relevantNotes.slice(0, 6).map((note: any, index: number) => {
           const when = new Date(note.created_at).toLocaleString("ar-EG", { dateStyle: "long", timeStyle: "short" });
           return (index + 1) + ") " + String(note.content || note.title) + " — حفظته يوم " + when;
         });
-        const exactNumber = relevantNotes.find((note: any) => /\d{3,}/.test(String(note.content || "")));
         const response = relevantNotes.length === 1
           ? "أيوه، فاكرة. " + String(relevantNotes[0].content || relevantNotes[0].title) + " — حفظته يوم " + new Date(relevantNotes[0].created_at).toLocaleString("ar-EG", { dateStyle: "long", timeStyle: "short" }) + "."
-          : "لقيت كذا حاجة محفوظة ممكن تقصديها:\n" + candidates.join("\n") + "\nقولي رقم الاختيار لو عايزة حاجة معينة.";
-        return json({ reply: response, recalled_notes: relevantNotes.length, exact_number_found: Boolean(exactNumber) }, 200, origin);
+          : "لقيت كذا معلومة محفوظة ممكن تقصدها:\n" + candidates.join("\n") + "\nقولي رقم الاختيار لو تقصد معلومة معينة.";
+        return json({ reply: response, recalled_notes: relevantNotes.length, memory_found: true, exact_number_found: relevantNotes.some((note: any) => /\d{3,}/.test(String(note.content || ""))) }, 200, origin);
       }
-      // Run independent owner-scoped reads concurrently to reduce first-token latency.
+
+      // Only fetch a small set of keyword-matched notes for normal turns; greetings and short chat skip this query entirely.
+      const noteTokens = memoryWords.map((word) => word.replace(/[,%_()]/g, " ")).filter(Boolean);
+      const notesPromise = noteTokens.length >= 2
+        ? notesBaseQuery().or(noteTokens.map((word) => "title.ilike.%" + word + "%,content.ilike.%" + word + "%").join(",")).limit(12)
+        : Promise.resolve({ data: [], error: null });
+            // Run independent owner-scoped reads concurrently to reduce first-token latency.
             const memoryTokens = [...new Set((latestUserText.match(/[\p{L}\p{N}]{2,}/gu) || [])
         .filter((word) => !/^(من|في|على|الى|إلى|عن|ده|دي|هو|هي|انا|أنا|انت|أنت|كان|قال|قالي|ليه|ايه|إيه|ازاي|إزاي|مع|ولا|او|أو)$/u.test(word)))].slice(0, 6);
       const escapedTokens = memoryTokens.map((word) => word.replace(/[,%_()]/g, " "));
-      const [{ data: memoryRow, error: memoryReadError }, { data: models, error }, { data: aiPreference, error: preferenceError }, oldRowsResult] = await Promise.all([
+      const [{ data: memoryRow, error: memoryReadError }, { data: models, error }, { data: aiPreference, error: preferenceError }, oldRowsResult, notesResult] = await Promise.all([
         admin.from("nova_owner_profile_memory").select("profile_text").eq("user_id", userId).maybeSingle(),
         admin.from("nova_api_models").select("id,model_id,api_key_id,created_at").eq("user_id", userId).eq("enabled", true).order("created_at", { ascending: true }).limit(30),
         admin.from("nova_ai_preferences").select("selected_model_id,routing_mode").eq("user_id", userId).maybeSingle(),
@@ -1110,11 +1123,17 @@ Deno.serve(async (req: Request) => {
               .or(escapedTokens.map((word) => `content.ilike.%${word}%`).join(","))
               .order("created_at", { ascending: false }).limit(16)
           : Promise.resolve({ data: [], error: null }),
+        notesPromise,
       ]);
       if (memoryReadError) throw memoryReadError;
       if (error) throw error;
       if (preferenceError) throw preferenceError;
       if (oldRowsResult.error) throw oldRowsResult.error;
+      if (notesResult.error) throw notesResult.error;
+      const relevantNotes = (notesResult.data ?? []).filter((note: any) => {
+        const haystack = normalizeMemoryText(String(note.title || "") + " " + String(note.content || ""));
+        return memoryWords.some((word) => haystack.includes(normalizeMemoryText(word)));
+      }).slice(0, 8);
       const orderedModels = [...(models ?? [])];
       if (aiPreference?.selected_model_id) {
         const preferredIndex = orderedModels.findIndex((item: any) => item.id === aiPreference.selected_model_id);
