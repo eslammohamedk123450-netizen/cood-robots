@@ -1017,7 +1017,10 @@ async function requestAIReply(text, signal, voiceAlternatives = []) {
     const now = new Date();
     const clock = new Intl.DateTimeFormat("ar-EG", { hour: "numeric", minute: "2-digit", hourCycle: "h12" }).format(now);
     const date = new Intl.DateTimeFormat("ar-EG", { weekday: "long", day: "numeric", month: "long" }).format(now);
-    requestMessages[requestMessages.length - 1].content += String.fromCharCode(10, 10) + "[معلومة وقت الجهاز دقيقة: الساعة " + clock + "، " + date + ". استخدم الوقت للإجابة على سؤال المستخدم كاملًا، لا تكتفِ بإخبار الساعة إذا كان يسأل أيضًا عن نصيحة أو تقييم أو قرار.]";
+    const exactReply = "الساعة دلوقتي " + clock + "، والنهارده " + date + ".";
+    state.messages.push({ role: "assistant", content: exactReply });
+    state.messagesByPersona[state.persona] = state.messages.slice();
+    return exactReply;
   }
   const asksWeb = /ابحث|ابحثي|دور\s+(?:لي\s+)?على|دوري\s+(?:لي\s+)?على|شوفي\s+(?:لي\s+)?على\s+(?:النت|الإنترنت|الانترنت)|على\s+(?:النت|الإنترنت|الانترنت)|من\s+(?:النت|الإنترنت|الانترنت)|جوجل|هات\s+لي\s+مصادر|مصادر\s+عن|آخر\s+الأخبار|اخر\s+الاخبار|سعر|أسعار|اسعار|بكام|قارن|مقارنة|أفضل\s+سعر|متاح\s+للشراء|شراء\s+اونلاين/i.test(liveQuery);
   if (asksPrayer || asksWeb) {
