@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - "android/**"
+      - "assets/branding/**"
+      - ".github/workflows/android-apk.yml"
       - "app.js"
       - "task-manager.js"
       - "index.html"
