@@ -7,6 +7,7 @@ const html = read("../index.html");
 const app = read("../app.js");
 const pin = read("../pin.js");
 const edge = read("../supabase/functions/nova-ai/index.ts");
+const memoryUtils = read("../supabase/functions/nova-ai/memory-utils.js");
 const taskManager = read("../task-manager.js");
 const personalItemsMigration = read("../supabase/migrations/20261127233636_nova_account_synced_personal_items.sql");
 const css = read("../style.css") + read("../solina-voice.css");
@@ -521,12 +522,13 @@ assert.match(androidMain, /Never mistake Facebook Lite for Facebook/, "Android a
 assert.match(app, /فيسبوك العادي وفيسبوك لايت تطبيقان مختلفان/, "AI system prompt must understand distinct app variants");
 assert.match(app, /محرك أوامر الجهاز المحلي/, "AI system prompt must know app opening is a real local capability");
 
-assert.match(edge, /saveNoteMatch/, "Explicit remember phrases must save a user note without relying on model interpretation");
+assert.match(edge, /parseExplicitMemorySave\(latestUserText\)/, "Explicit remember phrases must save a user note without relying on model interpretation");
 assert.match(edge, /explicit_save: true/, "Explicitly saved memories must be tagged for traceability");
 assert.match(edge, /asksRecall/, "Memory recall phrases must be detected");
 assert.match(edge, /recalled_notes/, "Recall must report a deterministic note result");
 assert.match(edge, /nova_personal_items/, "Saved memories must use the existing unified personal-items table, not another storage system");
-assert.match(edge, /memoryKind = .*"project"/, "Explicitly saved project facts must be categorized without a second memory table");
+assert.match(edge, /classifyMemoryKind\(saveNotePayload\)/, "Explicit memories must be categorized by the shared tested helper");
+assert.match(memoryUtils, /return "project"/, "Project facts must have a stable memory category");
 assert.match(edge, /"decision".*"task".*"reference"/s, "Decisions, open tasks and reference numbers must have stable memory categories");
 assert.match(edge, /metadata: \{ source: "explicit_voice_or_chat_memory", explicit_save: true, memory_kind: memoryKind \}/, "Memory category and explicit-save provenance must be persisted with the note");
 assert.match(edge, /if \(itemType === "note" && typeof metadata\.memory_kind !== "string"\)/, "Manually saved notebook entries must receive the same category organization");
