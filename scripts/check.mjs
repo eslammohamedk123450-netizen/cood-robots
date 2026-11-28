@@ -579,6 +579,7 @@ assert.equal(isExplicitMemoryRecall("هات الرقم اللي حفظته"), tr
 assert.equal(isExplicitMemoryRecall("تفتكري إيه رأيك في الفيلم؟"), false, "Ordinary conversational questions must not trigger memory recall");
 assert.deepEqual(extractMemoryTokens("الساعة ٨ مساء"), [], "Clock-only questions must not trigger personal-note searches");
 assert.deepEqual(extractMemoryTokens("فاكرة الرقم ١٢٣؟"), ["123"], "Arabic digits must normalize for exact reference matching");
+assert.deepEqual(extractMemoryTokens("سولينا فاكره الرقم اللي انا قلت لك خليكي حافظاه او خليكي فاكراه"), [], "Colloquial vague recall must not treat memory-command words as search keywords");
 assert.equal(normalizeMemoryText("إسلام ١٢٣"), "اسلام 123", "Arabic spelling and digit normalization must be stable");
 assert.match(edge, /duplicateReadError/, "Repeated explicit memory saves must be deduplicated");
 assert.match(edge, /correction_history/, "Memory corrections must preserve a short history of replaced values");
