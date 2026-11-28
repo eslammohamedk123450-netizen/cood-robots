@@ -295,7 +295,7 @@ assert.match(app, /const asksPrayer = \/[\\s\\S]*الفجر.*يأذن/, "Fajr ad
 assert.match(app, /const asksClock = !asksPrayer/, "Prayer questions mentioning the word clock must never be mistaken for device clock questions");
 assert.match(app, /الفجر\|فجر\|الظهر/, "Short speech-recognition transcripts that omit the definite article in Fajr must still be understood");
 
-assert.match(app, /فاضل.{0,25}(?:الفجر|الظهر|العصر|المغرب|العشاء)/, "Remaining-time questions for the next prayer must be recognized");
+assert.match(app, /(?:فاضل\\|متبقي).{0,25}(?:الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا)/, "Remaining-time questions for the next prayer must be recognized");
 assert.match(edge, /item.role === "system" \? 24000 : 12000/, "The system prompt must allow the complete assistant instructions without rejecting normal chats");
 assert.match(edge, /total > 220000/, "The chat payload limit must leave room for the system prompt and live tool context");
 
