@@ -920,8 +920,9 @@ Deno.serve(async (req: Request) => {
         const cairoDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo", year: "numeric", month: "2-digit", day: "2-digit" }).format(prayerDate);
         // Approximate city-center coordinates for Al-Mahalla Al-Kubra; only used as a
         // backup after the city API is down, never as a precise GPS claim.
+        const isDefaultCity = /المحلة|mahalla|mahalla al kubra/i.test(city);
         const coords = { latitude: 30.97, longitude: 31.17 };
-        try {
+        if (isDefaultCity) try {
           const backupUrl = "https://api.aladhan.com/v1/timings/" + date + "?" + new URLSearchParams({
             latitude: String(coords.latitude), longitude: String(coords.longitude), method: "5",
           }).toString();
@@ -935,7 +936,7 @@ Deno.serve(async (req: Request) => {
             checked_at: new Date().toISOString(),
           }, 200, origin);
         } catch (_) { /* try an independent provider */ }
-        try {
+        if (isDefaultCity) try {
           const fallbackUrl = "https://esalah.com/api/v1/times?" + new URLSearchParams({
             lat: String(coords.latitude), lng: String(coords.longitude), method: "egyptian", date: cairoDate, timezone: "Africa/Cairo",
           }).toString();
