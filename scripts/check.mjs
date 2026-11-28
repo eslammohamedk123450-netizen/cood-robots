@@ -79,6 +79,10 @@ assert.match(edge, /nova_speech_settings/, "Fixed voice configuration must be st
 assert.match(app, /loadSpeechSettings/, "Client must load fixed voice settings");
 assert.match(app, /saveSpeechSettings/, "Client must save fixed voice settings");
 assert.match(app, /state\.processing/, "Voice turns must be serialized to prevent overlapping conversations");
+assert.match(app, /pending\.stage === "confirm_cancel"/, "Reminder cancellation must require explicit confirmation");
+assert.match(app, /pending\.stage === "choose_cancel"/, "Ambiguous reminder cancellation must ask the owner to choose a target");
+assert.match(app, /intent\.action === "cancel_confirmed"/, "Only a confirmed cancellation may update saved reminders");
+assert.match(app, /قائمة المواعيد اتغيرت من وقت التأكيد/, "Cancellation must revalidate selected reminders before changing them");
 assert.match(app, /detail\.requestId[\s\S]*expectedRequestId/, "Late native TTS events must not finish a newer playback");
 assert.match(app, /bridge\.speakText\(text, expectedRequestId\)/, "Native speech requests must carry a playback correlation ID");
 assert.match(app, /clearTimeout\(timeoutId\)/, "Native speech timeout must be cleared after completion");
@@ -220,6 +224,9 @@ assert.equal(new Date(quarterPast.scheduledAt).getMinutes(), 15, "Quarter-past p
 const quarterTo = parseTaskCommand("فكريني بكرة الساعة تلاتة إلا ربع مساء عشان الاجتماع", new Date("2026-11-28T10:00:00+02:00"));
 assert.equal(new Date(quarterTo.scheduledAt).getHours(), 14, "Quarter-to parsing must roll back to the preceding hour");
 assert.equal(new Date(quarterTo.scheduledAt).getMinutes(), 45, "Quarter-to parsing must resolve forty-five minutes");
+const cancelBothKinds = parseTaskCommand("الغى كل التذكيرات والمنبهات", new Date("2026-11-28T10:00:00+02:00"));
+assert.equal(cancelBothKinds?.action, "cancel", "Canceling all reminders and alarms must be parsed as a combined request");
+assert.equal(cancelBothKinds?.type, null, "A combined reminder and alarm request must not accidentally filter out reminders");
 
 
 assert.ok(edge.includes("runMemoryInterpreter(admin, userId, MEMORY_GRAPH_INSTRUCTION"), "Explicit memory saves must use the configured model to extract general semantic facts");
