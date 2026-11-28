@@ -1,6 +1,28 @@
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { classifyMemoryKind, extractMemoryNumberSignature, extractMemoryTokens, isCorrectionHistoryRecall, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "../supabase/functions/nova-ai/memory-utils.js";
+import { buildMemoryGraph, parseMemoryModelJson, validateSemanticRecallIds } from "../supabase/functions/nova-ai/memory-graph.js";
+
+
+const graphFixture = buildMemoryGraph("المشروع ألف ميزانيته 5000 جنيه وموعده الخميس، والمشروع باء ميزانيته 7000 جنيه.", {
+  summary: "مشروعان لكل منهما ميزانية وموعد مختلف",
+  topics: ["مشاريع", "ميزانيات"],
+  entities: [{ id: "project-a", name: "المشروع ألف", kind: "project" }, { id: "project-b", name: "المشروع باء", kind: "project" }],
+  facts: [
+    { subject: "المشروع ألف", predicate: "الميزانية", value: "5000", value_type: "money", context: "جنيه", evidence: "ميزانيته 5000 جنيه", confidence: 0.99 },
+    { subject: "المشروع ألف", predicate: "موعد التسليم", value: "الخميس", value_type: "date", evidence: "موعده الخميس", confidence: 0.95 },
+    { subject: "المشروع باء", predicate: "الميزانية", value: "7000", value_type: "money", context: "جنيه", evidence: "ميزانيته 7000 جنيه", confidence: 0.99 },
+  ],
+  relations: [{ from: "المشروع ألف", relation: "له ميزانية", to: "5000 جنيه" }],
+});
+assert.equal(graphFixture.source_text, "المشروع ألف ميزانيته 5000 جنيه وموعده الخميس، والمشروع باء ميزانيته 7000 جنيه.", "Semantic indexing must preserve the complete original memory");
+assert.equal(graphFixture.facts.length, 3, "Semantic indexing must preserve distinct facts from one sentence");
+assert.equal(graphFixture.facts[0].subject, "المشروع ألف", "Each value must remain attached to its correct subject");
+assert.equal(graphFixture.facts[2].subject, "المشروع باء", "Similar properties must not merge facts belonging to different subjects");
+assert.equal(graphFixture.facts[2].value, "7000", "Exact values must survive semantic graph validation");
+assert.deepEqual(validateSemanticRecallIds({ selected_ids: ["note-b", "not-real", "note-a", "note-b"] }, ["note-a", "note-b"]), ["note-b", "note-a"], "Semantic retrieval must reject unknown IDs and deduplicate valid candidates");
+assert.deepEqual(parseMemoryModelJson('prefix ```json\\n{"selected_ids":["n1"],"confidence":0.9}\\n``` suffix'), { selected_ids: ["n1"], confidence: 0.9 }, "Model JSON parsing must tolerate fenced JSON and surrounding prose");
+assert.equal(buildMemoryGraph("نص أصلي", null).extraction_status, "empty", "Missing model output must never be marked as semantically processed");
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const html = read("../index.html");
@@ -183,6 +205,11 @@ const afterPrayer = parseTaskCommand("اعملي تذكير بعد صلاة ال
 assert.equal(afterPrayer?.offsetMinutes, 10, "After-prayer offset must be calculated correctly");
 
 
+assert.ok(edge.includes("runMemoryInterpreter(admin, userId, MEMORY_GRAPH_INSTRUCTION"), "Explicit memory saves must use the configured model to extract general semantic facts");
+assert.ok(edge.includes("memory_graph: memoryGraph"), "Structured semantic facts must be persisted alongside the original note");
+assert.ok(edge.includes("MEMORY_RECALL_INSTRUCTION"), "Memory retrieval must use meaning and context rather than keyword-only matching");
+assert.ok(edge.includes("validateSemanticRecallIds"), "Semantic retrieval must validate model-selected IDs against owner-scoped saved notes");
+assert.ok(edge.includes("original_text: String(note.content"), "Semantic retrieval must compare the complete original note as evidence");
 assert.ok(edge.includes("parseExplicitMemorySave(latestUserText)"), "Explicit remember phrases must be parsed by the shared Arabic memory helper");
 assert.equal((edge.match(/const latestUserText =/g) || []).length, 1, "Chat memory context must define the latest user text only once");
 assert.ok(edge.includes("extractMemoryTokens(latestUserText)"), "Arabic memory tokenization must use the shared tested helper");
