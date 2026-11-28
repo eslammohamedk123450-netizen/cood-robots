@@ -243,13 +243,23 @@ async function requestProviderChat(provider: ProviderType, baseUrl: string, apiK
     }));
     const payload: any = { contents, generationConfig: { temperature: 0.75, maxOutputTokens: 2048 } };
     if (systemText) payload.systemInstruction = { parts: [{ text: systemText.slice(0, 24000) }] };
-    const response = await fetch(baseUrl + "/models/" + encodeURIComponent(modelId.replace(/^models\//, "")) + ":generateContent", {
+    const modelAliases: Record<string,string> = {
+      "gemini-2.5-flash": "gemini-3.8-flash",
+      "gemini-2.5-pro": "gemini-3.1-pro-preview",
+      "gemini-2.5-flash-lite": "gemini-3.5-flash-lite",
+    };
+    const requestModel = (id: string) => fetch(baseUrl + "/models/" + encodeURIComponent(id.replace(/^models\\//, "")) + ":generateContent", {
       method: "POST",
       headers: { ...providerHeaders(provider, apiKey), "Content-Type": "application/json" },
       body: JSON.stringify(payload),
       signal: requestSignal ? AbortSignal.any([requestSignal, AbortSignal.timeout(45000)]) : AbortSignal.timeout(45000),
       redirect: "error",
     });
+    let response = await requestModel(modelId);
+    if (response.status === 404 && modelAliases[modelId]) {
+      console.warn("NOVA_GEMINI_MODEL_RETIRED", JSON.stringify({ requested_model: modelId, fallback_model: modelAliases[modelId] }));
+      response = await requestModel(modelAliases[modelId]);
+    }
     const result = await response.json().catch(() => ({}));
     if (!response.ok || result?.error) throw new Error("HTTP " + response.status + ": " + providerErrorDetail(result));
     const reply = result?.candidates?.[0]?.content?.parts?.map((part: any) => part.text || "").join("").trim();
@@ -874,7 +884,10 @@ Deno.serve(async (req: Request) => {
       if (kind === "prayer") {
         const city = cleanString(body?.city, 100) || "المحلة الكبرى";
         const country = cleanString(body?.country, 80) || "Egypt";
-        const dateParts = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Cairo", day: "2-digit", month: "2-digit", year: "numeric" }).formatToParts(new Date());
+        const dateOffset = Number.isInteger(body?.date_offset) ? Math.max(0, Math.min(2, body.date_offset)) : 0;
+        const prayerDate = new Date();
+        prayerDate.setUTCDate(prayerDate.getUTCDate() + dateOffset);
+        const dateParts = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Cairo", day: "2-digit", month: "2-digit", year: "numeric" }).formatToParts(prayerDate);
         const dateValues = Object.fromEntries(dateParts.map((part) => [part.type, part.value]));
         const date = `${dateValues.day}-${dateValues.month}-${dateValues.year}`;
         const endpoint = "https://api.aladhan.com/v1/timingsByCity/" + date + "?" + new URLSearchParams({
@@ -954,11 +967,11 @@ Deno.serve(async (req: Request) => {
       if (!models?.length) return json({ error: "مفيش نماذج مفعّلة. أضف مفتاح API وفعّل نموذجًا واحدًا على الأقل." }, 409, origin);
       const providerIds = [...new Set(models.map((model: any) => model.api_key_id))];
       const { data: providers, error: providerError } = await admin.from("nova_api_keys")
-        .select("id,provider,base_url,secret_id,is_active").eq("user_id", userId).eq("is_active", true).in("id", providerIds);
+        .select("id,provider,base_url,secret_id,is_active").eq("user_id", userId).in("id", providerIds);
       if (providerError) throw providerError;
       const providerMap = new Map((providers ?? []).map((provider: any) => [provider.id, provider]));
       // Read each distinct provider secret concurrently; multiple models may share one key.
-      const secretEntries = await Promise.all((providers ?? []).map(async (provider: any) => {
+      const secretEntries = await Promise.all((providers ?? []).filter((provider: any) => provider.is_active === true).map(async (provider: any) => {
         const { data: apiKey, error: keyError } = await admin.rpc("nova_read_api_secret", { p_secret_id: provider.secret_id });
         return [provider.id, !keyError && typeof apiKey === "string" && apiKey ? apiKey : null] as const;
       }));
@@ -966,7 +979,8 @@ Deno.serve(async (req: Request) => {
       const failures: string[] = [];
       for (const model of models) {
         const provider = providerMap.get(model.api_key_id);
-        if (!provider) { failures.push(model.model_id + ": provider key inactive or missing"); continue; }
+        if (!provider) { failures.push(model.model_id + ": provider key record missing"); continue; }
+        if (provider.is_active !== true) { failures.push(model.model_id + ": provider key is saved but disabled in settings; enable this key to use its models"); continue; }
         const apiKey = secretMap.get(model.api_key_id);
         if (!apiKey) { failures.push(model.model_id + ": vault unavailable"); continue; }
         const providerStartedAt = performance.now();
