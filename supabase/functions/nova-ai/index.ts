@@ -1097,7 +1097,7 @@ Deno.serve(async (req: Request) => {
           : ["note","task"].includes(item.item_type));
         const verbMatch = normalizedCommand.match(/(?:احذف|احذفي|امسح|امسحي|شيل|شيلي|امحي|الغي|الغى|الغِي|الغاء|الغِ|إلغي|إلغاء|ألغى|ألغ)\s+(.+)$/u);
         let targetText = verbMatch?.[1] || "";
-        targetText = targetText.replace(/^(?:لي\s+)?(?:ال)?(?:معلومة|معلومات|ملاحظة|ملاحظات|نوتة|نوت|تذكير|تذكيرات|منبه|منبهات|كلمة|كلمه|رقم|ذاكرة)\s*/u, "")
+        targetText = targetText.replace(/^(?:لي\s+)?(?:ال)?(?:معلومة|المعلومه|معلومات|ملاحظة|ملاحظات|نوتة|نوت|تذكير|تذكيرات|منبه|منبهات|كلمة|كلمه|رقم|ذاكرة)\s*/u, "")
           .replace(/^(?:اللي|بتاعة|بتاع|الخاصة\s+ب|الخاص\s+ب)\s*/u, "")
           .replace(/\s+(?:من فضلك|لو سمحتي|يا سولينا)$/u, "").trim();
         const targetTokens = extractMemoryTokens(targetText);
@@ -1267,7 +1267,7 @@ Deno.serve(async (req: Request) => {
           return /(?:^|\s)(?:كلمة|الكلمه|كلمه)(?=\s|$)/u.test(value);
         });
         const wordNotes = notes.filter((note: any) =>
-          note.metadata?.memory_kind === "word" || /^(?:الكلمة|كلمة|الكلمه|كلمه)\s+/u.test(normalizeMemoryText(String(note.content || note.title || "")))
+          note.metadata?.memory_kind === "word" || classifyMemoryKind(String(note.content || note.title || "")) === "word"
         );
         const matchingWordNotes = memoryWords.length
           ? wordNotes.filter((note: any) => {
