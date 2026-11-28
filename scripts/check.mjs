@@ -523,6 +523,13 @@ assert.match(edge, /hourMatch/, "Conversation recall must narrow historical resu
 assert.match(edge, /requestedNoteDate/, "Saved personal notes must be retrievable by relative Cairo date");
 assert.match(edge, /requestedNoteHour/, "Saved personal notes must be retrievable by requested hour");
 assert.match(edge, /hasClockRecall/, "Clock words and hour digits must not poison note-content keyword matching");
+assert.match(edge, /function requiresMultiAgentWork/, "Complex tasks must be routed through adaptive multi-agent orchestration");
+assert.match(edge, /Promise\.allSettled\(\[/, "Independent agents must execute concurrently and tolerate one worker failure");
+assert.match(edge, /function buildSynthesisMessages/, "A synthesis agent must reconcile parallel worker outputs into one answer");
+assert.match(edge, /agent_mode: agentMode/, "Agent execution mode must be observable for diagnostics");
+assert.match(edge, /usableModels\.length >= 2/, "Multi-agent mode must fall back safely when fewer than two enabled models exist");
+assert.match(edge, /single-agent-fallback/, "One successful worker must still return a useful answer when its parallel peer fails");
+
 
 assert.match(edge, /note\.metadata\?\.memory_kind/, "Relevant categorized notes must carry their category into model context");
 assert.match(app, /memoryLabels = \{ project: "مشروع", decision: "قرار", task: "مهمة مفتوحة", reference: "رقم \/ معلومة مرجعية", note: "ملاحظة" \}/, "Personal notebook must display project, decision, open-task and reference categories");
