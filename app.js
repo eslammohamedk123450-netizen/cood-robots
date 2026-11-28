@@ -1,6 +1,7 @@
 // Android APK build refresh: settings pages + staged native reminder bridge.
 import { parseTaskCommand, formatTaskDate, normalizeTaskText } from "./task-manager.js?v=prayer-intent-v1";
 import { classifyConversationTurn } from "./conversation-context.js?v=topic-followup-v1";
+import { isSpeechQuotaCoolingDown, markSpeechQuotaExceeded, clearSpeechQuotaCooldown } from "./speech-quota.js?v=quota-fallback-v1";
 const $ = (id) => document.getElementById(id);
 const state = {
   persona: "soleen", emotion: "idle", listening: false, speaking: false,
@@ -424,6 +425,7 @@ async function speak(text, segments = [], signal) {
   if (speechAudioElement) { try { speechAudioElement.pause(); } catch (_) {} speechAudioElement = null; }
   if (currentSpeechUrl) { URL.revokeObjectURL(currentSpeechUrl); currentSpeechUrl = null; }
   const engine = $("speechEngine")?.value || localStorage.getItem("nova.speech.engine") || "server";
+  const speechVendor = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
   let finished = false;
   const finish = () => {
     if (finished) return;
@@ -447,7 +449,6 @@ async function speak(text, segments = [], signal) {
       finish();
       return;
     }
-    const speechVendor = $("speechProvider")?.value || localStorage.getItem("nova.speech.provider") || "elevenlabs";
     const voicePrefix = speechVendor === "elevenlabs" ? "nova.elevenlabs.voice." : "nova.sonex.voice.";
     const voiceId = localStorage.getItem(voicePrefix + "female") || "";
     const useGeminiTts = engine === "gemini";
@@ -458,7 +459,11 @@ async function speak(text, segments = [], signal) {
     // Provider, engine and voice are part of the key so changing voice never reuses stale audio.
     const speechCacheKey = JSON.stringify([persona, speechAction, speechVendor, voiceId, spokenText]);
     let result = getSpeechAudioCache(speechCacheKey);
+    if (!result && !useGeminiTts && isSpeechQuotaCoolingDown(speechVendor)) {
+      throw Object.assign(new Error("خدمة الصوت السحابية متوقفة مؤقتًا بسبب حد الاستخدام؛ هستخدم صوت الجهاز المجاني."), { code: "SPEECH_QUOTA_COOLDOWN" });
+    }
     if (!result) result = await invokeNova(speechAction, { text: spokenText, persona, voice_id: voiceId, provider: speechVendor }, { signal });
+    if (!useGeminiTts) clearSpeechQuotaCooldown(speechVendor);
     if (playbackId !== speechPlaybackId || signal?.aborted) return;
       if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
     const mime = String(result.mime_type || "").split(";")[0].trim().toLowerCase();
@@ -516,6 +521,7 @@ async function speak(text, segments = [], signal) {
       source.start(0);
     }
   } catch (error) {
+    if (error?.code === "SPEECH_QUOTA_EXCEEDED") markSpeechQuotaExceeded(speechVendor);
     if (playbackId !== speechPlaybackId) return;
     state.speaking = false;
     state.audio = null;
@@ -682,7 +688,9 @@ async function invokeNova(action, payload = {}, options = {}) {
     }
     const providerDetails = Array.isArray(data?.failures) ? data.failures.map((item) => String(item)).slice(0, 8).join(" | ") : "";
     const message = data?.error || "تعذر الاتصال بخادم NOVA (" + response.status + ")";
-    throw new Error(providerDetails ? message + " — تفاصيل النماذج: " + providerDetails : message);
+    const requestError = new Error(providerDetails ? message + " — تفاصيل النماذج: " + providerDetails : message);
+    if (typeof data?.code === "string") requestError.code = data.code;
+    throw requestError;
   }
   if (data?.error) throw new Error(data.error);
   return data;
