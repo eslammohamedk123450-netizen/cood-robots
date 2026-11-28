@@ -39,7 +39,7 @@ public class MainActivity extends Activity {
     private String pendingTtsText = null;
     private String pendingTtsRequestId = null;
     private String activeTtsRequestId = null;
-    private final String appUrl = "https://eslammohamedk123450-netizen.github.io/cood-robots/?solina=live-clock-prayer-fix-v9";
+    private final String appUrl = "https://eslammohamedk123450-netizen.github.io/cood-robots/?solina=live-clock-prayer-fix-v10";
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
