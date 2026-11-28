@@ -55,6 +55,14 @@ const personalItemsMigration = read("../supabase/migrations/20261127233636_nova_
 const css = read("../style.css") + read("../solina-voice.css");
 const workflow = read("../.github/workflows/pages.yml");
 const androidWorkflow = read("../.github/workflows/android-apk.yml");
+const checkScript = read("../scripts/check.mjs");
+const referencedFixtures = [...checkScript.matchAll(/read\("([^"]+)"\)/g)].map((match) => match[1]);
+assert.equal(new Set(referencedFixtures).size, referencedFixtures.length, "Repository regression checks must not load the same fixture file multiple times");
+const declaredFunctionNames = (source) => [...source.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)].map((match) => match[1]);
+for (const [name, source] of [["app.js", app], ["nova-ai", edge], ["memory-utils", memoryUtils], ["memory-graph", read("../supabase/functions/nova-ai/memory-graph.js")]]) {
+  const functionNames = declaredFunctionNames(source);
+  assert.equal(new Set(functionNames).size, functionNames.length, name + " must not retain duplicate function declarations");
+}
 const scheduler = read("../android/app/src/main/java/com/solina/assistant/AlarmScheduler.java");
 const receiver = read("../android/app/src/main/java/com/solina/assistant/TaskReceiver.java");
 const activity = read("../android/app/src/main/java/com/solina/assistant/AlarmActivity.java");
