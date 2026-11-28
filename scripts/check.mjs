@@ -79,8 +79,8 @@ assert.match(edge, /nova_speech_settings/, "Fixed voice configuration must be st
 assert.match(app, /loadSpeechSettings/, "Client must load fixed voice settings");
 assert.match(app, /saveSpeechSettings/, "Client must save fixed voice settings");
 assert.match(app, /state\.processing/, "Voice turns must be serialized to prevent overlapping conversations");
-assert.match(app, /pending\.stage === "confirm_cancel"/, "Reminder cancellation must require explicit confirmation");
-assert.match(app, /pending\.stage === "choose_cancel"/, "Ambiguous reminder cancellation must ask the owner to choose a target");
+assert.match(app, /pending\?\.stage === "confirm_cancel"/, "Reminder cancellation must require explicit confirmation");
+assert.match(app, /pending\?\.stage === "choose_cancel"/, "Ambiguous reminder cancellation must ask the owner to choose a target");
 assert.match(app, /intent\.action === "cancel_confirmed"/, "Only a confirmed cancellation may update saved reminders");
 assert.match(app, /قائمة المواعيد اتغيرت من وقت التأكيد/, "Cancellation must revalidate selected reminders before changing them");
 assert.match(app, /detail\.requestId[\s\S]*expectedRequestId/, "Late native TTS events must not finish a newer playback");
