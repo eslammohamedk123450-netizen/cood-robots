@@ -153,6 +153,7 @@ assert.equal(isSpeechQuotaCoolingDown("elevenlabs", fakeSpeechStorage, 1000 + SP
 assert.equal(clearSpeechQuotaCooldown("elevenlabs", fakeSpeechStorage), true, "A provider cooldown must be clearable after a successful request");
 assert.match(speechQuotaCooldownKey("elevenlabs"), /elevenlabs$/, "Cooldown keys must be isolated by provider");
 assert.match(app, /SPEECH_QUOTA_EXCEEDED/, "The client must recognize a provider quota response and fall back to device speech");
+assert.match(app, /if \(!useGeminiTts\) clearSpeechQuotaCooldown\(speechVendor\)/, "A quota cooldown may only clear after a fresh successful cloud request, not cached playback");
 assert.match(edge, /SPEECH_QUOTA_EXCEEDED/, "The edge function must return a safe quota-specific response");
 assert.match(edge, /SPEECH_VOICE_VERIFICATION_TTL_MS/, "Female voice verification must be cached to avoid a provider API call on every reply");
 
