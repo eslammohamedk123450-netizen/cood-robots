@@ -1607,6 +1607,10 @@ function handleTaskDialogue(clean) {
     .replace(/^(?:طيب|تمام|خلاص|ماشي)\s*/, "").trim();
   if (pending?.stage === "choose_cancel") {
     const choiceText = normalizeTaskText(clean).replace(/^(?:يا\s*)?سولينا\s*/, "").trim();
+    if (/^(?:لا|لأ|الغاء|إلغاء|تراجع|سيبها)$/.test(choiceText)) {
+      state.pendingTaskDraft = null;
+      return { handled: true, reply: "تمام، ألغيت اختيار الموعد ومش هلغي أي حاجة." };
+    }
     const choiceMatch = choiceText.match(/^(?:رقم\s*)?(\d+)$/);
     const numericChoice = choiceMatch ? Number(choiceMatch[1]) : 0;
     const chosen = numericChoice > 0
