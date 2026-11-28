@@ -685,3 +685,30 @@ assert.match(edge, /seenRecallValues/, "Vague number recall must deduplicate rep
 assert.match(edge, /numberRecall[\s\S]{0,500}memory_kind === "reference"/, "Vague number recall must exclude unrelated notes");
 assert.match(edge, /numberRecall \? \(correctedReferences\.length/, "Vague number recall must prefer corrected references over stale values");
 console.log("SOLINA memory-context integration checks added.");
+
+
+// Spoken Arabic digit sequences are indexed like typed digits.
+assert.equal(extractMemoryNumberSignature("الرقم واحد اثنين ثلاثة أربعة خمسة"), "12345");
+assert.equal(extractMemoryNumberSignature("الرقم واحد واثنين وتلاتة وأربعة"), "1234");
+assert.equal(extractMemoryNumberSignature("الكود صفر سبعة خمسة تسعة"), "0759");
+assert.equal(extractMemoryNumberSignature("ميزانية عشرين ألف جنيه"), "");
+assert.equal(extractMemoryNumberSignature("الرقم ١٢٣٤٥"), "12345");
+
+// Semantic graph labels and fact subjects must be grounded in the original note.
+const groundedGraph = buildMemoryGraph("مشروع النور ميزانيته 5000 جنيه.", {
+  entities: [
+    { id: "real", name: "مشروع النور", kind: "project" },
+    { id: "invented", name: "مشروع القمر", kind: "project" }
+  ],
+  facts: [
+    { subject: "مشروع النور", predicate: "الميزانية", value: "5000", evidence: "ميزانيته 5000 جنيه" },
+    { subject: "مشروع القمر", predicate: "الميزانية", value: "5000", evidence: "ميزانيته 5000 جنيه" }
+  ],
+  relations: [
+    { from: "مشروع النور", relation: "له ميزانية", to: "5000 جنيه", evidence: "ميزانيته 5000 جنيه" },
+    { from: "مشروع القمر", relation: "له ميزانية", to: "5000 جنيه", evidence: "ميزانيته 5000 جنيه" }
+  ]
+});
+assert.deepEqual(groundedGraph.entities.map((item) => item.name), ["مشروع النور"]);
+assert.equal(groundedGraph.facts.length, 1);
+assert.equal(groundedGraph.relations.length, 1);
