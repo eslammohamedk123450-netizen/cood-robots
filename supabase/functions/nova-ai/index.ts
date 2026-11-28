@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { classifyMemoryKind, extractMemoryTokens, isCorrectionHistoryRecall, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "./memory-utils.js";
+import { classifyMemoryKind, extractMemoryNumberSignature, extractMemoryTokens, isCorrectionHistoryRecall, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "./memory-utils.js";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -92,6 +92,19 @@ function sanitizeInternalReplyText(input: unknown): string {
 function cleanString(v: unknown, max = 120): string {
   return typeof v === "string" ? v.trim().slice(0, max) : "";
 }
+function uniqueReferenceNotes(notes: any[]): any[] {
+  const seen = new Set<string>();
+  return notes.filter((note: any) => {
+    if (note.metadata?.superseded_by) return false;
+    const content = String(note.content || note.title || "");
+    const numberKey = extractMemoryNumberSignature(content);
+    const signature = numberKey ? "digits:" + numberKey : "text:" + normalizeMemoryText(content);
+    if (seen.has(signature)) return false;
+    seen.add(signature);
+    return true;
+  });
+}
+
 type ProviderType = "gemini" | "openrouter" | "openai" | "anthropic" | "custom";
 const providerTypes = new Set<string>(["gemini", "openrouter", "openai", "anthropic", "custom", "openai-compatible"]);
 function providerErrorDetail(payload: any): string {
@@ -1040,7 +1053,7 @@ Deno.serve(async (req: Request) => {
           .select("id,title,content,created_at,metadata").eq("user_id", userId).eq("item_type", "note")
           .eq("status", "active").order("created_at", { ascending: false }).limit(80);
         if (notesReadError) throw notesReadError;
-        const references = (savedNotes ?? []).filter((note: any) => note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference");
+        const references = uniqueReferenceNotes((savedNotes ?? []).filter((note: any) => !note.metadata?.superseded_by && (note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference")));
         const targetTokens = memoryCorrection.target ? extractMemoryTokens(memoryCorrection.target) : [];
         const candidates = targetTokens.length
           ? references.filter((note: any) => {
@@ -1065,6 +1078,20 @@ Deno.serve(async (req: Request) => {
           .select("id,title,content,created_at,updated_at").maybeSingle();
         if (correctionError) throw correctionError;
         if (!correctedNote) return json({ error: "المعلومة لم تعد موجودة في حسابك، لم يتم إجراء أي تعديل." }, 404, origin);
+        const oldNumberKey = extractMemoryNumberSignature(previousContent);
+        if (oldNumberKey) {
+          const duplicateNotes = (savedNotes ?? []).filter((note: any) =>
+            note.id !== target.id && !note.metadata?.superseded_by &&
+            extractMemoryNumberSignature(String(note.content || note.title || "")) === oldNumberKey
+          );
+          for (const duplicate of duplicateNotes) {
+            const duplicateMetadata = { ...(duplicate.metadata || {}), memory_kind: "reference", superseded_by: target.id };
+            const { error: duplicateUpdateError } = await admin.from("nova_personal_items")
+              .update({ metadata: duplicateMetadata, updated_at: now })
+              .eq("id", duplicate.id).eq("user_id", userId);
+            if (duplicateUpdateError) throw duplicateUpdateError;
+          }
+        }
         return json({ reply: "تمام، صححت الرقم المحفوظ واستبدلت القديم بالجديد. المعلومة دلوقتي: " + correctedNote.content + ". واحتفظت بنسخة من القيمة القديمة في سجل التصحيح.", memory_corrected: true, memory_kind: "reference" }, 200, origin);
       }
       const asksRecall = isExplicitMemoryRecall(latestUserText);
@@ -1127,28 +1154,23 @@ Deno.serve(async (req: Request) => {
         }).slice(0, 8);
         const correctionHistoryRecall = isCorrectionHistoryRecall(latestUserText);
         const numberRecall = /(?:رقم|الرقم)/u.test(normalizeMemoryText(latestUserText));
+        const allReferences = uniqueReferenceNotes(notes.filter((note: any) =>
+          note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference"
+        ));
+        const correctedReferences = uniqueReferenceNotes(allReferences.filter((note: any) =>
+          Array.isArray(note.metadata?.correction_history) && note.metadata.correction_history.length > 0
+        ));
         const recallPool = correctionHistoryRecall
-          ? notes.filter((note: any) => Array.isArray(note.metadata?.correction_history) && note.metadata.correction_history.length > 0)
-          : numberRecall ? (() => {
-              // A vague number question is a category lookup, not a keyword search.
-              // Resolve it before matchedNotes/memoryWords so words like "رقم" cannot
-              // accidentally suppress the reference-number fallback.
-              const correctedReferences = notes.filter((note: any) =>
-                (note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference") &&
-                Array.isArray(note.metadata?.correction_history) && note.metadata.correction_history.length > 0
-              );
-              return correctedReferences.length ? correctedReferences : notes.filter((note: any) =>
-                note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference"
-              );
-            })()
+          ? (correctedReferences.length ? correctedReferences : allReferences)
+          : numberRecall ? (correctedReferences.length ? correctedReferences : allReferences)
           : matchedNotes.length ? matchedNotes
           : memoryWords.length ? []
           : notes.slice(0, 8);
         const seenRecallValues = new Set<string>();
         const relevantNotes = recallPool.filter((note: any) => {
           const content = String(note.content || note.title || "");
-          const digits = (content.match(/\d+/g) || []).join("");
-          const signature = digits ? "digits:" + digits : "text:" + normalizeMemoryText(content);
+          const numberKey = extractMemoryNumberSignature(content);
+          const signature = numberKey ? "digits:" + numberKey : "text:" + normalizeMemoryText(content);
           if (seenRecallValues.has(signature)) return false;
           seenRecallValues.add(signature);
           return true;
@@ -1161,7 +1183,9 @@ Deno.serve(async (req: Request) => {
         });
         const response = relevantNotes.length === 1
           ? correctionHistoryRecall
-            ? "أيوه، فاكرة الرقم اللي صححتيه. الرقم الحالي بعد التصحيح هو " + String(relevantNotes[0].content || relevantNotes[0].title) + ". والقيمة القديمة اللي اتصححت كانت " + String(relevantNotes[0].metadata?.correction_history?.slice(-1)[0]?.previous_content || "مسجلة في سجل التصحيح") + "."
+            ? (Array.isArray(relevantNotes[0].metadata?.correction_history) && relevantNotes[0].metadata.correction_history.length
+              ? "أيوه، فاكرة الرقم اللي صححتيه. الرقم الحالي بعد التصحيح هو " + String(relevantNotes[0].content || relevantNotes[0].title) + ". والقيمة القديمة اللي اتصححت كانت " + String(relevantNotes[0].metadata.correction_history.slice(-1)[0]?.previous_content || "مسجلة في سجل التصحيح") + "."
+              : "لقيت الرقم المحفوظ، وهو " + String(relevantNotes[0].content || relevantNotes[0].title) + "، لكن سجل التصحيح القديم مش موجود عندي.")
             : "أيوه، فاكرة. " + String(relevantNotes[0].content || relevantNotes[0].title) + " — حفظته يوم " + new Date(relevantNotes[0].created_at).toLocaleString("ar-EG", { dateStyle: "long", timeStyle: "short" }) + "."
           : "لقيت كذا معلومة محفوظة ممكن تقصدها:\n" + candidates.join("\n") + "\nقولي رقم الاختيار لو تقصد معلومة معينة.";
         return json({ reply: response, recalled_notes: relevantNotes.length, memory_found: true, exact_number_found: relevantNotes.some((note: any) => /\d{3,}/.test(String(note.content || ""))) }, 200, origin);
