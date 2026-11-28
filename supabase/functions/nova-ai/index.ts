@@ -960,7 +960,7 @@ Deno.serve(async (req: Request) => {
       if (!messages) return json({ error: "سجل المحادثة غير صالح أو تجاوز الحدود المسموحة" }, 400, origin);
       // Explicit personal notes are deterministic and owner-scoped: "remember this" saves the user's exact payload.
       const latestUserText = [...messages].reverse().find((item) => item.role === "user")?.content ?? "";
-      const saveNoteMatch = latestUserText.match(/(?:خلي(?:كي|ك)s+(?:فاكر(?:ة)?|فيs+بالك)|افتكر(?:ي)?|احفظ(?:ي)?|سجل(?:ي)?|خلي(?:كي|ك)s+فاكر(?:ة)?s+عندك)\s*(?:إن|ان|بأن)?\s*(?:ده|دي|دا)?\s*[:،]?\s*([\s\S]{2,12000})$/iu);
+      const saveNoteMatch = latestUserText.match(/(?:خلي(?:كي|ك)\s+(?:فاكر(?:ة)?|في\s+بالك)|افتكر(?:ي)?|احفظ(?:ي)?|سجل(?:ي)?|خلي(?:كي|ك)\s+فاكر(?:ة)?\s+عندك)\s*(?:إن|ان|بأن)?\s*(?:ده|دي|دا)?\s*[:،]?\s*([\s\S]{2,12000})$/iu);
       const saveNotePayload = saveNoteMatch?.[1]?.trim().replace(/^["'«»]+|["'«»]+$/g, "").trim();
       if (saveNotePayload && saveNotePayload.length >= 2) {
         const noteTitle = saveNotePayload.replace(/\s+/g, " ").slice(0, 160);
@@ -983,7 +983,7 @@ Deno.serve(async (req: Request) => {
         return memoryWords.length ? memoryWords.some(word => haystack.includes(word.toLocaleLowerCase("ar"))) : true;
       }).slice(0, 8);
       // Vague recall phrases (e.g. "فاكرة الرقم؟") fall back to the latest saved notes instead of silently missing.
-      const relevantNotes = asksRecall && matchedNotes.length === 0 ? notes.slice(0, 8) : matchedNotes;
+      const relevantNotes = asksRecall && matchedNotes.length === 0 ? notes.slice(0, 8) : (asksRecall ? matchedNotes : (memoryWords.length ? matchedNotes : []));
       if (asksRecall && relevantNotes.length) {
         const candidates = relevantNotes.slice(0, 6).map((note: any, index: number) => {
           const when = new Date(note.created_at).toLocaleString("ar-EG", { dateStyle: "long", timeStyle: "short" });
