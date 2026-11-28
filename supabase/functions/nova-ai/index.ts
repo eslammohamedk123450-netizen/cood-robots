@@ -893,18 +893,63 @@ Deno.serve(async (req: Request) => {
         const endpoint = "https://api.aladhan.com/v1/timingsByCity/" + date + "?" + new URLSearchParams({
           city, country, method: "5",
         }).toString();
-        const response = await fetch(endpoint, { signal: AbortSignal.timeout(12000), redirect: "follow" });
-        const payload = await response.json().catch(() => null);
-        if (!response.ok || payload?.code !== 200 || !payload?.data?.timings) throw new Error("تعذر جلب مواقيت الصلاة للمدينة المحددة.");
-        const timings = payload.data.timings;
-        return json({
-          kind, city, country,
-          date: payload.data.date?.readable ?? date,
-          timings: { fajr: timings.Fajr, sunrise: timings.Sunrise, dhuhr: timings.Dhuhr, asr: timings.Asr, maghrib: timings.Maghrib, isha: timings.Isha },
-          source: "AlAdhan",
-          method: payload.data.meta?.method?.name ?? "AlAdhan",
-          checked_at: new Date().toISOString(),
-        }, 200, origin);
+        const prayerMap = (times: Record<string, unknown>) => ({
+          fajr: times.Fajr ?? times.fajr,
+          sunrise: times.Sunrise ?? times.sunrise,
+          dhuhr: times.Dhuhr ?? times.dhuhr,
+          asr: times.Asr ?? times.asr,
+          maghrib: times.Maghrib ?? times.maghrib,
+          isha: times.Isha ?? times.isha,
+        });
+        const validTimes = (times: Record<string, unknown>) => ["fajr", "dhuhr", "asr", "maghrib", "isha"]
+          .every((key) => /^\\d{1,2}:\\d{2}/.test(String(times[key] ?? "")));
+        // Primary: AlAdhan by city. Backup 1: AlAdhan coordinate route (same Egyptian method).
+        try {
+          const response = await fetch(endpoint, { signal: AbortSignal.timeout(10000), redirect: "follow" });
+          const payload = await response.json().catch(() => null);
+          const timings = payload?.data?.timings;
+          if (response.ok && payload?.code === 200 && timings) {
+            return json({
+              kind, city, country, date: payload.data.date?.readable ?? date,
+              timings: prayerMap(timings), source: "AlAdhan",
+              method: payload.data.meta?.method?.name ?? "Egyptian General Authority",
+              checked_at: new Date().toISOString(),
+            }, 200, origin);
+          }
+        } catch (_) { /* try the backup */ }
+        const cairoDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo", year: "numeric", month: "2-digit", day: "2-digit" }).format(prayerDate);
+        // Approximate city-center coordinates for Al-Mahalla Al-Kubra; only used as a
+        // backup after the city API is down, never as a precise GPS claim.
+        const coords = { latitude: 30.97, longitude: 31.17 };
+        try {
+          const backupUrl = "https://api.aladhan.com/v1/timings/" + date + "?" + new URLSearchParams({
+            latitude: String(coords.latitude), longitude: String(coords.longitude), method: "5",
+          }).toString();
+          const response = await fetch(backupUrl, { signal: AbortSignal.timeout(9000), redirect: "follow" });
+          const payload = await response.json().catch(() => null);
+          const timings = payload?.data?.timings;
+          if (response.ok && payload?.code === 200 && timings) return json({
+            kind, city, country, date: payload.data.date?.readable ?? date,
+            timings: prayerMap(timings), source: "AlAdhan coordinates backup",
+            method: payload.data.meta?.method?.name ?? "Egyptian General Authority",
+            checked_at: new Date().toISOString(),
+          }, 200, origin);
+        } catch (_) { /* try an independent provider */ }
+        try {
+          const fallbackUrl = "https://esalah.com/api/v1/times?" + new URLSearchParams({
+            lat: String(coords.latitude), lng: String(coords.longitude), method: "egyptian", date: cairoDate, timezone: "Africa/Cairo",
+          }).toString();
+          const response = await fetch(fallbackUrl, { signal: AbortSignal.timeout(9000), redirect: "follow" });
+          const payload = await response.json().catch(() => null);
+          const timings = prayerMap(payload?.timings ?? payload?.data?.timings ?? payload?.data?.times ?? payload?.times ?? {});
+          if (response.ok && validTimes(timings)) return json({
+            kind, city, country, date: payload?.date ?? payload?.data?.date ?? cairoDate,
+            timings, source: "eSalah backup", method: "Egyptian calculation",
+            checked_at: new Date().toISOString(),
+          }, 200, origin);
+        } catch (_) { /* handled below */ }
+        throw new Error("تعذر الوصول لمصادر مواقيت الصلاة الأساسية والاحتياطية.");
+
       }
       return json({ error: "نوع المعلومة غير مدعوم." }, 400, origin);
     }
