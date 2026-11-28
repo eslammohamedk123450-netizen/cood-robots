@@ -518,6 +518,11 @@ assert.match(edge, /"decision".*"task".*"reference"/s, "Decisions, open tasks an
 assert.match(edge, /metadata: \{ source: "explicit_voice_or_chat_memory", explicit_save: true, memory_kind: memoryKind \}/, "Memory category and explicit-save provenance must be persisted with the note");
 assert.match(edge, /timeZone: "Africa\\/Cairo"/, "Conversation recall must interpret relative dates in the owner's Egypt timezone");
 assert.match(edge, /hourMatch/, "Conversation recall must narrow historical results by a requested hour");
+assert.match(edge, /requestedNoteDate/, "Saved personal notes must be retrievable by relative Cairo date");
+assert.match(edge, /requestedNoteHour/, "Saved personal notes must be retrievable by requested hour");
+assert.match(edge, /note\.metadata\?\.memory_kind/, "Relevant categorized notes must carry their category into model context");
+assert.match(app, /memoryLabels = \{ project: "مشروع", decision: "قرار", task: "مهمة مفتوحة", reference: "رقم \/ معلومة مرجعية", note: "ملاحظة" \}/, "Personal notebook must display project, decision, open-task and reference categories");
+
 
 console.log("SOLINA explicit memory save and recall checks passed.");
 
