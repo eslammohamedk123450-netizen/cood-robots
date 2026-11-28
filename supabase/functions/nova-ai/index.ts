@@ -1342,7 +1342,8 @@ Deno.serve(async (req: Request) => {
             }, 200, origin);
           }
         }
-        if (!selectedCorrectionIds.length && !parseExplicitMemoryCorrection(latestUserText)) {
+        if ((selectedCorrectionIds.length && !(Number.isFinite(confidence) && confidence >= 0.55 && newValue && evidenceIsInCommand)) ||
+            (!selectedCorrectionIds.length && !parseExplicitMemoryCorrection(latestUserText))) {
           return json({ reply: "فاهمة إنك عايز تصحح معلومة، لكن مش قادرة أحدد العنصر والخاصية والقيمة الجديدة بثقة كافية. وضّحلي المعلومة أو القيمة المقصودة، ومش هغيّر أي حاجة بالتخمين.", memory_corrected: false, correction_needs_clarification: true }, 200, origin);
         }
       }
