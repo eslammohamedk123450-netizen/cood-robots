@@ -1236,10 +1236,11 @@ Deno.serve(async (req: Request) => {
         const label = ["reminder","alarm"].includes(target.item_type) ? "إلغاء التذكير" : "أرشفة المعلومة";
         return json({ reply: "لقيت العنصر المقصود: «" + target.title + "». هل تؤكد " + label + "؟ قل «أيوه» للتأكيد أو «لا» للإلغاء. مش هأنفذ أي تغيير قبل تأكيدك.", deletion_confirmation_required: true }, 200, origin);
       }
-      const semanticCorrectionIntent = /(?:صحح|صححي|صححلي|عدّل|عدل|عدلي|عدليلي|غيّر|غير|غيري|بدّل|بدل|بدلي|استبدل|استبدلي)/u.test(normalizedCommand)
+      const explicitSaveAtStart = /^(?:(?:طيب|بصي|بص)\\s+)*(?:(?:يا\\s+)?(?:سولينا|لينا|سيلينا|سلينا)\\s+)*(?:احفظ(?:ي)?|سجل(?:ي)?|خلي(?:كي|ك)\\s+(?:فاكر(?:ة|ه|اه)?|في\\s+بالك))/u.test(normalizedCommand);
+      const semanticCorrectionIntent = /(?:صحح|صححي|صححلي|عدل|عدلي|عدليلي|غير|غيري|بدل|بدلي|استبدل|استبدلي)/u.test(normalizedCommand)
         && !isCorrectionHistoryRecall(latestUserText)
         && !isExplicitMemoryRecall(latestUserText)
-        && !/(?:احفظ|احفظي|خليكي\\s+فاكرة|سجلي)/u.test(normalizedCommand);
+        && !explicitSaveAtStart;
       if (semanticCorrectionIntent) {
         const { data: correctionNotes, error: correctionNotesError } = await admin.from("nova_personal_items")
           .select("id,title,content,created_at,metadata").eq("user_id", userId).eq("item_type", "note")
