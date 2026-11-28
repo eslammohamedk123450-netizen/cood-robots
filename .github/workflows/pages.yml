@@ -71,7 +71,7 @@ jobs:
             fi
             sleep 5
           done
-          grep -q 'app.js?v=solina-stability-v4' /tmp/solina-index.html
-          curl -fsSL "${PAGES_URL%/}/app.js?v=solina-stability-v4" | grep -q 'SPEECH_QUOTA_COOLDOWN'
+          grep -q 'app.js?v=solina-stability-v5' /tmp/solina-index.html
+          curl -fsSL "${PAGES_URL%/}/app.js?v=solina-stability-v5" | grep -q 'SPEECH_QUOTA_COOLDOWN'
           curl -fsSL "${PAGES_URL%/}/conversation-context.js?v=topic-followup-v1" | grep -q 'classifyConversationTurn'
           curl -fsSL "${PAGES_URL%/}/speech-quota.js?v=quota-fallback-v1" | grep -q 'isSpeechQuotaCoolingDown'
