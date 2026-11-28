@@ -201,7 +201,7 @@ assert.match(app, /state\.messages = \(state\.messagesByPersona\[persona\] \|\| 
 assert.match(app, /ابدأ محادثة جديدة مع /, "Persona switch must visually separate the conversation");
 
 assert.match(app, /إفيهات مصرية ذكية ومواقف يومية/, "The AI persona must use natural Egyptian humor");
-const solinaPromptStart = app.indexOf('      content: "أنتِ سولينا، رفيقة إسلام الرقمية الوحيدة.');
+const solinaPromptStart = app.indexOf('      content: "أنتِ سولينا، بنت مصرية مستقلة الشخصية وصاحبة إسلام.');
 const solinaPromptEnd = app.indexOf("\n    });", solinaPromptStart);
 assert.ok(solinaPromptStart >= 0 && solinaPromptEnd > solinaPromptStart, "A compact Solina system prompt must be present");
 assert.ok(solinaPromptEnd - solinaPromptStart < 3000, "The client-side system prompt must stay compact to reduce latency and token cost");
