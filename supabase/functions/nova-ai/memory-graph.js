@@ -13,8 +13,8 @@ function normalizeEvidence(value) {
     .replace(/ى/g, "ي")
     .replace(/ؤ/g, "و")
     .replace(/ئ/g, "ي")
-    .replace(/[^\\p{L}\\p{N}\\s]/gu, " ")
-    .replace(/\\s+/g, " ").trim().toLocaleLowerCase("ar");
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ").trim().toLocaleLowerCase("ar");
 }
 
 function uniqueRows(rows, keyOf, limit) {
