@@ -79,6 +79,9 @@ assert.match(edge, /nova_speech_settings/, "Fixed voice configuration must be st
 assert.match(app, /loadSpeechSettings/, "Client must load fixed voice settings");
 assert.match(app, /saveSpeechSettings/, "Client must save fixed voice settings");
 assert.match(app, /state\.processing/, "Voice turns must be serialized to prevent overlapping conversations");
+assert.match(app, /detail\.requestId[\s\S]*expectedRequestId/, "Late native TTS events must not finish a newer playback");
+assert.match(app, /bridge\.speakText\(text, expectedRequestId\)/, "Native speech requests must carry a playback correlation ID");
+assert.match(app, /clearTimeout\(timeoutId\)/, "Native speech timeout must be cleared after completion");
 assert.match(app, /const rawReply = sanitizeInternalReply\(result\.reply/, "AI reply must be sanitized before emotion parsing");
 assert.match(app, /connectSpeechAnalyser/, "Audio waveform must be analyzed for the orb");
 assert.match(app, /\[NOVA_EMOTION:/, "AI must provide emotion markers for speech segments");
@@ -98,6 +101,8 @@ assert.match(html, /سولينا/, "The female persona must be named Solina in t
 assert.doesNotMatch(html, /سولين(?!ا)/, "The old female persona name must not remain in the UI");
 assert.doesNotMatch(app, /Math\.random\(\).*setSpeechMouthLevel/, "Orb audio response must not be random");
 assert.match(app, /decodeAudioData/, "Android audio-context playback fallback must remain available");
+assert.match(androidMain, /requestIdFromUtterance/, "Android TTS events must preserve the originating utterance ID");
+assert.match(androidMain, /pendingTtsRequestId/, "Queued Android TTS must preserve its request ID until engine initialization");
 assert.match(html, /id="speechApiKey"/, "The UI must provide a secure speech key entry");
 assert.doesNotMatch(html, /label class="field-label">صوت سولي \(رجالي\)/, "Only Solina voice settings may be visible");
 assert.match(html, /id="speechFemaleVoice"/, "The UI must provide a female voice selector");
