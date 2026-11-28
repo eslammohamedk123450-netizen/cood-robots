@@ -4,6 +4,7 @@ import { classifyMemoryKind, extractMemoryNumberSignature, extractMemoryTokens, 
 import { buildMemoryGraph, parseMemoryModelJson, validateSemanticRecallIds } from "../supabase/functions/nova-ai/memory-graph.js";
 import { classifyConversationTurn } from "../conversation-context.js";
 import { requiresMultiAgentWork } from "../supabase/functions/nova-ai/routing-policy.js";
+import { SPEECH_QUOTA_COOLDOWN_MS, isSpeechQuotaCoolingDown, markSpeechQuotaExceeded, clearSpeechQuotaCooldown, speechQuotaCooldownKey } from "../speech-quota.js";
 
 
 const graphFixture = buildMemoryGraph("المشروع ألف ميزانيته 5000 جنيه وموعده الخميس، والمشروع باء ميزانيته 7000 جنيه.", {
@@ -143,6 +144,18 @@ assert.match(app, /Gemini receives the complete reply in ONE request/, "Gemini T
 assert.match(app, /rememberSpeechAudio\(speechCacheKey, result\)/, "Valid neural speech audio must be cached for the selected provider and voice");
 assert.match(html, /إذا فشلت الخدمة المختارة فقط، تستخدم صوت الهاتف المجاني كحل احتياطي/, "The UI must explain the selected-provider-only policy and phone fallback");
 assert.match(html, /<option value="gemini">Google Gemini TTS فقط<\/option>/, "The UI must expose Gemini as an explicit speech engine");
+const fakeSpeechStorage = (() => { const values = new Map(); return { getItem: (key) => values.has(key) ? values.get(key) : null, setItem: (key, value) => values.set(key, String(value)), removeItem: (key) => values.delete(key) }; })();
+assert.equal(isSpeechQuotaCoolingDown("elevenlabs", fakeSpeechStorage, 1000), false, "Speech providers must start without an unnecessary cooldown");
+assert.equal(markSpeechQuotaExceeded("elevenlabs", fakeSpeechStorage, 1000), true, "Quota failures must record a provider-specific cooldown");
+assert.equal(isSpeechQuotaCoolingDown("elevenlabs", fakeSpeechStorage, 1001), true, "A quota-exhausted provider must not receive repeated requests");
+assert.equal(isSpeechQuotaCoolingDown("sonexlabs", fakeSpeechStorage, 1001), false, "One provider quota must not disable a different provider");
+assert.equal(isSpeechQuotaCoolingDown("elevenlabs", fakeSpeechStorage, 1000 + SPEECH_QUOTA_COOLDOWN_MS + 1), false, "Provider cooldowns must expire automatically");
+assert.equal(clearSpeechQuotaCooldown("elevenlabs", fakeSpeechStorage), true, "A provider cooldown must be clearable after a successful request");
+assert.match(speechQuotaCooldownKey("elevenlabs"), /elevenlabs$/, "Cooldown keys must be isolated by provider");
+assert.match(app, /SPEECH_QUOTA_EXCEEDED/, "The client must recognize a provider quota response and fall back to device speech");
+assert.match(edge, /SPEECH_QUOTA_EXCEEDED/, "The edge function must return a safe quota-specific response");
+assert.match(edge, /SPEECH_VOICE_VERIFICATION_TTL_MS/, "Female voice verification must be cached to avoid a provider API call on every reply");
+
 assert.match(app, /audio\/mpeg/, "The client must accept Sonex MP3 audio");
 assert.match(app, /nova:authenticated/, "The app must receive the authenticated server session");
 assert.doesNotMatch(html, /id="pinSetupForm"|إنشاء كود المالك/, "PIN creation screen must be removed after initial setup");
