@@ -22,6 +22,11 @@ assert.equal(graphFixture.source_text, "المشروع ألف ميزانيته 5
 assert.equal(graphFixture.facts.length, 3, "Semantic indexing must preserve distinct facts from one sentence");
 assert.equal(graphFixture.facts[0].subject, "المشروع ألف", "Each value must remain attached to its correct subject");
 assert.equal(graphFixture.facts[2].subject, "المشروع باء", "Similar properties must not merge facts belonging to different subjects");
+const arabicDigitGraph = buildMemoryGraph("ميزانية المشروع ٥٠٠٠ جنيه", {
+  facts: [{ subject: "المشروع", predicate: "الميزانية", value: "5000", evidence: "ميزانية المشروع ٥٠٠٠ جنيه" }],
+});
+assert.equal(arabicDigitGraph.facts.length, 1, "Memory graph evidence must normalize Arabic and Western digits consistently");
+
 assert.equal(resolveMemoryFactIndex(graphFixture.facts, { fact_index: 0, fact_subject: "المشروع ألف", fact_predicate: "الميزانية", old_value: "5000" }), 0, "A fact correction must match its subject, property and previous value");
 assert.equal(resolveMemoryFactIndex(graphFixture.facts, { fact_index: 0, fact_subject: "المشروع ألف", fact_predicate: "موعد التسليم", old_value: "5000" }), -1, "A mismatched previous value must block a correction");
 assert.equal(resolveMemoryFactIndex(graphFixture.facts, { fact_index: 0 }), -1, "A bare model index must not choose among multiple facts");
