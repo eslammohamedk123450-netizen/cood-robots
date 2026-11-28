@@ -299,14 +299,16 @@ async function waitForDeviceVoice(timeoutMs = 1800) {
   });
   return getDeviceArabicVoice();
 }
-function speakWithNativeDevice(text, segments = []) {
+function speakWithNativeDevice(text, segments = [], playbackId) {
   return new Promise((resolve, reject) => {
     const bridge = window.SolinaNative;
     if (!bridge || typeof bridge.speakText !== "function") { reject(new Error("محرك الصوت الأصلي غير متاح في نسخة التطبيق.")); return; }
-    let settled = false, rafId = 0, startedAt = 0;
+    const expectedRequestId = String(playbackId);
+    let settled = false, rafId = 0, startedAt = 0, timeoutId = 0;
     const estimatedDuration = Math.max(1800, text.length * 75);
     const cleanup = () => {
       window.removeEventListener("solina-native-tts", onTtsEvent);
+      if (timeoutId) window.clearTimeout(timeoutId);
       if (rafId) cancelAnimationFrame(rafId);
       resetSpeechMouth();
     };
@@ -326,6 +328,9 @@ function speakWithNativeDevice(text, segments = []) {
     };
     const onTtsEvent = (event) => {
       const detail = event.detail || {};
+      // Android can deliver a late completion from a cancelled utterance.
+      // Only the event belonging to this exact playback may settle this promise.
+      if (String(detail.requestId ?? "") !== expectedRequestId) return;
       if (detail.event === "start") {
         startedAt = performance.now();
         setStatus(personas[state.persona].name + " بيتكلم...", "speaking");
@@ -335,17 +340,17 @@ function speakWithNativeDevice(text, segments = []) {
     };
     window.addEventListener("solina-native-tts", onTtsEvent);
     try {
-      const result = JSON.parse(bridge.speakText(text));
+      const result = JSON.parse(bridge.speakText(text, expectedRequestId));
       if (!result?.ok) finish(new Error(result?.error || "تعذر إرسال النص لمحرك الصوت."));
     } catch (error) { finish(error); }
-    window.setTimeout(() => {
+    timeoutId = window.setTimeout(() => {
       if (!settled) finish(new Error("محرك الصوت لم يؤكد بدء الكلام. تأكد من تثبيت بيانات تحويل النص إلى كلام."));
     }, 65000);
   });
 }
 async function speakWithDevice(text, segments = []) {
   if (window.SolinaNative && typeof window.SolinaNative.speakText === "function") {
-    return await speakWithNativeDevice(text, segments);
+    return await speakWithNativeDevice(text, segments, speechPlaybackId);
   }
   if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
     throw new Error("محرك النطق غير متاح في المتصفح ده. افتح NOVA من Chrome على أندرويد.");
