@@ -755,3 +755,7 @@ assert.match(app, /function classifyConversationTurn\(text, messages = \[\]\)/, 
 assert.match(app, /turnMode === "topic_change"/, "Explicit topic changes must suppress unrelated earlier context");
 assert.match(app, /turnMode === "follow_up"/, "Short follow-ups must resolve against nearby messages without archive searches");
 assert.match(edge, /if \(explicitResearch\) return true/, "Short explicit research requests may use higher-quality independent analysis");
+
+assert.match(app, /speechCacheKey = JSON\.stringify\(\[persona, speechAction, speechVendor, voiceId, spokenText\]\)/, "Neural speech cache must be keyed by provider, engine, voice and exact text");
+assert.match(app, /getSpeechAudioCache\(speechCacheKey\)/, "Repeated speech must reuse cached audio within the current page session");
+assert.match(app, /rememberSpeechAudio\(speechCacheKey, result\)/, "Successful speech responses must enter the bounded in-memory cache");
