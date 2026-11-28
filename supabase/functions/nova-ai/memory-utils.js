@@ -37,12 +37,12 @@ function startsWithExplicitMemorySave(value) {
 }
 
 export function isCorrectionHistoryRecall(value) {
-  const text = normalizeMemoryText(value);
+  const text = normalizeMemoryText(value).replace(/^(?:(?:يا\s+)?(?:سولينا|لينا|سيلينا|سلينا)\s+)+/u, "");
   return /(?:الرقم|المعلومة).{0,70}(?:صحح(?:تيه|ته|يه|ه)|عدل(?:تيه|ته|يه|ه))|(?:فاكر(?:ة|ه|اه)?|تفتكر(?:ي|ه)?).{0,100}(?:صحح(?:تيه|ته|يه|ه)|عدل(?:تيه|ته|يه|ه))|(?:اللي|الذي).{0,60}(?:قلت|قولت).{0,40}(?:صححيه|صححه|صححتيه|صححته|تعدليه|تعدله|عدلتيه|عدلته)/u.test(text);
 }
 
 export function isExplicitMemoryRecall(value) {
-  const text = normalizeMemoryText(value);
+  const text = normalizeMemoryText(value).replace(/^(?:(?:يا\s+)?(?:سولينا|لينا|سيلينا|سلينا)\s+)+/u, "");
   // A direct "خليكي فاكرة..." command is a save instruction, not a recall question.
   if (startsWithExplicitMemorySave(text)) return false;
   return /(?:فاكر(?:ة|ه|اه)?|تفتكر(?:ي|ه)?)\s+(?:ال)?(?:رقم|الحاجة|المعلومة|اللي|كنا|احنا|الموضوع)|(?:هات|هاتي|قولي|قول|رجعلي|رجعيلي|استرجع|استرجعي|اعرض|اعرضي)\s*(?:لي)?\s*(?:الرقم|رقم|الحاجة|المعلومة|الملاحظات?|المحفوظ)|(?:ايه|إيه)\s*(?:هو\s*)?(?:ال)?(?:رقم|الحاجة|المعلومة)|(?:اللي\s+حفظ(?:تي|ت|ته)|الملاحظ(?:ة|ات)\s*(?:اللي|بتاعتي)|ملاحظاتي|اللي\s+قلت(?:ه|لك)|فاكراني\s+رقم)/u.test(text);
