@@ -9,16 +9,8 @@ function clean(value, max = 500) {
 }
 
 function normalizeEvidence(value) {
-  return String(value ?? "").normalize("NFKC")
-    .replace(/[ًٌٍَُِّْـ]/g, "")
-    .replace(/[إأآٱ]/g, "ا")
-    .replace(/ى/g, "ي")
-    .replace(/ؤ/g, "و")
-    .replace(/ئ/g, "ي")
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .replace(/\s+/g, " ").trim().toLocaleLowerCase("ar");
+  return normalizeMemoryText(String(value ?? ""));
 }
-
 function sameMemoryFactValue(left, right) {
   const a = normalizeMemoryText(String(left ?? ""));
   const b = normalizeMemoryText(String(right ?? ""));
