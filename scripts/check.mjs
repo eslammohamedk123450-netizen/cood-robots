@@ -694,6 +694,7 @@ assert.equal(extractMemoryNumberSignature("الرقم واحد واثنين وت
 assert.equal(extractMemoryNumberSignature("الكود صفر سبعة خمسة تسعة"), "0759");
 assert.equal(extractMemoryNumberSignature("ميزانية عشرين ألف جنيه"), "");
 assert.equal(extractMemoryNumberSignature("الرقم ١٢٣٤٥"), "12345");
+assert.deepEqual(extractMemoryTokens("احذفي المعلومة التجريبية اللي فيها كلمة بطيخ"), ["التجريبية", "بطيخ"], "Natural deletion descriptions must retain only meaningful target terms");
 
 // Semantic graph labels and fact subjects must be grounded in the original note.
 const groundedGraph = buildMemoryGraph("مشروع النور ميزانيته 5000 جنيه.", {
