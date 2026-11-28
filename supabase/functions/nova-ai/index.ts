@@ -1141,7 +1141,33 @@ Deno.serve(async (req: Request) => {
         const { data: savedNotes, error: notesReadError } = await notesBaseQuery().limit(80);
         if (notesReadError) throw notesReadError;
         const notes = savedNotes ?? [];
+        const normalizedRecallText = normalizeMemoryText(latestUserText);
+        const asksToday = /(?:النهارده|النهاردة|اليوم)/u.test(normalizedRecallText);
+        const asksYesterday = /(?:امبارح|مبارح|امس)/u.test(normalizedRecallText);
+        const asksThisWeek = /(?:الاسبوع ده|الاسبوع الحالي|اسبوعنا ده)/u.test(normalizedRecallText);
+        const asksWholeWeek = /(?:الاسبوع كله|كل الاسبوع|كل اللي حفظته|كل المحفوظ|اعرضي?لي? كل|وريني كل|كله)/u.test(normalizedRecallText);
+        if (asksThisWeek && !asksWholeWeek && !asksToday && !asksYesterday && !/(?:السبت|الاحد|الاثنين|الثلاثاء|الاربعاء|الخميس|الجمعة)/u.test(normalizedRecallText)) {
+          return json({ reply: "أكيد. تقصد يوم معين من الأسبوع ده، ولا أعرضلك كل اللي حفظته خلال الأسبوع؟", needs_memory_period_clarification: true }, 200, origin);
+        }
+        const cairoDateKey = (date: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+        const todayKey = cairoDateKey(new Date());
+        const yesterdayKey = cairoDateKey(new Date(Date.now() - 24 * 60 * 60 * 1000));
+        const weekStartDate = new Date();
+        const localWeekday = new Intl.DateTimeFormat("en-US", { timeZone: "Africa/Cairo", weekday: "short" }).format(weekStartDate);
+        const daysSinceSaturday = ({ Sat: 0, Sun: 1, Mon: 2, Tue: 3, Wed: 4, Thu: 5, Fri: 6 } as Record<string, number>)[localWeekday] ?? 0;
+        weekStartDate.setDate(weekStartDate.getDate() - daysSinceSaturday);
+        const weekStartKey = cairoDateKey(weekStartDate);
+        const weekEndDate = new Date(weekStartDate); weekEndDate.setDate(weekEndDate.getDate() + 6);
+        const weekEndKey = cairoDateKey(weekEndDate);
+        const requestedPeriodFilter = (note: any) => {
+          const key = cairoDateKey(new Date(note.created_at));
+          if (asksToday) return key === todayKey;
+          if (asksYesterday) return key === yesterdayKey;
+          if (asksThisWeek) return key >= weekStartKey && key <= weekEndKey;
+          return true;
+        };
         const matchedNotes = notes.filter((note: any) => {
+          if (!requestedPeriodFilter(note)) return false;
           const haystack = normalizeMemoryText(String(note.title || "") + " " + String(note.content || ""));
           if (requestedNoteDate) {
             const noteDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(note.created_at));
@@ -1185,6 +1211,7 @@ Deno.serve(async (req: Request) => {
           : wordNotes;
         const recallPool = correctionHistoryRecall
           ? correctedReferences
+          : asksToday || asksYesterday || asksThisWeek ? notes.filter(requestedPeriodFilter)
           : numberRecall ? (correctedReferences.length ? correctedReferences : allReferences)
           : wordRecall ? matchingWordNotes
           : matchedNotes.length ? matchedNotes
@@ -1202,7 +1229,7 @@ Deno.serve(async (req: Request) => {
         if (!notes.length) return json({ reply: "دورت في دفتري الشخصي، لكن مفيش معلومة محفوظة لسه. لو تحب، ابعتلي المعلومة بصيغة «خليكي فاكرة...» وأنا أحفظها.", recalled_notes: 0, memory_found: false }, 200, origin);
         if (correctionHistoryRecall && !correctedReferences.length) return json({ reply: "فاكرة الرقم الحالي، لكن سجل القيمة القديمة قبل التصحيح مش موجود في بياناته. مش هخمن الرقم القديم.", recalled_notes: 0, memory_found: false }, 200, origin);
         if (!relevantNotes.length) return json({ reply: "مش لاقية في دفتري معلومة محفوظة تطابق الوصف أو التاريخ ده، ومش هخمن رقم من عندي. ممكن تديني كلمة مميزة عنها؟", recalled_notes: 0, memory_found: false }, 200, origin);
-        const candidates = relevantNotes.slice(0, 6).map((note: any, index: number) => {
+        const candidates = relevantNotes.slice(0, 12).map((note: any, index: number) => {
           const when = formatCairoMemoryDate(note.created_at);
           return (index + 1) + ") " + String(note.content || note.title) + " — اتسجلت يوم " + when;
         });
