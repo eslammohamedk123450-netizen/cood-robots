@@ -579,6 +579,8 @@ assert.match(edge, /duplicateReadError/, "Repeated explicit memory saves must be
 assert.match(edge, /correction_history/, "Memory corrections must preserve a short history of replaced values");
 assert.match(edge, /correction_needs_clarification/, "Ambiguous reference corrections must ask before changing stored data");
 assert.match(edge, /memory_found: false/, "A missing saved memory must return an explicit no-match result instead of asking a model to guess");
+assert.match(app, /result\.memory_saved[\s\S]*?loadPersonalItems\(\)/, "The notebook must refresh immediately after a voice or chat memory save");
+assert.match(app, /result\.memory_corrected[\s\S]*?loadPersonalItems\(\)/, "The notebook must refresh immediately after a memory correction");
 assert.match(edge, /notesPromise/, "Relevant note retrieval must run concurrently with independent chat context reads");
 assert.match(edge, /noteTokens\.length >= 2/, "Ordinary greetings and short turns must skip personal-note database queries");
 assert.match(edge, /targetMinute !== null && noteMinute !== targetMinute/, "Memory recall must distinguish exact minute timestamps when supplied");
