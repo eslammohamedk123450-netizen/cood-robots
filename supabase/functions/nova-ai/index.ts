@@ -1129,9 +1129,10 @@ Deno.serve(async (req: Request) => {
         const numberRecall = /(?:رقم|الرقم)/u.test(normalizeMemoryText(latestUserText));
         const recallPool = correctionHistoryRecall
           ? notes.filter((note: any) => Array.isArray(note.metadata?.correction_history) && note.metadata.correction_history.length > 0)
-          : matchedNotes.length ? matchedNotes
-          : memoryWords.length ? []
           : numberRecall ? (() => {
+              // A vague number question is a category lookup, not a keyword search.
+              // Resolve it before matchedNotes/memoryWords so words like "رقم" cannot
+              // accidentally suppress the reference-number fallback.
               const correctedReferences = notes.filter((note: any) =>
                 (note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference") &&
                 Array.isArray(note.metadata?.correction_history) && note.metadata.correction_history.length > 0
@@ -1140,6 +1141,8 @@ Deno.serve(async (req: Request) => {
                 note.metadata?.memory_kind === "reference" || classifyMemoryKind(String(note.content || note.title)) === "reference"
               );
             })()
+          : matchedNotes.length ? matchedNotes
+          : memoryWords.length ? []
           : notes.slice(0, 8);
         const seenRecallValues = new Set<string>();
         const relevantNotes = recallPool.filter((note: any) => {
