@@ -560,7 +560,8 @@ assert.match(edge, /nova_personal_items/, "Saved memories must use the existing 
 assert.match(edge, /classifyMemoryKind\(saveNotePayload\)/, "Explicit memories must be categorized by the shared tested helper");
 assert.match(memoryUtils, /return "project"/, "Project facts must have a stable memory category");
 assert.match(edge, /"decision".*"task".*"reference"/s, "Decisions, open tasks and reference numbers must have stable memory categories");
-assert.match(edge, /metadata: \{ source: "explicit_voice_or_chat_memory", explicit_save: true, memory_kind: memoryKind \}/, "Memory category and explicit-save provenance must be persisted with the note");
+assert.match(edge, /memoryGraphMetadata/, "Explicit memory metadata must persist source and semantic graph provenance");
+assert.match(edge, /memory_graph: memoryGraph/, "Memory category and semantic graph must be persisted with the original note");
 assert.match(edge, /if \(itemType === "note" && typeof metadata\.memory_kind !== "string"\)/, "Manually saved notebook entries must receive the same category organization");
 
 assert.ok(edge.includes('timeZone: "Africa/Cairo"'), "Conversation recall must interpret relative dates in the owner's Egypt timezone");
