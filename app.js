@@ -1605,6 +1605,31 @@ function handleTaskDialogue(clean) {
   const answerText = normalizeTaskText(clean)
     .replace(/^(?:يا\s*)?سولينا\s*/, "")
     .replace(/^(?:طيب|تمام|خلاص|ماشي)\s*/, "").trim();
+  if (pending?.stage === "choose_cancel") {
+    const choiceText = normalizeTaskText(clean).replace(/^(?:يا\s*)?سولينا\s*/, "").trim();
+    const numericChoice = /^\d+$/.test(choiceText) ? Number(choiceText) : 0;
+    const chosen = numericChoice > 0
+      ? pending.options[numericChoice - 1]
+      : pending.options.filter((item) => normalizeTaskText(item.title) === choiceText);
+    if (!chosen || (Array.isArray(chosen) && chosen.length !== 1)) {
+      return { handled: true, reply: "اختار رقم الموعد من القائمة عشان ما ألغيش حاجة بالغلط." };
+    }
+    const target = Array.isArray(chosen) ? chosen[0] : chosen;
+    state.pendingTaskDraft = { stage: "confirm_cancel", ids: [target.id], titles: [target.title] };
+    return { handled: true, reply: "هألغي «" + target.title + "». أأكد؟ قولي أيوه أو لا." };
+  }
+  if (pending?.stage === "confirm_cancel") {
+    const confirmation = normalizeTaskText(clean).replace(/^(?:يا\s*)?سولينا\s*/, "").trim();
+    if (/^(?:ايوه|اه|أيوه|نعم|موافق|تمام|اكد|اكدلي|نفذ|نفذي)$/.test(confirmation)) {
+      state.pendingTaskDraft = null;
+      return { handled: true, intent: { action: "cancel_confirmed", ids: pending.ids } };
+    }
+    if (/^(?:لا|لأ|مش|الغاء|إلغاء|تراجع|سيبها)$/.test(confirmation)) {
+      state.pendingTaskDraft = null;
+      return { handled: true, reply: "تمام، ألغيت طلب الإلغاء وماغيرتش أي موعد." };
+    }
+    return { handled: true, reply: "مستنية تأكيدك بس: قولي أيوه للإلغاء أو لا للاحتفاظ بالموعد." };
+  }
   if (pending) {
     const isPeriodAnswer = /^(?:بالليل|ليل|مساء|مساءً|الصبح|صباح|صباحا|بالنهار|الظهر)$/i.test(answerText);
     const isTimeAnswer = /(?:\d|واحد|واحدة|اتنين|اثنين|تلات|ثلاث|اربعه|أربعة|خمسة|خمس|ستة|سبعة|تمانية|ثمانية|تسعة|عشرة|حداشر|اتناشر|بعد)/.test(answerText);
@@ -1724,12 +1749,33 @@ async function executeTaskIntent(intent) {
   if (intent.action === "cancel") {
     const tasks = state.personalItems.filter(task => task.status === "active" &&
       ["alarm", "reminder"].includes(task.item_type) && (!intent.type || task.item_type === intent.type));
-    const selected = intent.all ? tasks : tasks.slice(0, 1);
-    if (!selected.length) return "ملقتش موعد من النوع ده في حسابك عشان ألغيه.";
+    if (!tasks.length) return "ملقتش موعد من النوع ده في حسابك عشان ألغيه.";
+    if (!intent.all && tasks.length > 1) {
+      const options = tasks.slice(0, 6).map((task) => ({ id: String(task.id), title: String(task.title || "موعد محفوظ") }));
+      state.pendingTaskDraft = { stage: "choose_cancel", options };
+      return "عندك أكتر من موعد مطابق. اختار رقم الموعد اللي تقصده:\n" +
+        options.map((task, index) => (index + 1) + ". " + task.title).join("\n");
+    }
+    const selected = intent.all ? tasks : [tasks[0]];
+    const ids = selected.map((task) => String(task.id));
+    const titles = selected.map((task) => String(task.title || "موعد محفوظ"));
+    state.pendingTaskDraft = { stage: "confirm_cancel", ids, titles };
+    const description = intent.all
+      ? "كل المواعيد المطابقة (" + selected.length + "): " + titles.slice(0, 5).join("، ")
+      : "«" + titles[0] + "»";
+    return "هألغي " + description + ". أأكد؟ قولي أيوه أو لا.";
+  }
+  if (intent.action === "cancel_confirmed") {
+    const ids = [...new Set((Array.isArray(intent.ids) ? intent.ids : []).map(String))];
+    if (!ids.length) return "مفيش موعد محدد للإلغاء.";
     try {
+      await loadPersonalItems();
+      const selected = state.personalItems.filter(task => ids.includes(String(task.id)) &&
+        task.status === "active" && ["alarm", "reminder"].includes(task.item_type));
+      if (selected.length !== ids.length) return "قائمة المواعيد اتغيرت من وقت التأكيد؛ ما ألغيتش أي حاجة. راجع المواعيد وحاول تاني.";
       for (const task of selected) await updatePersonalItem(task.id, "cancelled");
-      return intent.all ? "ألغيت كل المواعيد المطابقة من حسابك." : "ألغيت آخر موعد محفوظ من النوع ده في حسابك.";
-    } catch (_) { return "حصلت مشكلة وأنا بلغي الموعد من حسابك. جرب تاني."; }
+      return selected.length > 1 ? "حاضر، ألغيت المواعيد اللي أكدت عليها." : "حاضر، ألغيت الموعد اللي أكدته.";
+    } catch (_) { return "حصلت مشكلة وأنا بلغي الموعد من حسابك. ما أقدرش أأكد إن الإلغاء اكتمل."; }
   }
   if (intent.action === "create") {
     const at = new Date(intent.scheduledAt).getTime();
