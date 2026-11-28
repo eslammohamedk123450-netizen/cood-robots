@@ -10,9 +10,11 @@ NOVA is a private, voice-first digital companion centered on Solina, its only su
 
 ## Current experience
 - Character-first meeting screen with optional text entry and voice controls.
-- Conversation transcript is displayed locally in the current page session.
+- Conversations and individual user/assistant messages are persisted to the owner's Supabase account, with conversation list, reopen and archive search.
+- Historical recall supports semantic keyword matching, relative dates in `Africa/Cairo`, and requested-hour filtering.
+- Explicitly saved personal notes are timestamped and categorized as projects, decisions, open tasks, reference numbers or general notes, using the existing personal-items table.
 - Settings include persona selection, owner display name and AI provider configuration.
-- An original procedural full-body 3D robot is rendered in `nova-3d.js`; the CSS character remains as a fallback.
+- Solina's animated audio orb and live speech-reactive waveform are the active character presentation; no separate 3D mannequin renderer is part of the current app.
 - Camera, face recognition, guest management and device-control demos are excluded from V1.
 
 ## Owner-only access
@@ -47,7 +49,8 @@ Open `http://localhost:4173`. This is a static UI preview only: the Edge Functio
 - Supabase's leaked-password protection is currently disabled; enable it if the project plan exposes the setting.
 - No real provider key is currently stored in NOVA, so live model discovery and AI chat have not been end-to-end tested.
 - Browser-based Android/desktop UI testing, microphone behavior and real-provider testing remain outstanding.
-- Conversation history is currently page-session memory only. The owner-only `nova_memories` table exists, but the memory engine is not connected to chat yet.
+- Long-term memory is intentionally split by purpose: full transcript in `nova_conversations`/`nova_messages`, explicit notes and tasks in `nova_personal_items`, and owner profile context in `nova_owner_profile_memory`. It is not a duplicate memory database.
+- Archive recall is keyword-based rather than vector/embedding search; ambiguous matches are presented as candidates. Full browser/device end-to-end tests and real provider-key tests remain outstanding.
 - The 3D robot is a procedural prototype, not the final authored/licensed character.
 - Provider-key deletion/rotation and Vault cleanup are not implemented yet.
 
