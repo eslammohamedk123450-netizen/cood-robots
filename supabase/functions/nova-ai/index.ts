@@ -1900,7 +1900,7 @@ Deno.serve(async (req: Request) => {
     const message = error instanceof Error ? error.message : "Internal server error";
     if (message === "Request body too large") return json({ error: message }, 413, origin);
     if (error instanceof SyntaxError) return json({ error: "Invalid JSON request body" }, 400, origin);
-    if (/(?:ElevenLabs رفض توليد الصوت|Sonex Labs رفض طلب الصوت)/i.test(message) && /(?:quota_exceeded|exceeds your quota|quota exceeded|not enough credits)/i.test(message)) {
+    if (/(?:ElevenLabs رفض توليد الصوت|Sonex Labs رفض طلب الصوت|Gemini TTS request failed)/i.test(message) && /(?:quota_exceeded|exceeds your quota|quota exceeded|not enough credits)/i.test(message)) {
       return json({ error: "حصة مزود الصوت لا تكفي لهذا الرد. استخدمي صوت الجهاز المجاني مؤقتًا.", code: "SPEECH_QUOTA_EXCEEDED" }, 429, origin);
     }
     return json({ error: "Internal server error" }, 500, origin);
