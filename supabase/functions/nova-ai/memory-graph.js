@@ -6,6 +6,17 @@ function clean(value, max = 500) {
   return typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, max) : "";
 }
 
+function normalizeEvidence(value) {
+  return String(value ?? "").normalize("NFKC")
+    .replace(/[ًٌٍَُِّْـ]/g, "")
+    .replace(/[إأآٱ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ؤ/g, "و")
+    .replace(/ئ/g, "ي")
+    .replace(/[^\\p{L}\\p{N}\\s]/gu, " ")
+    .replace(/\\s+/g, " ").trim().toLocaleLowerCase("ar");
+}
+
 function uniqueRows(rows, keyOf, limit) {
   const seen = new Set();
   const result = [];
@@ -32,6 +43,7 @@ export function buildMemoryGraph(originalText, proposed) {
     kind: clean(item?.kind, 80),
     context: clean(item?.context, 240),
   })).filter((item) => item.name);
+  const normalizedSource = normalizeEvidence(source);
   const facts = (Array.isArray(data.facts) ? data.facts : []).map((item) => ({
     subject: clean(item?.subject, 180),
     predicate: clean(item?.predicate, 120),
@@ -41,7 +53,7 @@ export function buildMemoryGraph(originalText, proposed) {
     qualifiers: Array.isArray(item?.qualifiers) ? item.qualifiers.map((v) => clean(v, 120)).filter(Boolean).slice(0, 8) : [],
     evidence: clean(item?.evidence, 500),
     confidence: Number.isFinite(Number(item?.confidence)) ? Math.max(0, Math.min(1, Number(item.confidence))) : 0.5,
-  })).filter((item) => item.subject && item.predicate && item.value);
+  })).filter((item) => item.subject && item.predicate && item.value && item.evidence && normalizedSource.includes(normalizeEvidence(item.evidence)));
   const relations = (Array.isArray(data.relations) ? data.relations : []).map((item) => ({
     from: clean(item?.from, 180),
     relation: clean(item?.relation, 120),
