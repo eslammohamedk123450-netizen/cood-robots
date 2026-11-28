@@ -453,8 +453,10 @@ async function speak(text, segments = [], signal) {
     const speechAction = useGeminiTts ? "tts_gemini" : "tts";
     // Auto follows the provider selected in settings. Any cloud failure falls back to the phone TTS.
     // Gemini receives the complete reply in ONE request, never one request per sentence.
-    const geminiCacheKey = useGeminiTts ? JSON.stringify([persona, "gemini-2.5-flash-preview-tts", spokenText]) : "";
-    let result = geminiCacheKey ? getSpeechAudioCache(geminiCacheKey) : null;
+    // Cache identical neural speech for every configured cloud provider in this page session.
+    // Provider, engine and voice are part of the key so changing voice never reuses stale audio.
+    const speechCacheKey = JSON.stringify([persona, speechAction, speechVendor, voiceId, spokenText]);
+    let result = getSpeechAudioCache(speechCacheKey);
     if (!result) result = await invokeNova(speechAction, { text: spokenText, persona, voice_id: voiceId, provider: speechVendor }, { signal });
     if (playbackId !== speechPlaybackId || signal?.aborted) return;
       if (!result.audio || typeof result.audio !== "string") throw new Error("الخادم مرجعش بيانات صوت.");
@@ -467,7 +469,7 @@ async function speak(text, segments = [], signal) {
     if ((mime === "audio/wav" || mime === "audio/x-wav") && (binary.slice(0, 4) !== "RIFF" || binary.slice(8, 12) !== "WAVE")) {
       throw new Error("ملف WAV المستلم غير صالح.");
     }
-    if (geminiCacheKey && !signal?.aborted && !speechAudioCache.has(geminiCacheKey)) rememberSpeechAudio(geminiCacheKey, result);
+    if (speechCacheKey && !signal?.aborted && !speechAudioCache.has(speechCacheKey)) rememberSpeechAudio(speechCacheKey, result);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     const audioBlob = new Blob([bytes], { type: mime });
