@@ -1233,6 +1233,119 @@ Deno.serve(async (req: Request) => {
         const label = ["reminder","alarm"].includes(target.item_type) ? "إلغاء التذكير" : "أرشفة المعلومة";
         return json({ reply: "لقيت العنصر المقصود: «" + target.title + "». هل تؤكد " + label + "؟ قل «أيوه» للتأكيد أو «لا» للإلغاء. مش هأنفذ أي تغيير قبل تأكيدك.", deletion_confirmation_required: true }, 200, origin);
       }
+      const semanticCorrectionIntent = /(?:صحح|صححي|صححلي|عدّل|عدل|عدلي|عدليلي|غيّر|غير|غيري|بدّل|بدل|بدلي|استبدل|استبدلي)/u.test(normalizedCommand)
+        && !isCorrectionHistoryRecall(latestUserText)
+        && !isExplicitMemoryRecall(latestUserText)
+        && !/(?:احفظ|احفظي|خليكي\\s+فاكرة|سجلي)/u.test(normalizedCommand);
+      if (semanticCorrectionIntent) {
+        const { data: correctionNotes, error: correctionNotesError } = await admin.from("nova_personal_items")
+          .select("id,title,content,created_at,metadata").eq("user_id", userId).eq("item_type", "note")
+          .eq("status", "active").order("created_at", { ascending: false }).limit(80);
+        if (correctionNotesError) throw correctionNotesError;
+        let semanticCorrection: any = null;
+        try {
+          semanticCorrection = await runMemoryInterpreter(admin, userId, MEMORY_CORRECTION_INSTRUCTION, {
+            command: latestUserText,
+            candidates: (correctionNotes || []).slice(0, 60).map((note: any) => ({
+              id: note.id,
+              title: String(note.title || "").slice(0, 160),
+              original_text: String(note.content || note.title || "").slice(0, 700),
+              semantic_graph: note.metadata?.memory_graph || null,
+            })),
+          }, req.signal);
+        } catch (error) {
+          console.warn("NOVA_MEMORY_CORRECTION_RESOLUTION_FALLBACK", String(error).slice(0, 180));
+        }
+        const selectedCorrectionIds = validateSemanticRecallIds(semanticCorrection, (correctionNotes || []).map((note: any) => note.id));
+        const confidence = Number(semanticCorrection?.confidence);
+        const newValue = typeof semanticCorrection?.new_value === "string" ? semanticCorrection.new_value.trim().slice(0, 500) : "";
+        const newValueEvidence = typeof semanticCorrection?.new_value_evidence === "string" ? semanticCorrection.new_value_evidence.trim().slice(0, 300) : "";
+        const evidenceIsInCommand = Boolean(newValueEvidence) &&
+          normalizeMemoryText(latestUserText).includes(normalizeMemoryText(newValueEvidence));
+        if (selectedCorrectionIds.length > 1) {
+          const options = selectedCorrectionIds.slice(0, 6).map((id: string, index: number) => {
+            const note: any = (correctionNotes || []).find((item: any) => item.id === id);
+            return (index + 1) + ") " + String(note?.title || note?.content || "معلومة محفوظة").slice(0, 180);
+          });
+          return json({ reply: "لقيت أكتر من معلومة ممكن تقصدها، ومش هغيّر حاجة بالتخمين:\\n" + options.join("\\n") + "\\nحدد المعلومة المقصودة.", memory_corrected: false, correction_needs_clarification: true }, 200, origin);
+        }
+        if (selectedCorrectionIds.length === 1 && Number.isFinite(confidence) && confidence >= 0.55 && newValue && evidenceIsInCommand) {
+          const target: any = (correctionNotes || []).find((note: any) => note.id === selectedCorrectionIds[0]);
+          if (target) {
+            let graph: any = target.metadata?.memory_graph;
+            if (!graph || !Array.isArray(graph.facts) || !graph.facts.length) {
+              try {
+                const extracted = await runMemoryInterpreter(admin, userId, MEMORY_GRAPH_INSTRUCTION, {
+                  statement: String(target.content || target.title || ""),
+                }, req.signal);
+                graph = buildMemoryGraph(String(target.content || target.title || ""), extracted);
+              } catch (error) {
+                console.warn("NOVA_MEMORY_CORRECTION_GRAPH_PENDING", String(error).slice(0, 180));
+              }
+            }
+            const facts = Array.isArray(graph?.facts) ? graph.facts : [];
+            const requestedIndex = Number(semanticCorrection?.fact_index);
+            let factIndex = Number.isInteger(requestedIndex) && requestedIndex >= 0 && requestedIndex < facts.length ? requestedIndex : -1;
+            const requestedSubject = normalizeMemoryText(String(semanticCorrection?.fact_subject || ""));
+            const requestedPredicate = normalizeMemoryText(String(semanticCorrection?.fact_predicate || ""));
+            const requestedOldValue = normalizeMemoryText(String(semanticCorrection?.old_value || ""));
+            if (factIndex >= 0) {
+              const selectedFact = facts[factIndex];
+              if ((requestedSubject && normalizeMemoryText(String(selectedFact.subject || "")) !== requestedSubject) ||
+                  (requestedPredicate && normalizeMemoryText(String(selectedFact.predicate || "")) !== requestedPredicate)) factIndex = -1;
+            }
+            if (factIndex < 0) {
+              const factMatches = facts.map((fact: any, index: number) => ({ fact, index })).filter(({ fact }: any) =>
+                (!requestedSubject || normalizeMemoryText(String(fact.subject || "")) === requestedSubject) &&
+                (!requestedPredicate || normalizeMemoryText(String(fact.predicate || "")) === requestedPredicate) &&
+                (!requestedOldValue || normalizeMemoryText(String(fact.value || "")) === requestedOldValue)
+              );
+              if (factMatches.length === 1) factIndex = factMatches[0].index;
+            }
+            if (factIndex < 0 || !facts[factIndex]) {
+              const description = String(semanticCorrection?.fact_subject || "المعلومة") + " — " + String(semanticCorrection?.fact_predicate || "الخاصية");
+              return json({ reply: "حددت المعلومة «" + target.title + "»، لكن محتاجة أحدد الخاصية اللي عايز تغيّرها داخلها (" + description + "). مش هعدّل أي حاجة قبل ما نتأكد.", memory_corrected: false, correction_needs_clarification: true }, 200, origin);
+            }
+            const oldValue = String(facts[factIndex].value || "");
+            if (normalizeMemoryText(oldValue) === normalizeMemoryText(newValue)) {
+              return json({ reply: "القيمة دي هي المسجلة بالفعل، مفيش تغيير مطلوب.", memory_corrected: false }, 200, origin);
+            }
+            const now = new Date().toISOString();
+            const updatedFacts = facts.map((fact: any, index: number) => index === factIndex
+              ? { ...fact, previous_value: oldValue, value: newValue, provenance: "user_correction", corrected_at: now, correction_evidence: newValueEvidence }
+              : fact);
+            const updatedGraph = { ...graph, facts: updatedFacts, extraction_status: "complete" };
+            const previousHistory = Array.isArray(target.metadata?.correction_history) ? target.metadata.correction_history : [];
+            const historyEntry = {
+              kind: "fact",
+              subject: facts[factIndex].subject,
+              predicate: facts[factIndex].predicate,
+              previous_value: oldValue,
+              new_value: newValue,
+              previous_content: String(target.content || target.title || ""),
+              corrected_at: now,
+              correction_evidence: newValueEvidence,
+            };
+            const metadata = { ...(target.metadata || {}), memory_graph: updatedGraph, memory_graph_status: "complete", correction_history: [...previousHistory, historyEntry].slice(-20) };
+            const { data: corrected, error: correctionError } = await admin.from("nova_personal_items")
+              .update({ metadata, updated_at: now }).eq("id", target.id).eq("user_id", userId).eq("status", "active")
+              .select("id,title,content,metadata,updated_at").maybeSingle();
+            if (correctionError) throw correctionError;
+            if (!corrected) return json({ reply: "المعلومة اتغيرت أو لم تعد نشطة؛ لم أجرِ أي تعديل.", memory_corrected: false }, 200, origin);
+            return json({
+              reply: "تمام، صححت «" + String(facts[factIndex].subject) + "» — " + String(facts[factIndex].predicate) + " من «" + oldValue + "» إلى «" + newValue + "». احتفظت بالنص الأصلي وسجلت القيمة القديمة والجديدة.",
+              memory_corrected: true,
+              old_value: oldValue,
+              new_value: newValue,
+              memory_id: corrected.id,
+              semantic_resolution: true,
+            }, 200, origin);
+          }
+        }
+        if (!selectedCorrectionIds.length && !parseExplicitMemoryCorrection(latestUserText)) {
+          return json({ reply: "فاهمة إنك عايز تصحح معلومة، لكن مش قادرة أحدد العنصر والخاصية والقيمة الجديدة بثقة كافية. وضّحلي المعلومة أو القيمة المقصودة، ومش هغيّر أي حاجة بالتخمين.", memory_corrected: false, correction_needs_clarification: true }, 200, origin);
+        }
+      }
       const memoryCorrection = parseExplicitMemoryCorrection(latestUserText);
       if (memoryCorrection) {
         const { data: savedNotes, error: notesReadError } = await admin.from("nova_personal_items")
