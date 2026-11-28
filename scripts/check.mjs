@@ -516,7 +516,7 @@ assert.match(edge, /nova_personal_items/, "Saved memories must use the existing 
 assert.match(edge, /memoryKind = .*"project"/, "Explicitly saved project facts must be categorized without a second memory table");
 assert.match(edge, /"decision".*"task".*"reference"/s, "Decisions, open tasks and reference numbers must have stable memory categories");
 assert.match(edge, /metadata: \{ source: "explicit_voice_or_chat_memory", explicit_save: true, memory_kind: memoryKind \}/, "Memory category and explicit-save provenance must be persisted with the note");
-assert.match(edge, /timeZone: "Africa\\/Cairo"/, "Conversation recall must interpret relative dates in the owner's Egypt timezone");
+assert.ok(edge.includes('timeZone: "Africa/Cairo"'), "Conversation recall must interpret relative dates in the owner's Egypt timezone");
 assert.match(edge, /hourMatch/, "Conversation recall must narrow historical results by a requested hour");
 assert.match(edge, /requestedNoteDate/, "Saved personal notes must be retrievable by relative Cairo date");
 assert.match(edge, /requestedNoteHour/, "Saved personal notes must be retrievable by requested hour");
