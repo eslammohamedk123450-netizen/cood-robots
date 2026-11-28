@@ -83,3 +83,18 @@ Legend: [x] implemented or deployed; [ ] not yet implemented or not yet verified
 - [ ] Add a permissioned tool registry so the agent can plan and call search, memory, task, calendar and device capabilities instead of relying only on frontend pre-processing.
 - [ ] Add user-configurable model roles, concurrency/cost limits and per-task execution traces.
 - [ ] Add end-to-end owner-session tests using two real enabled providers, including one-provider failure and synthesis fallback.
+
+
+## SOLINA personal-assistant roadmap (2026-11-28)
+
+The approved product direction and complete phased plan are documented in [SOLINA_PERSONAL_ASSISTANT_PLAN.md](SOLINA_PERSONAL_ASSISTANT_PLAN.md).
+
+- [x] Record the current product boundary: lightweight Alexa-like personal assistant; coding-agent behavior is deferred.
+- [x] Audit existing conversation archive, owner memory, personal items, reminder/alarm parser, Android scheduling bridge, live search, model routing, and CI.
+- [ ] Phase 1: strengthen conversational continuity and topic-switch behavior with regression tests.
+- [ ] Phase 2: verify exact explicit memory capture and recall across new sessions.
+- [ ] Phase 3: harden personal actions and clarify ambiguous date/time details before scheduling.
+- [ ] Phase 4: improve source-backed web research while preserving the existing search path.
+- [ ] Phase 5: implement durable public GitHub workflow monitoring with deduplicated notifications; foreground-only first.
+- [ ] Phase 6: measure latency, token usage, request count, bundle size, and reliability.
+- [ ] Future: desktop companion and physical desk device; not part of current release.
