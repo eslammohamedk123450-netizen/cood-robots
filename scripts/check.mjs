@@ -747,11 +747,11 @@ assert.match(app, /pending\.action === "complete"/, "The selected due item must 
 assert.doesNotMatch(app, /dueReminders\[0\]/, "The app must not silently act on the first due reminder when several exist");
 assert.match(edge, /const explicitResearch =/, "Parallel routing must reserve independent reasoning for explicit research and analysis");
 assert.match(edge, /const substantialTask =/, "Long substantive requests may use independent model analysis");
-assert.match(edge, /if \(!value \|\| value\.length < 90\) return false/, "Short everyday turns must stay on the fast single-model path");
+assert.match(edge, /if \(value\.length < 90\) return false/, "Short everyday turns must stay on the fast single-model path unless explicit research is requested");
 assert.match(edge, /if \(multiAgent\)/, "Complex work must retain bounded parallel reasoning and synthesis");
 
 // Context discipline: short references continue the nearby topic; explicit switch phrases isolate a new topic.
-assert.match(app, /function classifyConversationTurn\\(text, messages = \\[\\]\\)/, "Conversation turns must be classified before model context is assembled");
+assert.match(app, /function classifyConversationTurn\(text, messages = \[\]\)/, "Conversation turns must be classified before model context is assembled");
 assert.match(app, /turnMode === "topic_change"/, "Explicit topic changes must suppress unrelated earlier context");
 assert.match(app, /turnMode === "follow_up"/, "Short follow-ups must resolve against nearby messages without archive searches");
-assert.match(edge, /if \\(explicitResearch\\) return true/, "Short explicit research requests may use higher-quality independent analysis");
+assert.match(edge, /if \(explicitResearch\) return true/, "Short explicit research requests may use higher-quality independent analysis");
