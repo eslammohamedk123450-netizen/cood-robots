@@ -1,5 +1,7 @@
 # NOVA — Development Plan
 
+> Current product direction and the complete phased implementation order are maintained in [SOLINA_PERSONAL_ASSISTANT_PLAN.md](SOLINA_PERSONAL_ASSISTANT_PLAN.md). That document takes precedence over any older V1 wording below when the two conflict. The current target is a lightweight Alexa-like personal assistant, not a coding agent.
+
 The current V1 is a private, voice-first personal companion for Islam. The implementation checklist and exact status are in [TODO.md](TODO.md). The backend contract and security design are in [NOVA_SUPABASE.md](NOVA_SUPABASE.md).
 
 ## Current implementation phase
