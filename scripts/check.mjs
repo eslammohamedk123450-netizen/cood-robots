@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
-import { classifyMemoryKind, extractMemoryTokens, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemorySave } from "../supabase/functions/nova-ai/memory-utils.js";
+import { classifyMemoryKind, extractMemoryTokens, isExplicitMemoryRecall, normalizeMemoryText, parseExplicitMemoryCorrection, parseExplicitMemorySave } from "../supabase/functions/nova-ai/memory-utils.js";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const html = read("../index.html");
@@ -558,6 +558,11 @@ assert.match(app, /memoryLabels = \{ project: "مشروع", decision: "قرار"
 
 console.log("SOLINA explicit memory save and recall checks passed.");
 
+const correctionByTopic = parseExplicitMemoryCorrection("صححي الرقم الخاص بالحساب وخليه 987654");
+assert.deepEqual(correctionByTopic, { target: "الحساب", value: "987654" }, "Correction commands must target the intended saved reference when the user identifies it");
+assert.deepEqual(parseExplicitMemoryCorrection("الرقم القديم غلط، الصحيح 123456"), { target: "", value: "123456" }, "A clear correction must extract the new exact value");
+assert.deepEqual(parseExplicitMemoryCorrection("صححي الرقم المحفوظ: 555666"), { target: "", value: "555666" }, "A direct saved-number correction must be recognized");
+assert.equal(parseExplicitMemoryCorrection("الرقم ده غلط"), null, "Incomplete corrections must not modify saved memory");
 const spokenNumberMemory = parseExplicitMemorySave("خليكي فاكرة عندك الرقم ده، واحد اثنين ثلاثة أربعة خمسة");
 assert.equal(spokenNumberMemory, "الرقم ده، واحد اثنين ثلاثة أربعة خمسة", "Explicit remember phrases must preserve the complete spoken number payload exactly");
 assert.equal(classifyMemoryKind(spokenNumberMemory), "reference", "Spoken number sequences must be categorized as reference memories");
@@ -571,6 +576,8 @@ assert.deepEqual(extractMemoryTokens("الساعة ٨ مساء"), [], "Clock-onl
 assert.deepEqual(extractMemoryTokens("فاكرة الرقم ١٢٣؟"), ["123"], "Arabic digits must normalize for exact reference matching");
 assert.equal(normalizeMemoryText("إسلام ١٢٣"), "اسلام 123", "Arabic spelling and digit normalization must be stable");
 assert.match(edge, /duplicateReadError/, "Repeated explicit memory saves must be deduplicated");
+assert.match(edge, /correction_history/, "Memory corrections must preserve a short history of replaced values");
+assert.match(edge, /correction_needs_clarification/, "Ambiguous reference corrections must ask before changing stored data");
 assert.match(edge, /memory_found: false/, "A missing saved memory must return an explicit no-match result instead of asking a model to guess");
 assert.match(edge, /notesPromise/, "Relevant note retrieval must run concurrently with independent chat context reads");
 assert.match(edge, /noteTokens\.length >= 2/, "Ordinary greetings and short turns must skip personal-note database queries");
