@@ -180,9 +180,9 @@ const afterPrayer = parseTaskCommand("اعملي تذكير بعد صلاة ال
 assert.equal(afterPrayer?.offsetMinutes, 10, "After-prayer offset must be calculated correctly");
 
 
-assert.match(edge, /عندك\)\?\|افتكر/, "Explicit save phrases with 'عندك' must be recognized");
+assert.ok(edge.includes("parseExplicitMemorySave(latestUserText)"), "Explicit remember phrases must be parsed by the shared Arabic memory helper");
 assert.equal((edge.match(/const latestUserText =/g) || []).length, 1, "Chat memory context must define the latest user text only once");
-assert.match(edge, /latestUserText\.match\(\/\[\\p\{L\}\\p\{N\}\]\{2,\}\/gu\)/, "Arabic and Unicode memory tokenization must use Unicode property escapes");
+assert.ok(edge.includes("extractMemoryTokens(latestUserText)"), "Arabic memory tokenization must use the shared tested helper");
 assert.match(edge, /relativeDay !== null \|\| explicitDate/, "History recall must support relative and explicit dates");
 assert.match(edge, /timeZone: "Africa\/Cairo"/, "History timestamps must be interpreted in Cairo local time");
 assert.match(app, /const asksPastConversation =/, "Chat requests must detect references to previous conversations");
