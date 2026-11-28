@@ -1168,6 +1168,45 @@ Deno.serve(async (req: Request) => {
         const eligible = (activeItems || []).filter((item: any) => reminderIntent
           ? ["reminder","alarm"].includes(item.item_type)
           : ["note","task"].includes(item.item_type));
+        let semanticDelete: any = null;
+        try {
+          semanticDelete = await runMemoryInterpreter(admin, userId, MEMORY_DELETE_INSTRUCTION, {
+            command: latestUserText,
+            candidates: eligible.slice(0, 60).map((item: any) => ({
+              id: item.id,
+              item_type: item.item_type,
+              title: String(item.title || "").slice(0, 160),
+              original_text: String(item.content || item.title || "").slice(0, 500),
+              scheduled_at: item.scheduled_at,
+              semantic_graph: item.metadata?.memory_graph ? {
+                summary: String(item.metadata.memory_graph.summary || "").slice(0, 160),
+                facts: Array.isArray(item.metadata.memory_graph.facts) ? item.metadata.memory_graph.facts.slice(0, 4) : [],
+                relations: Array.isArray(item.metadata.memory_graph.relations) ? item.metadata.memory_graph.relations.slice(0, 2) : [],
+              } : null,
+            })),
+          }, req.signal);
+        } catch (error) {
+          console.warn("NOVA_MEMORY_DELETE_RESOLUTION_FALLBACK", String(error).slice(0, 180));
+        }
+        const semanticDeleteIds = validateSemanticRecallIds(semanticDelete, eligible.map((item: any) => item.id));
+        if (semanticDeleteIds.length > 1) {
+          const options = semanticDeleteIds.slice(0, 6).map((id: string, index: number) => {
+            const item: any = eligible.find((candidate: any) => candidate.id === id);
+            return (index + 1) + ") " + String(item?.title || item?.content || "عنصر محفوظ").slice(0, 180);
+          });
+          return json({ reply: "لقيت أكتر من عنصر ممكن ينطبق على وصفك، ومش هختار بالتخمين:\\n" + options.join("\\n") + "\\nحدد أنهي واحد تقصده.", deletion_needs_clarification: true }, 200, origin);
+        }
+        if (semanticDeleteIds.length === 1) {
+          const target: any = eligible.find((item: any) => item.id === semanticDeleteIds[0]);
+          if (target) {
+            const metadata = { ...(target.metadata || {}), pending_action: "delete_confirmation", pending_action_at: new Date().toISOString() };
+            const { error: pendingWriteError } = await admin.from("nova_personal_items").update({ metadata, updated_at: new Date().toISOString() })
+              .eq("id", target.id).eq("user_id", userId).eq("status", "active");
+            if (pendingWriteError) throw pendingWriteError;
+            const label = ["reminder","alarm"].includes(target.item_type) ? "إلغاء التذكير" : "أرشفة المعلومة";
+            return json({ reply: "فهمت وصفك وأقرب عنصر مطابق هو «" + target.title + "». هل تؤكد " + label + "؟ قل «أيوه» للتأكيد أو «لا» للإلغاء. مش هأنفذ أي تغيير قبل تأكيدك.", deletion_confirmation_required: true, semantic_resolution: true }, 200, origin);
+          }
+        }
         const verbMatch = normalizedCommand.match(/(?:احذف|احذفي|امسح|امسحي|شيل|شيلي|امحي|الغي|الغى|الغِي|الغاء|الغِ|إلغي|إلغاء|ألغى|ألغ)\s+(.+)$/u);
         let targetText = verbMatch?.[1] || "";
         targetText = targetText.replace(/^(?:لي\s+)?(?:ال)?(?:معلومة|المعلومه|معلومات|ملاحظة|ملاحظات|نوتة|نوت|تذكير|تذكيرات|منبه|منبهات|كلمة|كلمه|رقم|ذاكرة)\s*/u, "")
