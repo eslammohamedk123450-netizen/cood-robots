@@ -513,6 +513,12 @@ assert.match(edge, /explicit_save: true/, "Explicitly saved memories must be tag
 assert.match(edge, /asksRecall/, "Memory recall phrases must be detected");
 assert.match(edge, /recalled_notes/, "Recall must report a deterministic note result");
 assert.match(edge, /nova_personal_items/, "Saved memories must use the existing unified personal-items table, not another storage system");
+assert.match(edge, /memoryKind = .*"project"/, "Explicitly saved project facts must be categorized without a second memory table");
+assert.match(edge, /"decision".*"task".*"reference"/s, "Decisions, open tasks and reference numbers must have stable memory categories");
+assert.match(edge, /metadata: \{ source: "explicit_voice_or_chat_memory", explicit_save: true, memory_kind: memoryKind \}/, "Memory category and explicit-save provenance must be persisted with the note");
+assert.match(edge, /timeZone: "Africa\\/Cairo"/, "Conversation recall must interpret relative dates in the owner's Egypt timezone");
+assert.match(edge, /hourMatch/, "Conversation recall must narrow historical results by a requested hour");
+
 console.log("SOLINA explicit memory save and recall checks passed.");
 
 assert.ok(edge.includes("خلي(?:كي|ك)") && edge.includes("\\s+"), "Explicit remember phrase matcher must include the Arabic trigger and whitespace token");
