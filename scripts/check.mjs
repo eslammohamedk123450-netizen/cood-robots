@@ -742,10 +742,10 @@ assert.equal(groundedGraph.relations.length, 1);
 
 // Multi-item due-task actions must never select the oldest reminder by accident.
 assert.match(app, /stage === "choose_due_action"/, "Multiple due items must ask the owner to select one");
-assert.match(app, /dueItems\\.length > 1/, "Ambiguous due-task actions must present choices instead of selecting the first record");
-assert.match(app, /pending\\.action === "complete"/, "The selected due item must preserve the requested completion or snooze action");
-assert.doesNotMatch(app, /dueReminders\\[0\\]/, "The app must not silently act on the first due reminder when several exist");
+assert.match(app, /dueItems\.length > 1/, "Ambiguous due-task actions must present choices instead of selecting the first record");
+assert.match(app, /pending\.action === "complete"/, "The selected due item must preserve the requested completion or snooze action");
+assert.doesNotMatch(app, /dueReminders\[0\]/, "The app must not silently act on the first due reminder when several exist");
 assert.match(edge, /const explicitResearch =/, "Parallel routing must reserve independent reasoning for explicit research and analysis");
 assert.match(edge, /const substantialTask =/, "Long substantive requests may use independent model analysis");
-assert.match(edge, /if \\(!value \\|\\| value\\.length < 90\\) return false/, "Short everyday turns must stay on the fast single-model path");
-assert.match(edge, /if \\(multiAgent\\)/, "Complex work must retain bounded parallel reasoning and synthesis");
+assert.match(edge, /if \(!value \|\| value\.length < 90\) return false/, "Short everyday turns must stay on the fast single-model path");
+assert.match(edge, /if \(multiAgent\)/, "Complex work must retain bounded parallel reasoning and synthesis");
