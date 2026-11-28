@@ -99,7 +99,7 @@ export function extractMemoryNumberSignature(value) {
 
 export function classifyMemoryKind(value) {
   const text = normalizeMemoryText(value);
-  if (/^(?:الكلمة|كلمة|الكلمه|كلمه)\s+/u.test(text)) return "word";
+  if (/(?:^|\s)(?:الكلمة|كلمة|الكلمه|كلمه)(?:\s|$)/u.test(text)) return "word";
   const spokenNumbers = (text.match(/(?:^|\s)(?:واحد|واحده|اتنين|اثنين|تلاته|ثلاثه|اربعه|خمسه|ستة|سته|سبعه|تمانيه|تمنيه|ثمانيه|تسعه|عشره|حداشر|احداشر|اتناشر|اثناشر|عشرين|تلاتين|ثلاثين|اربعين|خمسين|ميه|مائه|الف)(?=\s|$)/gu) || []).length;
   if (/(?:مشروع|تطبيق|موقع|شركة|منصة|نظام)/u.test(text)) return "project";
   if (/(?:قرار|اتفقنا|اعتمدنا|هنستخدم|هنعمل|اخترنا)/u.test(text)) return "decision";
