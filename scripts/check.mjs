@@ -142,7 +142,8 @@ assert.match(app, /speechAudioCache/, "Neural speech reuse cache must stay memor
 assert.match(app, /rememberSpeechAudio/, "Generated neural audio must be cached for exact repeats in the current session");
 assert.match(app, /Gemini receives the complete reply in ONE request/, "Gemini TTS must not create a request for every sentence");
 assert.match(app, /rememberSpeechAudio\(speechCacheKey, result\)/, "Valid neural speech audio must be cached for the selected provider and voice");
-assert.match(html, /إذا فشلت الخدمة المختارة فقط، تستخدم صوت الهاتف المجاني كحل احتياطي/, "The UI must explain the selected-provider-only policy and phone fallback");
+assert.match(html, /إذا فشلت الخدمة المختارة، تستخدم صوت الهاتف المجاني/, "The UI must explain the selected-provider-only policy and phone fallback");
+assert.match(html, /لمدة 12 ساعة/, "The UI must disclose the quota cooldown behavior");
 assert.match(html, /<option value="gemini">Google Gemini TTS فقط<\/option>/, "The UI must expose Gemini as an explicit speech engine");
 const fakeSpeechStorage = (() => { const values = new Map(); return { getItem: (key) => values.has(key) ? values.get(key) : null, setItem: (key, value) => values.set(key, String(value)), removeItem: (key) => values.delete(key) }; })();
 assert.equal(isSpeechQuotaCoolingDown("elevenlabs", fakeSpeechStorage, 1000), false, "Speech providers must start without an unnecessary cooldown");
