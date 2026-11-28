@@ -138,8 +138,8 @@ assert.doesNotMatch(app, /\butter\.(?:rate|pitch)\s*=/, "Browser TTS must not re
 assert.match(app, /لا تبدأ بسؤاله عن مشاريعه أو شغله/, "NOVA must not steer casual conversation toward projects");
 assert.match(app, /الملف الشخصي وسجل المشاريع معلومات خلفية فقط/, "Profile memories must not dominate unrelated conversations");
 assert.match(edge, /هذه الذاكرة خلفية اختيارية وليست موضوعًا افتراضيًا/, "Retrieved memory must remain subordinate to the current request");
-assert.match(app, /speechAudioCache/, "Gemini speech reuse cache must stay memory-only");
-assert.match(app, /rememberSpeechAudio/, "Generated Gemini audio must be cached for exact repeats in the current session");
+assert.match(app, /speechAudioCache/, "Neural speech reuse cache must stay memory-only");
+assert.match(app, /rememberSpeechAudio/, "Generated neural audio must be cached for exact repeats in the current session");
 assert.match(app, /Gemini receives the complete reply in ONE request/, "Gemini TTS must not create a request for every sentence");
 assert.match(app, /rememberSpeechAudio\(speechCacheKey, result\)/, "Valid neural speech audio must be cached for the selected provider and voice");
 assert.match(html, /إذا فشلت الخدمة المختارة فقط، تستخدم صوت الهاتف المجاني كحل احتياطي/, "The UI must explain the selected-provider-only policy and phone fallback");
