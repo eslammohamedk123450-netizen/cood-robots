@@ -1304,7 +1304,7 @@ Deno.serve(async (req: Request) => {
         const label = ["reminder","alarm"].includes(target.item_type) ? "إلغاء التذكير" : "أرشفة المعلومة";
         return json({ reply: "لقيت العنصر المقصود: «" + target.title + "». هل تؤكد " + label + "؟ قل «أيوه» للتأكيد أو «لا» للإلغاء. مش هأنفذ أي تغيير قبل تأكيدك.", deletion_confirmation_required: true }, 200, origin);
       }
-      const explicitSaveAtStart = /^(?:(?:طيب|بصي|بص)\\s+)*(?:(?:يا\\s+)?(?:سولينا|لينا|سيلينا|سلينا)\\s+)*(?:احفظ(?:ي)?|سجل(?:ي)?|خلي(?:كي|ك)\\s+(?:فاكر(?:ة|ه|اه)?|في\\s+بالك))/u.test(normalizedCommand);
+      const explicitSaveAtStart = /^(?:(?:طيب|بصي|بص)\s+)*(?:(?:يا\s+)?(?:سولينا|لينا|سيلينا|سلينا)\s+)*(?:احفظ(?:ي)?|سجل(?:ي)?|خلي(?:كي|ك)\s+(?:فاكر(?:ة|ه|اه)?|في\s+بالك))/u.test(normalizedCommand);
       const semanticCorrectionIntent = /(?:صحح|صححي|صححلي|عدل|عدلي|عدليلي|غير|غيري|بدل|بدلي|استبدل|استبدلي)/u.test(normalizedCommand)
         && !isCorrectionHistoryRecall(latestUserText)
         && !isExplicitMemoryRecall(latestUserText)
@@ -1507,7 +1507,8 @@ Deno.serve(async (req: Request) => {
           .select("id,title,content,created_at").single();
         if (saveNoteError) throw saveNoteError;
         const savedDate = formatCairoMemoryDate(savedNote.created_at);
-        const saveReply = memoryKind === "project" ? "حاضر، حفظت تفاصيل المشروع." : memoryKind === "task" ? "حاضر، حفظت المهمة." : "حاضر، حفظت المعلومة.";\n        return json({ reply: saveReply, memory_saved: true, saved_note: true, memory_kind: memoryKind, memory_graph_status: memoryGraph.extraction_status, memory_fact_count: memoryGraph.facts.length }, 200, origin);
+        const saveReply = memoryKind === "project" ? "حاضر، حفظت تفاصيل المشروع." : memoryKind === "task" ? "حاضر، حفظت المهمة." : "حاضر، حفظت المعلومة.";
+        return json({ reply: saveReply, memory_saved: true, saved_note: true, memory_kind: memoryKind, memory_graph_status: memoryGraph.extraction_status, memory_fact_count: memoryGraph.facts.length }, 200, origin);
       }
 
       const memoryWords = extractMemoryTokens(latestUserText);
