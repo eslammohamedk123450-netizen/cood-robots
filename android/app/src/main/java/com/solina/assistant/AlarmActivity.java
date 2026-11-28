@@ -102,10 +102,11 @@ public class AlarmActivity extends Activity {
 
     private boolean isStopPhrase(String phrase) {
         String clean = phrase == null ? "" : phrase.toLowerCase(java.util.Locale.ROOT)
-                .replaceAll("[\\p{Punct}\\s]", "").replace("أ", "ا").replace("إ", "ا");
-        return clean.contains("انا قمت") || clean.contains("قمت") || clean.contains("صحيت") || clean.contains("صاحي")
+                .replaceAll("[\\p{Punct}\\s]", "").replace("أ", "ا").replace("إ", "ا").replace("آ", "ا");
+        return clean.contains("اناقمت") || clean.contains("قمت") || clean.contains("صحيت") || clean.contains("صاحي")
                 || clean.contains("خلصت") || clean.contains("انتهيت") || clean.contains("خلاص")
-                || clean.contains("وقفت") || clean.contains("اوقفي المنبه") || clean.contains("اوقفي التذكير") || clean.contains("بطلي");
+                || clean.contains("وقفت") || clean.contains("اوقفيالمنبه") || clean.contains("اوقفالمنبه")
+                || clean.contains("اوقفيالتذكير") || clean.contains("اوقفالتذكير") || clean.contains("بطلي");
     }
 
     private void launchWakeRecognition() {
