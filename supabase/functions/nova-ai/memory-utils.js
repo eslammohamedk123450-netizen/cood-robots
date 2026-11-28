@@ -33,7 +33,7 @@ export function extractMemoryTokens(value) {
 
 function startsWithExplicitMemorySave(value) {
   const text = normalizeMemoryText(value).replace(/^(?:(?:يا\s+)?(?:سولينا|لينا|سيلينا|سلينا)\s+)+/u, "");
-  return /^(?:خلي(?:كي|ك)\s+(?:فاكر(?:ة|ه|اه)?|في\s+بالك)(?:\s+عندك)?|احفظ(?:ي)?(?![\\p{L}\\p{N}_])|سجل(?:ي)?(?![\\p{L}\\p{N}_])|افتكر(?:ي)?\s+(?:ان|بأن|عندك))(?:\s|$)/u.test(text);
+  return /^(?:خلي(?:كي|ك)\s+(?:فاكر(?:ة|ه|اه)?|في\s+بالك)(?:\s+عندك)?|احفظ(?:ي)?(?![\p{L}\p{N}_])|سجل(?:ي)?(?![\p{L}\p{N}_])|افتكر(?:ي)?\s+(?:ان|بأن|عندك))(?:\s|$)/u.test(text);
 }
 
 export function isCorrectionHistoryRecall(value) {
@@ -106,7 +106,7 @@ function spokenDigitSequences(text) {
   const found = [];
   let current = "";
   const flush = () => { if (current.length >= 3) found.push(current); current = ""; };
-  for (const raw of text.split(/\\s+/u).filter(Boolean)) {
+  for (const raw of text.split(/\s+/u).filter(Boolean)) {
     const word = raw === "و" ? "" : raw;
     let digit = SPOKEN_DIGIT_VALUES.get(word);
     if (digit === undefined && word.startsWith("و")) digit = SPOKEN_DIGIT_VALUES.get(word.slice(1));
@@ -119,9 +119,9 @@ function spokenDigitSequences(text) {
 
 export function extractMemoryNumberSignature(value) {
   const text = normalizeMemoryText(value);
-  const spaced = [...text.matchAll(/(?:^|\\s)((?:\\d\\s+){2,}\\d)(?=\\s|$)/gu)]
-    .map((match) => match[1].replace(/\\s+/g, ""));
-  const compact = [...text.matchAll(/(?:^|\\s)(\\d{3,})(?=\\s|$)/gu)].map((match) => match[1]);
+  const spaced = [...text.matchAll(/(?:^|\s)((?:\d\s+){2,}\d)(?=\s|$)/gu)]
+    .map((match) => match[1].replace(/\s+/g, ""));
+  const compact = [...text.matchAll(/(?:^|\s)(\d{3,})(?=\s|$)/gu)].map((match) => match[1]);
   const candidates = [...spaced, ...compact, ...spokenDigitSequences(text)].filter(Boolean);
   if (!candidates.length) return "";
   candidates.sort((a, b) => b.length - a.length);
