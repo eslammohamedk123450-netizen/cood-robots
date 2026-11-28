@@ -291,7 +291,8 @@ assert.match(edge, /action === "personal_item_save"/, "The owner API must save p
 assert.match(edge, /action === "personal_item_update"/, "The owner API must update completion and snooze state");
 assert.match(edge, /action === "personal_item_delete"/, "The owner API must delete notes");
 assert.match(app, /const asksClock =/, "Clock questions must be answered from the device clock without depending on an AI provider");
-assert.match(app, /const asksPrayer = \/[\\s\\S]*الفجر.*يأذن/, "Fajr adhan-time questions must be recognized before generic clock questions");
+assert.match(app, /Prayer intent takes precedence over generic clock phrases/, "Prayer intent must be evaluated before generic clock intent");
+assert.match(app, /const asksPrayer = \/\(\?:مواقيت/, "Prayer intent must recognize colloquial prayer-time questions");
 assert.match(app, /const asksClock = !asksPrayer/, "Prayer questions mentioning the word clock must never be mistaken for device clock questions");
 assert.match(app, /const remainingMinutes = Math\.max\(0, Math\.ceil\(/, "Prayer countdowns must be calculated from the device clock rather than guessed by the model");
 assert.match(app, /prayerRemaining = "الوقت المتبقي محسوب برمجيًا/, "The exact prayer countdown must be supplied to the response model");
