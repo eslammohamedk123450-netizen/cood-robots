@@ -765,4 +765,4 @@ assert.ok(app.includes("date_offset: 1") && app.includes("const tomorrowRaw") &&
 
 assert.match(edge, /seenResultUrls/, "Live research must deduplicate repeated source URLs");
 assert.match(edge, /sourceUrl\.username \|\| sourceUrl\.password/, "Search results must reject credential-bearing URLs");
-assert.match(edge, /utm_\|fbclid\|gclid/, "Search links must remove common tracking parameters");
+assert.ok(edge.includes("utm_.+") && edge.includes("fbclid") && edge.includes("gclid"), "Search links must remove common tracking parameters");
