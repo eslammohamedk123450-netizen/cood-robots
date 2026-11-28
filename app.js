@@ -1643,16 +1643,14 @@ async function executeTaskIntent(intent) {
   if (intent.action === "create_prayer_reminder") {
     try {
       const prayerData = await invokeNova("live_info", { kind: "prayer", city: intent.city || "المحلة الكبرى", country: "Egypt", date_offset: 0 });
-      const raw = String(prayerData?.timings?.[intent.prayer] || "").match(/^(\\d{1,2}):(\\d{2})/);
+      const raw = String(prayerData?.timings?.[intent.prayer] || "").match(/^(\d{1,2}):(\d{2})/);
       if (!raw) return "مش قادرة أجيب موعد الصلاة من مصدر المواقيت دلوقتي، فمش هخمن وقت التذكير.";
       const now = new Date();
       const at = new Date(now);
       at.setHours(Number(raw[1]), Number(raw[2]), 0, 0);
-      let prayerDateOffset = 0;
       if (at.getTime() <= now.getTime()) {
-        prayerDateOffset = 1;
         const tomorrowData = await invokeNova("live_info", { kind: "prayer", city: intent.city || "المحلة الكبرى", country: "Egypt", date_offset: 1 });
-        const tomorrowRaw = String(tomorrowData?.timings?.[intent.prayer] || "").match(/^(\\d{1,2}):(\\d{2})/);
+        const tomorrowRaw = String(tomorrowData?.timings?.[intent.prayer] || "").match(/^(\d{1,2}):(\d{2})/);
         if (!tomorrowRaw) return "جبت مواقيت النهارده، لكن تعذر التأكد من موعد الصلاة القادم. مش هضبط تذكير بوقت غير مؤكد.";
         at.setDate(at.getDate() + 1);
         at.setHours(Number(tomorrowRaw[1]), Number(tomorrowRaw[2]), 0, 0);
