@@ -24,7 +24,7 @@ assert.equal(buildMemoryGraph("المشروع ألف ميزانيته 5000 جن�
 assert.equal(buildMemoryGraph("المشروع ألف ميزانيته 5000 جنيه.", { facts: [{ subject: "المشروع ألف", predicate: "الميزانية", value: "9000", evidence: "ميزانيته 5000 جنيه" }] }).facts.length, 0, "A model must not attach a value that is absent from its quoted evidence");
 assert.deepEqual(validateSemanticRecallIds({ selected_ids: ["note-b", "not-real", "note-a", "note-b"] }, ["note-a", "note-b"]), ["note-b", "note-a"], "Semantic retrieval must reject unknown IDs and deduplicate valid candidates");
 assert.deepEqual(parseMemoryModelJson('prefix ```json\\n{"selected_ids":["n1"],"confidence":0.9}\\n``` suffix'), { selected_ids: ["n1"], confidence: 0.9 }, "Model JSON parsing must tolerate fenced JSON and surrounding prose");
-assert.equal(buildMemoryGraph("نص أصلي", null).extraction_status, "empty", "Missing model output must never be marked as semantically processed");
+assert.equal(buildMemoryGraph("نص أصلي", null).extraction_status, "pending", "Missing model output must never be marked as semantically processed");
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const html = read("../index.html");
