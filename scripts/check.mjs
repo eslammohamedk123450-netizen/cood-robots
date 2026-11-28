@@ -479,6 +479,13 @@ assert.match(androidMain, /setLanguage\(new Locale\("ar", "EG"\)\)/, "Native spe
 assert.match(androidMain, /speakText\(String text\)/, "Web app must be able to request native Android speech");
 assert.match(androidMain, /solina-native-tts/, "Native TTS playback status must be returned to the web app");
 assert.match(app, /speakWithNativeDevice\(text, segments\)/, "Android app must use native TTS before browser speech synthesis");
+assert.match(app, /let speechPlaybackId = 0/, "Audio output must have a single latest-playback generation guard");
+assert.match(app, /window\.SolinaNative\?\.stopSpeaking\?\.\(\)/, "Every new speech turn must stop native TTS before starting");
+assert.match(app, /playbackId !== speechPlaybackId/, "Late speech responses and stale cleanup must not restart or silence the newest turn");
+assert.match(app, /speechPlaybackId \+= 1/, "Explicit stop/cancel must invalidate pending cloud TTS before it can play");
+assert.match(edge, /AlAdhan coordinates backup/, "Prayer-time lookup must retry AlAdhan by coordinates if city endpoint fails");
+assert.match(edge, /esalah\.com\/api\/v1\/times/, "Prayer-time lookup must have an independent provider backup");
+
 assert.match(app, /waitForDeviceVoice\(1800\)/, "Web TTS fallback must wait for asynchronous Arabic voice inventory");
 assert.match(app, /voiceschanged/, "Web TTS must handle browsers that load voices asynchronously");
 assert.match(app, /تعذر تشغيل صوت سولينا:/, "Speech failure must be visible instead of silently dropping audio");
