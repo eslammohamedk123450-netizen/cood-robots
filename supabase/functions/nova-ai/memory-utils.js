@@ -68,7 +68,7 @@ export function parseExplicitMemoryCorrection(value) {
     const correctedValue = targetMatch[2].trim().replace(/^["'«»]+|["'«»]+$/g, "").trim();
     if (target && correctedValue.length >= 2) return { target, value: correctedValue };
   }
-  const genericMatch = text.match(/(?:صححي|صحح|عدلي|عدل|بدلي|استبدلي)\s+(?:لي\s+)?(?:ال)?(?:رقم|المعلومة)(?:\s+(?:المحفوظ|القديم|ده|دي))?\s*(?:[:،]\s*|(?:غلط|خطا|مش\s+صحيح|غير\s+صحيح)[\s،:؛]*(?:وال)?(?:الصحيح|الصح|الجديد)\s*[:،]?\s*|(?:الصحيح|الصح|الجديد|خليه|خليها|إلى|الى|ب)\s*[:،]?\s*)([\s\S]{2,12000})$/iu);
+  const genericMatch = text.match(/(?:صححي|صحح|عدلي|عدل|بدلي|استبدلي)\s+(?:لي\s+)?(?:ال)?(?:رقم|المعلومة)(?:\s+(?:المحفوظ|القديم|ده|دي))?\s*(?:[:،]\s*|(?:غلط|خطا|مش\s+صحيح|غير\s+صحيح)[\s،:؛]*(?:وال)?(?:الصحيح|الصح|الجديد)\s*[:،]?\s*|(?:والصحيح|والصح|والجديد|وخليه|وخليها|الصحيح|الصح|الجديد|خليه|خليها|إلى|الى|ب)\s*[:،]?\s*)([\s\S]{2,12000})$/iu);
   const wrongOldMatch = text.match(/(?:الرقم|المعلومة)\s+(?:المحفوظ|القديم)\s+(?:غلط|خطا|مش\s+صحيح|غير\s+صحيح)[\s،:؛]*(?:وال)?(?:الصحيح|الصح|الجديد)\s*[:،]?\s*([\s\S]{2,12000})$/iu);
   const match = genericMatch || wrongOldMatch;
   const correctedValue = match?.[1]?.trim().replace(/^["'«»]+|["'«»]+$/g, "").trim();
