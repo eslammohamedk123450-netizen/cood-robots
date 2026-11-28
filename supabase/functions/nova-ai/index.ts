@@ -1180,7 +1180,7 @@ Deno.serve(async (req: Request) => {
         const startedAt = performance.now();
         const agentMessages = instruction ? buildAgentMessages(messages, instruction) : messages;
         const reply = await requestProviderChat(entry.providerType, entry.provider.base_url, entry.apiKey, entry.model.model_id, agentMessages, req.signal);
-        console.info("NOVA_AGENT_TIMING", JSON.stringify({ model: entry.model.model_id, provider: entry.providerType, duration_ms: Math.round(performance.now() - startedAt), outcome: "success", role: instruction ? "worker" : "direct" }));
+        console.info("NOVA_PROVIDER_TIMING", JSON.stringify({ model: entry.model.model_id, provider: entry.providerType, duration_ms: Math.round(performance.now() - startedAt), outcome: "success", role: instruction ? "worker" : "direct" }));
         return reply;
       };
       const multiAgent = requiresMultiAgentWork(latestUserText) && usableModels.length >= 2;
