@@ -1223,33 +1223,39 @@ function queueVoiceFinal(text, alternatives = []) {
     .sort((a, b) => (Number(b.confidence) || 0) - (Number(a.confidence) || 0));
   const best = candidates[0]?.text.trim() || part;
   state.voiceAlternatives.push(...candidates.slice(0, 3));
-  state.voiceDraft = (state.voiceDraft + " " + best).trim();
+  state.voiceDraft = (state.voiceDraft + " " + best).trim().slice(-320);
   $("liveTranscript").textContent = state.voiceDraft;
   setStatus("سامعك... كمل براحتك", "listening");
   if (state.voicePauseTimer) window.clearTimeout(state.voicePauseTimer);
-  // Wait for a natural pause after the LAST recognized phrase, not after
-  // every partial result. Keep collecting speech while the wake session is armed.
+  // Keep a short rolling draft across pauses so the wake word can arrive late
+  // or be spoken first by mistake. Never submit or save unaddressed audio.
   state.voicePauseTimer = window.setTimeout(() => {
     const complete = state.voiceDraft.trim();
     const alternatives = state.voiceAlternatives.splice(0, 9);
-    state.voiceDraft = "";
     state.voicePauseTimer = null;
     if (!complete || !state.listening || state.processing) return;
-
     const local = handleLocalVoiceCommand(complete);
     if (local.handled) {
+      state.voiceDraft = "";
       if (local.addressed) state.voiceSessionActive = true;
       return;
     }
-
     if (!state.voiceSessionActive && !local.addressed) {
-      $("liveTranscript").textContent = "أنا معاكي. ناديني: سولينا.";
+      $("liveTranscript").textContent = "محتفظة بكلامك لفترة قصيرة. ناديني «سولينا» في أي وقت عشان أرد على كل الكلام.";
       setStatus("مستنياكي تقولي سولينا", "listening");
+      // Expire the private, unsent draft after 8 seconds of silence.
+      state.voicePauseTimer = window.setTimeout(() => {
+        state.voiceDraft = "";
+        state.voiceAlternatives = [];
+        if (state.listening && !state.processing) {
+          $("liveTranscript").textContent = "أنا معاكي. ناديني: سولينا.";
+          setStatus("مستنياكي تقولي سولينا", "listening");
+        }
+        state.voicePauseTimer = null;
+      }, 8000);
       return;
     }
-
-    // Saying "سولينا" once opens a hands-free conversation. Subsequent
-    // utterances are accepted until the user stops the microphone session.
+    state.voiceDraft = "";
     if (local.addressed) state.voiceSessionActive = true;
     const spokenText = local.addressed ? local.text : complete;
     if (spokenText) void handleRecognizedText(spokenText, true, alternatives);
