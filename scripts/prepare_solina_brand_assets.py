@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Create Solina brand icons from the owner-provided screenshot without redrawing it."""
+# Keep the source artwork pixel-faithful; only crop the screenshot chrome.
 from pathlib import Path
 from PIL import Image
 
