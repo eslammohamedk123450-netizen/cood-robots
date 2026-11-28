@@ -106,15 +106,15 @@ export function parseTaskCommand(value, now = new Date()) {
   if (isCancel) return { action: "cancel", all: /كل/.test(text), type: /منبه/.test(text) ? "alarm" : /تذكير/.test(text) ? "reminder" : null };
   if (!isAlarm && !isReminder && /^(?:(?:يا\s*)?سولينا\s*)?(?:شغلي?|اقفلي?|اطفي?|طفي|فعلي?|اتصلي?|اتصل|ابعتي?|ابعت|زودي?|قللي?|وطي|علي)\s+.*(?:البلوتوث|بلوتوث|الواي\s*فاي|وايفاي|الفلاش|الكشاف|الصوت|الموقع|الإنترنت|الانترنت|بيانات الهاتف|الشاشة|رسالة|رسائل|اتصال|مكالمة)/.test(text)) return { action: "unsupported_device", command: text };
   // Prayer-based reminders are resolved from live prayer timings by the app; never ask the owner to supply the clock time.
-  const prayerMatch = text.match(/(?:صلاه|الصلاه|صلاة|الصلاة|اذان|الأذان)?\\s*(الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا)(?:\\s+الصلاه|\\s+الصلاة)?/);
+  const prayerMatch = text.match(/(?:صلاه|الصلاه|صلاة|الصلاة|اذان|الأذان)?\s*(الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا)(?:\s+الصلاه|\s+الصلاة)?/);
   const prayerKey = prayerMatch ? (/فجر/.test(prayerMatch[1]) ? "fajr" : /ظهر/.test(prayerMatch[1]) ? "dhuhr" : /عصر/.test(prayerMatch[1]) ? "asr" : /مغرب/.test(prayerMatch[1]) ? "maghrib" : "isha") : "";
   const prayerReminderIntent = /فكريني|فكرني|ذكريني|ذكرني|نبهيني|نبهني|تذكير|منبه|اضبطي|اضبط|اعملي|اعمل|سجلي|سجل|صحيني|صحييني|اصحيني|فوقيني/.test(text);
   if (prayerKey && prayerReminderIntent) {
-    const before = /قبل.{0,24}(?:عشر|10|خمسه|خمسة|5|ربع|15)\\s*(?:دقايق|دقائق|دقيقه|دقيقة)?/.test(text);
-    const after = /بعد.{0,24}(?:عشر|10|خمسه|خمسة|5|ربع|15)\\s*(?:دقايق|دقائق|دقيقه|دقيقة)/.test(text);
+    const before = /قبل.{0,24}(?:عشر|10|خمسه|خمسة|5|ربع|15)\s*(?:دقايق|دقائق|دقيقه|دقيقة)?/.test(text);
+    const after = /بعد.{0,24}(?:عشر|10|خمسه|خمسة|5|ربع|15)\s*(?:دقايق|دقائق|دقيقه|دقيقة)/.test(text);
     const offsetMinutes = before ? -(/ربع|15/.test(text) ? 15 : /خمسه|خمسة|5/.test(text) ? 5 : 10)
       : after ? (/ربع|15/.test(text) ? 15 : /خمسه|خمسة|5/.test(text) ? 5 : 10) : 0;
-    const cityMatch = text.match(/(?:في|بمدينة|مدينة)\\s+([^،,.؟]+?)(?=\\s+(?:النهارده|اليوم|بكرة|بكره)|[،,.؟]|$)/);
+    const cityMatch = text.match(/(?:في|بمدينة|مدينة)\s+([^،,.؟]+?)(?=\s+(?:النهارده|اليوم|بكرة|بكره)|[،,.؟]|$)/);
     return { action: "create_prayer_reminder", prayer: prayerKey, prayerName: ({fajr:"الفجر",dhuhr:"الظهر",asr:"العصر",maghrib:"المغرب",isha:"العشاء"})[prayerKey], offsetMinutes, type: /منبه|صحيني|اصحيني|فوقيني/.test(text) ? "alarm" : "reminder", city: cityMatch?.[1]?.trim() || "المحلة الكبرى" };
   }
   if (!isAlarm && !isReminder) return null;
