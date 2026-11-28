@@ -30,16 +30,28 @@ export function extractMemoryTokens(value) {
   ))].slice(0, 8);
 }
 
-export function parseExplicitMemorySave(value) {
-  const text = String(value ?? "").trim();
-  const match = text.match(/(?:خلي(?:كي|ك)\s+(?:فاكر(?:ة)?|في\s+بالك)(?:\s+عندك)?|احفظ(?:ي)?|سجل(?:ي)?|افتكر(?:ي)?\s+(?:إن|ان|بأن|عندك))\s*(?:إن|ان|بأن)?\s*(?:ده|دي|دا)?\s*[:،]?\s*([\s\S]{2,12000})$/iu);
-  const payload = match?.[1]?.trim().replace(/^["'«»]+|["'«»]+$/g, "").trim();
-  return payload && payload.length >= 2 ? payload : null;
+function startsWithExplicitMemorySave(value) {
+  const text = normalizeMemoryText(value).replace(/^(?:(?:يا\s+)?(?:سولينا|لينا|سيلينا|سلينا)\s+)+/u, "");
+  return /^(?:خلي(?:كي|ك)\s+(?:فاكر(?:ة|ه|اه)?|في\s+بالك)(?:\s+عندك)?|احفظ(?:ي)?|سجل(?:ي)?|افتكر(?:ي)?\s+(?:ان|بأن|عندك))(?:\s|$)/u.test(text);
 }
 
 export function isExplicitMemoryRecall(value) {
   const text = normalizeMemoryText(value);
-  return /(?:فاكر(?:ة)?|تفتكر(?:ي)?)\s+(?:الرقم|رقم|الحاجة|المعلومة|اللي|كنا|احنا|الموضوع)|(?:هات|هاتي|قولي|قول|رجعلي|رجعيلي|استرجع|استرجعي|اعرض|اعرضي)\s*(?:لي)?\s*(?:الرقم|رقم|الحاجة|المعلومة|الملاحظات?|المحفوظ)|(?:ايه|إيه)\s*(?:هو\s*)?(?:ال)?(?:رقم|الحاجة|المعلومة)|(?:اللي\s+حفظ(?:تي|ت|ته)|الملاحظ(?:ة|ات)\s*(?:اللي|بتاعتي)|ملاحظاتي|اللي\s+قلت(?:ه|لك)|فاكراني\s+رقم)/u.test(text);
+  // A direct "خليكي فاكرة..." command is a save instruction, not a recall question.
+  if (startsWithExplicitMemorySave(text)) return false;
+  return /(?:فاكر(?:ة|ه|اه)?|تفتكر(?:ي|ه)?)\s+(?:ال)?(?:رقم|الحاجة|المعلومة|اللي|كنا|احنا|الموضوع)|(?:هات|هاتي|قولي|قول|رجعلي|رجعيلي|استرجع|استرجعي|اعرض|اعرضي)\s*(?:لي)?\s*(?:الرقم|رقم|الحاجة|المعلومة|الملاحظات?|المحفوظ)|(?:ايه|إيه)\s*(?:هو\s*)?(?:ال)?(?:رقم|الحاجة|المعلومة)|(?:اللي\s+حفظ(?:تي|ت|ته)|الملاحظ(?:ة|ات)\s*(?:اللي|بتاعتي)|ملاحظاتي|اللي\s+قلت(?:ه|لك)|فاكراني\s+رقم)/u.test(text);
+}
+
+export function parseExplicitMemorySave(value) {
+  const text = String(value ?? "").trim();
+  if (!text || isExplicitMemoryRecall(text)) return null;
+  const trigger = /(?:خلي(?:كي|ك)\s+(?:فاكر(?:ة|ه|اه)?|في\s+بالك)(?:\s+عندك)?|احفظ(?:ي)?|سجل(?:ي)?|افتكر(?:ي)?\s+(?:إن|ان|بأن|عندك))\s*(?:إن|ان|بأن)?\s*(?:ده|دي|دا)?\s*[:،]?\s*/giu;
+  const matches = [...text.matchAll(trigger)];
+  // Voice recognition may repeat the full save command after a wake word.
+  // Use the last command marker so the payload does not absorb the repeated phrase.
+  const match = matches[matches.length - 1];
+  const payload = match ? text.slice((match.index ?? 0) + match[0].length).trim().replace(/^["'«»]+|["'«»]+$/g, "").trim() : null;
+  return payload && payload.length >= 2 ? payload : null;
 }
 
 export function parseExplicitMemoryCorrection(value) {
