@@ -505,3 +505,8 @@ assert.match(edge, /asksRecall/, "Memory recall phrases must be detected");
 assert.match(edge, /recalled_notes/, "Recall must report a deterministic note result");
 assert.match(edge, /nova_personal_items/, "Saved memories must use the existing unified personal-items table, not another storage system");
 console.log("SOLINA explicit memory save and recall checks passed.");
+
+assert.match(edge, /خلي(?:كي|ك)\\s+/, "Explicit remember phrases must use real whitespace matching");
+assert.match(edge, /ملاحظات المستخدم الشخصية المحفوظة/, "Saved notes must be injected into the model context when relevant");
+assert.match(edge, /const relevantNotes = asksRecall/, "Personal note retrieval should be selective and recall-aware");
+console.log("SOLINA memory-context integration checks added.");
