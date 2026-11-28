@@ -58,7 +58,7 @@ jobs:
     needs: deploy
     runs-on: ubuntu-latest
     env:
-      PAGES_URL: \${{ needs.deploy.outputs.page_url }}
+      PAGES_URL: ${{ needs.deploy.outputs.page_url }}
     steps:
       - name: Verify published SOLINA bundle
         shell: bash
@@ -72,6 +72,6 @@ jobs:
             sleep 5
           done
           grep -q 'app.js?v=solina-stability-v4' /tmp/solina-index.html
-          curl -fsSL "\${PAGES_URL%/}/app.js?v=solina-stability-v4" | grep -q 'SPEECH_QUOTA_COOLDOWN'
-          curl -fsSL "\${PAGES_URL%/}/conversation-context.js?v=topic-followup-v1" | grep -q 'classifyConversationTurn'
-          curl -fsSL "\${PAGES_URL%/}/speech-quota.js?v=quota-fallback-v1" | grep -q 'isSpeechQuotaCoolingDown'
+          curl -fsSL "${PAGES_URL%/}/app.js?v=solina-stability-v4" | grep -q 'SPEECH_QUOTA_COOLDOWN'
+          curl -fsSL "${PAGES_URL%/}/conversation-context.js?v=topic-followup-v1" | grep -q 'classifyConversationTurn'
+          curl -fsSL "${PAGES_URL%/}/speech-quota.js?v=quota-fallback-v1" | grep -q 'isSpeechQuotaCoolingDown'
