@@ -1607,7 +1607,8 @@ function handleTaskDialogue(clean) {
     .replace(/^(?:طيب|تمام|خلاص|ماشي)\s*/, "").trim();
   if (pending?.stage === "choose_cancel") {
     const choiceText = normalizeTaskText(clean).replace(/^(?:يا\s*)?سولينا\s*/, "").trim();
-    const numericChoice = /^\d+$/.test(choiceText) ? Number(choiceText) : 0;
+    const choiceMatch = choiceText.match(/^(?:رقم\s*)?(\d+)$/);
+    const numericChoice = choiceMatch ? Number(choiceMatch[1]) : 0;
     const chosen = numericChoice > 0
       ? pending.options[numericChoice - 1]
       : pending.options.filter((item) => normalizeTaskText(item.title) === choiceText);
@@ -1620,7 +1621,7 @@ function handleTaskDialogue(clean) {
   }
   if (pending?.stage === "confirm_cancel") {
     const confirmation = normalizeTaskText(clean).replace(/^(?:يا\s*)?سولينا\s*/, "").trim();
-    if (/^(?:ايوه|اه|أيوه|نعم|موافق|تمام|اكد|اكدلي|نفذ|نفذي)$/.test(confirmation)) {
+    if (/^(?:ايوه|اه|أيوه|أيوة|ايوة|نعم|موافق|تمام|اكد|اكدلي|نفذ|نفذي)$/.test(confirmation)) {
       state.pendingTaskDraft = null;
       return { handled: true, intent: { action: "cancel_confirmed", ids: pending.ids } };
     }
