@@ -626,6 +626,8 @@ assert.match(edge, /MEMORY_FACT_DELETE_INSTRUCTION/, "Partial deletion must reso
 assert.match(edge, /pending_fact_deletions/, "Partial deletion must persist the exact selected facts for confirmation");
 assert.match(edge, /personal_fact_archived/, "Confirming a partial deletion must archive only the selected facts");
 assert.match(edge, /correctedMemoriesForQuery/, "Correction-history recall must be scoped to the subject named by the user");
+assert.match(edge, /provenance=user_correction has value as the current truth and previous_value as historical only/, "Semantic recall must prefer corrected current facts over stale original note text");
+assert.match(edge, /أجب بالقيمة الحالية المطابقة للموضوع والخاصية فقط/, "Memory prompt must favor a precise property answer over dumping an entire saved note");
 assert.match(edge, /explicitSaveAtStart/, "A correction that mentions preserving the old value must still enter correction handling");
 assert.equal(parseExplicitMemorySave("احفظي ميزانية مشروع النور 5000 جنيه"), "ميزانية مشروع النور 5000 جنيه", "A normal direct save must remain supported after save-trigger boundary hardening");
 assert.equal(classifyMemoryKind("رقم الحساب ١٢٣٤٥٦"), "reference", "Arabic-Indic numeric references must be categorized correctly");
