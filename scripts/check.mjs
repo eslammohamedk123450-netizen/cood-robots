@@ -13,7 +13,7 @@ const graphFixture = buildMemoryGraph("المشروع ألف ميزانيته 50
     { subject: "المشروع ألف", predicate: "موعد التسليم", value: "الخميس", value_type: "date", evidence: "موعده الخميس", confidence: 0.95 },
     { subject: "المشروع باء", predicate: "الميزانية", value: "7000", value_type: "money", context: "جنيه", evidence: "ميزانيته 7000 جنيه", confidence: 0.99 },
   ],
-  relations: [{ from: "المشروع ألف", relation: "له ميزانية", to: "5000 جنيه" }],
+  relations: [{ from: "المشروع ألف", relation: "له ميزانية", to: "5000 جنيه", evidence: "ميزانيته 5000 جنيه" }],
 });
 assert.equal(graphFixture.source_text, "المشروع ألف ميزانيته 5000 جنيه وموعده الخميس، والمشروع باء ميزانيته 7000 جنيه.", "Semantic indexing must preserve the complete original memory");
 assert.equal(graphFixture.facts.length, 3, "Semantic indexing must preserve distinct facts from one sentence");
@@ -21,6 +21,7 @@ assert.equal(graphFixture.facts[0].subject, "المشروع ألف", "Each value
 assert.equal(graphFixture.facts[2].subject, "المشروع باء", "Similar properties must not merge facts belonging to different subjects");
 assert.equal(graphFixture.facts[2].value, "7000", "Exact values must survive semantic graph validation");
 assert.equal(buildMemoryGraph("المشروع ألف ميزانيته 5000 جنيه.", { facts: [{ subject: "المشروع ألف", predicate: "الميزانية", value: "9000", evidence: "ميزانيته 9000 جنيه" }] }).facts.length, 0, "Model-invented facts without matching source evidence must be rejected");
+assert.equal(buildMemoryGraph("المشروع ألف ميزانيته 5000 جنيه.", { facts: [{ subject: "المشروع ألف", predicate: "الميزانية", value: "9000", evidence: "ميزانيته 5000 جنيه" }] }).facts.length, 0, "A model must not attach a value that is absent from its quoted evidence");
 assert.deepEqual(validateSemanticRecallIds({ selected_ids: ["note-b", "not-real", "note-a", "note-b"] }, ["note-a", "note-b"]), ["note-b", "note-a"], "Semantic retrieval must reject unknown IDs and deduplicate valid candidates");
 assert.deepEqual(parseMemoryModelJson('prefix ```json\\n{"selected_ids":["n1"],"confidence":0.9}\\n``` suffix'), { selected_ids: ["n1"], confidence: 0.9 }, "Model JSON parsing must tolerate fenced JSON and surrounding prose");
 assert.equal(buildMemoryGraph("نص أصلي", null).extraction_status, "empty", "Missing model output must never be marked as semantically processed");
