@@ -109,7 +109,10 @@ export function parseTaskCommand(value, now = new Date()) {
   const isList = /(?:وريني|اعرضي|اعرض|قوليلي|شوفي).*(?:التذكيرات|التذكير|المنبهات|المنبه|المهام)|(?:التذكيرات|التذكير|المنبهات|المنبه|المهام).*(?:عندي|المحفوظ|الموجود)/.test(text);
   const isCancel = /(?:الغي|الغى|احذفي|امسحي|الغاء).*(?:تذكير|منبه|مهمه)|(?:الغى|الغي).*(?:كل|اخر|آخر).*(?:التذكيرات|المنبهات)/.test(text);
   if (isList) return { action: "list" };
-  if (isCancel) return { action: "cancel", all: /كل/.test(text), type: /منبه/.test(text) ? "alarm" : /تذكير/.test(text) ? "reminder" : null };
+  if (isCancel) {
+    const asksAlarms = /منبه/.test(text), asksReminders = /تذكير/.test(text);
+    return { action: "cancel", all: /كل/.test(text), type: asksAlarms && asksReminders ? null : asksAlarms ? "alarm" : asksReminders ? "reminder" : null };
+  }
   if (!isAlarm && !isReminder && /^(?:(?:يا\s*)?سولينا\s*)?(?:شغلي?|اقفلي?|اطفي?|طفي|فعلي?|اتصلي?|اتصل|ابعتي?|ابعت|زودي?|قللي?|وطي|علي)\s+.*(?:البلوتوث|بلوتوث|الواي\s*فاي|وايفاي|الفلاش|الكشاف|الصوت|الموقع|الإنترنت|الانترنت|بيانات الهاتف|الشاشة|رسالة|رسائل|اتصال|مكالمة)/.test(text)) return { action: "unsupported_device", command: text };
   // Prayer-based reminders are resolved from live prayer timings by the app; never ask the owner to supply the clock time.
   const prayerMatch = text.match(/(?:^|\s)(?:(?:صلاه|الصلاه|صلاة|الصلاة|اذان|الأذان)\s+)?(الفجر|فجر|الظهر|ظهر|العصر|عصر|المغرب|مغرب|العشاء|عشا)(?=$|\s)/);
