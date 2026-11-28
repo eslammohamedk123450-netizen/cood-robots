@@ -528,6 +528,10 @@ assert.match(edge, /Promise\.allSettled\(\[/, "Independent agents must execute c
 assert.match(edge, /function buildSynthesisMessages/, "A synthesis agent must reconcile parallel worker outputs into one answer");
 assert.match(edge, /agent_mode: agentMode/, "Agent execution mode must be observable for diagnostics");
 assert.match(edge, /usableModels\.length >= 2/, "Multi-agent mode must fall back safely when fewer than two enabled models exist");
+assert.match(edge, /nova_ai_preferences/, "Agent routing must respect the owner's configured preferred model");
+assert.match(edge, /orderedModels\.unshift/, "The preferred model must lead the agent roster deterministically");
+assert.match(edge, /order\("created_at", \{ ascending: true \}\)/, "Fallback agent order must be stable across requests");
+
 assert.match(edge, /single-agent-fallback/, "One successful worker must still return a useful answer when its parallel peer fails");
 
 
