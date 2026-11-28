@@ -1210,11 +1210,11 @@ Deno.serve(async (req: Request) => {
           .select("id,title,content,created_at,updated_at").maybeSingle();
         if (correctionError) throw correctionError;
         if (!correctedNote) return json({ error: "المعلومة لم تعد موجودة في حسابك، لم يتم إجراء أي تعديل." }, 404, origin);
-        const oldNumberKey = extractMemoryNumberSignature(previousContent);
-        if (oldNumberKey) {
+        const previousSignature = normalizeMemoryText(previousContent);
+        if (previousSignature) {
           const duplicateNotes = (savedNotes ?? []).filter((note: any) =>
             note.id !== target.id && !note.metadata?.superseded_by &&
-            extractMemoryNumberSignature(String(note.content || note.title || "")) === oldNumberKey
+            normalizeMemoryText(String(note.content || note.title || "")) === previousSignature
           );
           for (const duplicate of duplicateNotes) {
             const duplicateMetadata = { ...(duplicate.metadata || {}), memory_kind: "reference", superseded_by: target.id };
