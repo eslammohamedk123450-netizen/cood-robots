@@ -859,7 +859,9 @@ Deno.serve(async (req: Request) => {
       if (kind === "prayer") {
         const city = cleanString(body?.city, 100) || "المحلة الكبرى";
         const country = cleanString(body?.country, 80) || "Egypt";
-        const date = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Cairo", day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date());
+        const dateParts = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Cairo", day: "2-digit", month: "2-digit", year: "numeric" }).formatToParts(new Date());
+        const dateValues = Object.fromEntries(dateParts.map((part) => [part.type, part.value]));
+        const date = `${dateValues.day}-${dateValues.month}-${dateValues.year}`;
         const endpoint = "https://api.aladhan.com/v1/timingsByCity/" + date + "?" + new URLSearchParams({
           city, country, method: "5",
         }).toString();
