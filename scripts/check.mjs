@@ -210,6 +210,13 @@ assert.equal(afterPrayer?.offsetMinutes, 10, "After-prayer offset must be calcul
 assert.ok(edge.includes("runMemoryInterpreter(admin, userId, MEMORY_GRAPH_INSTRUCTION"), "Explicit memory saves must use the configured model to extract general semantic facts");
 assert.ok(edge.includes("memory_graph: memoryGraph"), "Structured semantic facts must be persisted alongside the original note");
 assert.ok(edge.includes("MEMORY_RECALL_INSTRUCTION"), "Memory retrieval must use meaning and context rather than keyword-only matching");
+assert.ok(edge.includes("MEMORY_DELETE_INSTRUCTION"), "Deletion targets must be resolved by meaning before confirmation");
+assert.ok(edge.includes("MEMORY_CORRECTION_INSTRUCTION"), "Corrections must identify a fact and property semantically");
+assert.ok(edge.includes("correction_evidence: newValueEvidence"), "Corrected values must retain the user's exact evidence");
+assert.ok(edge.includes("semantic_graph: item?.metadata?.memory_graph"), "Deletion must compare semantic context when available");
+assert.ok(edge.includes("selectedCorrectionIds.length === 1"), "Fact correction must bind to one owner-scoped memory before updating");
+assert.ok(edge.includes('pending_action: "delete_confirmation"'), "Semantic deletion must remain confirmation-gated");
+
 assert.ok(edge.includes("validateSemanticRecallIds"), "Semantic retrieval must validate model-selected IDs against owner-scoped saved notes");
 assert.ok(edge.includes("original_text: String(note.content"), "Semantic retrieval must compare the complete original note as evidence");
 assert.ok(edge.includes("parseExplicitMemorySave(latestUserText)"), "Explicit remember phrases must be parsed by the shared Arabic memory helper");
@@ -617,6 +624,8 @@ assert.equal(isExplicitMemoryRecall("سولينا فاكره الرقم"), true,
 assert.equal(isCorrectionHistoryRecall("سولينا فاكره الرقم اللي انا قلت لك صححيه"), true, "Wake-word-prefixed correction-history recall must be recognized");
 
 assert.equal(isCorrectionHistoryRecall("فاكر الرقم اللي انا قلت لك صححيه"), true, "Recall of a previously corrected number must target correction history");
+assert.equal(isCorrectionHistoryRecall("فاكرة الميزانية القديمة؟"), true, "Old-value recall must work for any corrected property, not only numbers");
+assert.equal(isExplicitMemoryRecall("فاكرة الميزانية القديمة؟"), true, "Generic old-value questions must enter correction-history retrieval");
 assert.equal(isCorrectionHistoryRecall("فاكره الرقم اللي انا قلت لك صححيه"), true, "Feminine colloquial recall must target correction history");
 assert.equal(isCorrectionHistoryRecall("فاكره الرقم اللي قلت لك صححيه"), true, "Shortened spoken correction recall must target correction history");
 assert.equal(isExplicitMemoryRecall("هات الرقم اللي حفظته"), true, "Direct requests to retrieve a saved number must be recognized");
