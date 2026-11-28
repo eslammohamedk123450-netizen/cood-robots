@@ -407,8 +407,16 @@ const MEMORY_CORRECTION_INSTRUCTION = [
 
 
 function requiresMultiAgentWork(text: string): boolean {
-  const value = String(text || "");
-  return value.length >= 700 || /(?:ابحث|بحث شامل|قارن|مقارنة|حلل|تحليل|خطط|خطة كاملة|نفذ|تنفيذ|صمم|برمج|اكتب كود|راجع الكود|اصلح|أصلح|مشروع|دراسة|مصادر|مراجع|بالتفصيل|خطوة بخطوة|عدة مهام|أكثر من مهمة|بحث وتحليل|research|compare|analy[sz]e|implement|debug|build|architecture|multi.step)/iu.test(value);
+  const value = String(text || "").trim();
+  if (!value || value.length < 90) return false;
+  // Keep personal actions, recall, greetings and direct factual questions on the
+  // deterministic/single-model path. Parallel reasoning is reserved for work
+  // where independent analysis and synthesis can materially improve accuracy.
+  if (/(?:^|\\s)(?:فكريني|فكرني|ذكريني|ذكرني|منبه|تذكير|احفظي|احفظ|خليكي فاكرة|فاكرة الرقم|هات الرقم|الساعة كام|الوقت كام)(?:\\s|$)/iu.test(value)) return false;
+  const explicitResearch = /(?:بحث شامل|ابحث عن مصادر|هات مصادر|قارن بين|مقارنة شاملة|حلل بعمق|تحليل مفصل|دراسة جدوى|تقييم شامل|راجع الخيارات|موازنة بين|خطة تنفيذ كاملة|عدة مراحل|عدة أنظمة|أكثر من بديل|مصادر متعددة|research and compare|comprehensive research|deep analysis|trade.?off|multi.step plan)/iu.test(value);
+  const substantialTask = value.length >= 900 && /(?:اشرح|حلل|قارن|صمم|نفذ|راجع|ابن|خطط|دراسة|بحث|مصادر|تحليل|architecture|implement|debug|build|research|compare|analy[sz]e)/iu.test(value);
+  const multiRequirement = /(?:أولاً|ثانيًا|ثالثًا|بالإضافة إلى|وفي نفس الوقت|مع مراعاة|من ناحية.*ومن ناحية|بشرط.*وكمان)/iu.test(value) && value.length >= 260;
+  return explicitResearch || substantialTask || multiRequirement;
 }
 function buildAgentMessages(messages: any[], roleInstruction: string): any[] {
   const baseSystem = messages.filter((item) => item?.role === "system" && typeof item.content === "string").map((item) => item.content).join("\n");
