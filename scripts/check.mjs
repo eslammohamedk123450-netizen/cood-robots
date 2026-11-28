@@ -522,6 +522,8 @@ assert.ok(edge.includes('timeZone: "Africa/Cairo"'), "Conversation recall must i
 assert.match(edge, /hourMatch/, "Conversation recall must narrow historical results by a requested hour");
 assert.match(edge, /requestedNoteDate/, "Saved personal notes must be retrievable by relative Cairo date");
 assert.match(edge, /requestedNoteHour/, "Saved personal notes must be retrievable by requested hour");
+assert.match(edge, /hasClockRecall/, "Clock words and hour digits must not poison note-content keyword matching");
+
 assert.match(edge, /note\.metadata\?\.memory_kind/, "Relevant categorized notes must carry their category into model context");
 assert.match(app, /memoryLabels = \{ project: "مشروع", decision: "قرار", task: "مهمة مفتوحة", reference: "رقم \/ معلومة مرجعية", note: "ملاحظة" \}/, "Personal notebook must display project, decision, open-task and reference categories");
 
