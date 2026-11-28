@@ -341,38 +341,29 @@ function speakWithNativeDevice(text, segments = []) {
     }, 65000);
   });
 }
-function speakWithDevice(text, segments = []) {
+async function speakWithDevice(text, segments = []) {
   if (window.SolinaNative && typeof window.SolinaNative.speakText === "function") {
-    return speakWithNativeDevice(text, segments);
+    return await speakWithNativeDevice(text, segments);
   }
-  return new Promise(async (resolve, reject) => {
-    if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
-      reject(new Error("محرك النطق غير متاح في المتصفح ده. افتح NOVA من Chrome على أندرويد."));
-      return;
-    }
-    window.speechSynthesis.cancel();
-    // On web browsers, Arabic voice inventory may load asynchronously after first access.
-    const voice = await waitForDeviceVoice(1800);
+  if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+    throw new Error("محرك النطق غير متاح في المتصفح ده. افتح NOVA من Chrome على أندرويد.");
+  }
+  window.speechSynthesis.cancel();
+  // Wait for browser voice inventory to initialize, but never use an async Promise executor.
+  const voice = await waitForDeviceVoice(1800);
+  return new Promise((resolve, reject) => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = voice?.lang || "ar-EG";
-    utterance.rate = 0.98;
-    utterance.pitch = 1.08;
+    utter.rate = 0.98;
+    utter.pitch = 1.08;
     if (voice) utterance.voice = voice;
-
-    // Android's SpeechSynthesis often emits no boundary events and exposes no audio
-    // waveform. Drive the Solina audio orb from a speech-timed syllable envelope instead.
-    let rafId = 0;
-    let startedAt = 0;
-    let estimatedDuration = Math.max(1800, (text.length / 13.5) * 1000 / utterance.rate);
-    let lastBoundaryProgress = 0;
-    let ended = false;
+    let rafId = 0, startedAt = 0, lastBoundaryProgress = 0, ended = false;
+    const estimatedDuration = Math.max(1800, (text.length / 13.5) * 1000 / utterance.rate);
     const tick = (now) => {
       if (ended || !state.speaking) return;
       const elapsed = Math.max(0, now - startedAt);
       const progress = Math.min(0.995, elapsed / estimatedDuration);
-      // Keep the visual timing aligned when a browser does provide word boundaries.
-      const visualProgress = Math.max(progress * 0.72, lastBoundaryProgress);
-      updateSpeechSegmentProgress(segments, visualProgress);
+      updateSpeechSegmentProgress(segments, Math.max(progress * 0.72, lastBoundaryProgress));
       const charIndex = Math.min(text.length - 1, Math.floor(progress * text.length));
       const currentChar = text[charIndex] || "";
       const isPause = /[،,.!?؟؛]/.test(currentChar);
@@ -390,26 +381,21 @@ function speakWithDevice(text, segments = []) {
     };
     utterance.onstart = () => {
       startedAt = performance.now();
-      setStatus(personas[persona].name + " بيجهز الصوت...", "thinking");
+      setStatus(personas[persona]?.name || "سولينا", "speaking");
       rafId = requestAnimationFrame(tick);
     };
     utterance.onboundary = (event) => {
       if (Number.isFinite(event.charIndex) && text.length) {
         lastBoundaryProgress = Math.max(lastBoundaryProgress, event.charIndex / text.length);
-        // Some Android engines send only a few boundaries; use them to correct
-        // the estimated clock without making the mouth jump or freeze.
         updateSpeechSegmentProgress(segments, lastBoundaryProgress);
       }
     };
     utterance.onend = () => { stopVisuals(); resolve(); };
-    utterance.onerror = (event) => {
-      stopVisuals();
-      const errorCode = event.error || "unknown";
-      reject(new Error("محرك الجهاز فشل في النطق: " + errorCode));
-    };
+    utterance.onerror = (event) => { stopVisuals(); reject(new Error("محرك الجهاز فشل في النطق: " + (event.error || "unknown"))); };
     utterance.onpause = () => { if (rafId) cancelAnimationFrame(rafId); };
     utterance.onresume = () => { if (!ended) rafId = requestAnimationFrame(tick); };
-    window.speechSynthesis.speak(utterance);
+    try { window.speechSynthesis.speak(utterance); }
+    catch (error) { stopVisuals(); reject(error); }
   });
 }
 async function speak(text, segments = [], signal) {
@@ -1031,12 +1017,7 @@ async function requestAIReply(text, signal, voiceAlternatives = []) {
     const now = new Date();
     const clock = new Intl.DateTimeFormat("ar-EG", { hour: "numeric", minute: "2-digit", hourCycle: "h12" }).format(now);
     const date = new Intl.DateTimeFormat("ar-EG", { weekday: "long", day: "numeric", month: "long" }).format(now);
-    const reply = "الساعة دلوقتي " + clock + "، والنهارده " + date + ".";
-    state.messages.push({ role: "assistant", content: reply });
-    state.messagesByPersona[state.persona] = state.messages.slice();
-    state.replySegments = [{ text: reply, emotion: "neutral" }];
-    state.replyEmotion = "neutral";
-    return reply;
+    requestMessages[requestMessages.length - 1].content += String.fromCharCode(10, 10) + "[معلومة وقت الجهاز دقيقة: الساعة " + clock + "، " + date + ". استخدم الوقت للإجابة على سؤال المستخدم كاملًا، لا تكتفِ بإخبار الساعة إذا كان يسأل أيضًا عن نصيحة أو تقييم أو قرار.]";
   }
   const asksWeb = /ابحث|ابحثي|دور\s+(?:لي\s+)?على|دوري\s+(?:لي\s+)?على|شوفي\s+(?:لي\s+)?على\s+(?:النت|الإنترنت|الانترنت)|على\s+(?:النت|الإنترنت|الانترنت)|من\s+(?:النت|الإنترنت|الانترنت)|جوجل|هات\s+لي\s+مصادر|مصادر\s+عن|آخر\s+الأخبار|اخر\s+الاخبار|سعر|أسعار|اسعار|بكام|قارن|مقارنة|أفضل\s+سعر|متاح\s+للشراء|شراء\s+اونلاين/i.test(liveQuery);
   if (asksPrayer || asksWeb) {
