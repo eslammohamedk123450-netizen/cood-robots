@@ -1592,16 +1592,42 @@ function handleTaskDialogue(clean) {
     state.pendingTaskDraft = null;
     return { handled: false };
   }
-  const dueReminders = state.personalItems
-    .filter(task => task.item_type === "reminder" && task.status === "active" && personalItemDate(task) <= Date.now())
+  const dueItems = state.personalItems
+    .filter(task => ["reminder", "task"].includes(task.item_type) && task.status === "active" && personalItemDate(task) > 0 && personalItemDate(task) <= Date.now())
     .sort((a, b) => personalItemDate(a) - personalItemDate(b));
-  if (dueReminders.length && /^(?:انا\s*)?(?:خلصت|انتهيت|تم|خلصنا)(?:\s+منه)?[.!؟، ]*$/i.test(normalized)) {
-    return { handled: true, intent: { action: "complete_task", taskId: String(dueReminders[0].id) } };
-  }
-  if (dueReminders.length && /^(?:أجليها|اجليها|أجّلها|اجلها|فكريني\s+كمان|ذكريني\s+كمان|بعد\s+عشر\s+دقايق|بعد\s+10\s+دقايق|بعد\s+عشر\s+دقائق)/i.test(normalized)) {
-    return { handled: true, intent: { action: "snooze_task", taskId: String(dueReminders[0].id), minutes: 10 } };
-  }
+  const completionCommand = /^(?:انا\\s*)?(?:خلصت|انتهيت|تم|خلصنا)(?:\\s+منه)?[.!؟، ]*$/i.test(normalized);
+  const snoozeCommand = /^(?:أجليها|اجليها|أجّلها|اجلها|فكريني\\s+كمان|ذكريني\\s+كمان|بعد\\s+عشر\\s+دقايق|بعد\\s+10\\s+دقايق|بعد\\s+عشر\\s+دقائق)/i.test(normalized);
   const pending = state.pendingTaskDraft;
+  if (pending?.stage === "choose_due_action") {
+    const choiceText = normalizeTaskText(clean).replace(/^(?:يا\\s*)?سولينا\\s*/, "").trim();
+    if (/^(?:لا|لأ|الغاء|إلغاء|تراجع|سيبها)$/.test(choiceText)) {
+      state.pendingTaskDraft = null;
+      return { handled: true, reply: "تمام، ألغيت الاختيار وماغيرتش أي تذكير أو مهمة." };
+    }
+    const choiceMatch = choiceText.match(/^(?:رقم\\s*)?(\\d+)$/);
+    const numericChoice = choiceMatch ? Number(choiceMatch[1]) : 0;
+    const matches = numericChoice > 0
+      ? [pending.options[numericChoice - 1]].filter(Boolean)
+      : pending.options.filter(item => normalizeTaskText(item.title) === choiceText);
+    if (matches.length !== 1) return { handled: true, reply: "اختار رقم العنصر من القائمة، أو قولي لا لإلغاء العملية." };
+    const selected = matches[0];
+    state.pendingTaskDraft = null;
+    return { handled: true, intent: pending.action === "complete"
+      ? { action: "complete_task", taskId: selected.id }
+      : { action: "snooze_task", taskId: selected.id, minutes: 10 } };
+  }
+  if ((completionCommand || snoozeCommand) && dueItems.length) {
+    const action = completionCommand ? "complete" : "snooze";
+    if (dueItems.length > 1) {
+      const options = dueItems.slice(0, 6).map(task => ({ id: String(task.id), title: String(task.title || "عنصر مستحق") }));
+      state.pendingTaskDraft = { stage: "choose_due_action", action, options };
+      return { handled: true, reply: (completionCommand ? "عندك أكتر من مهمة أو تذكير مستحق. اختار اللي خلصته:" : "عندك أكتر من تذكير مستحق. اختار اللي أأجله:") + String.fromCharCode(10) +
+        options.map((item, index) => (index + 1) + ". " + item.title).join(String.fromCharCode(10)) };
+    }
+    return { handled: true, intent: completionCommand
+      ? { action: "complete_task", taskId: String(dueItems[0].id) }
+      : { action: "snooze_task", taskId: String(dueItems[0].id), minutes: 10 } };
+  }
   const answerText = normalizeTaskText(clean)
     .replace(/^(?:يا\s*)?سولينا\s*/, "")
     .replace(/^(?:طيب|تمام|خلاص|ماشي)\s*/, "").trim();
