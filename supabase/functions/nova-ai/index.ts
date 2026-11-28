@@ -960,7 +960,7 @@ Deno.serve(async (req: Request) => {
       if (!messages) return json({ error: "سجل المحادثة غير صالح أو تجاوز الحدود المسموحة" }, 400, origin);
       // Explicit personal notes are deterministic and owner-scoped: "remember this" saves the user's exact payload.
       const latestUserText = [...messages].reverse().find((item) => item.role === "user")?.content ?? "";
-      const saveNoteMatch = latestUserText.match(/(?:خلي(?:كي|ك)\s+(?:فاكر(?:ة)?|في\s+بالك)|افتكر(?:ي)?|احفظ(?:ي)?|سجل(?:ي)?|خلي(?:كي|ك)\s+فاكر(?:ة)?\s+عندك)\s*(?:إن|ان|بأن)?\s*(?:ده|دي|دا)?\s*[:،]?\s*([\s\S]{2,12000})$/iu);
+      const saveNoteMatch = latestUserText.match(/(?:خلي(?:كي|ك)\s+(?:فاكر(?:ة)?|في\s+بالك)(?:\s+عندك)?|افتكر(?:ي)?|احفظ(?:ي)?|سجل(?:ي)?)\s*(?:إن|ان|بأن)?\s*(?:ده|دي|دا)?\s*[:،]?\s*([\s\S]{2,12000})$/iu);
       const saveNotePayload = saveNoteMatch?.[1]?.trim().replace(/^["'«»]+|["'«»]+$/g, "").trim();
       if (saveNotePayload && saveNotePayload.length >= 2) {
         const noteTitle = saveNotePayload.replace(/\s+/g, " ").slice(0, 160);
